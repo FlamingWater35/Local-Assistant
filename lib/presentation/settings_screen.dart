@@ -63,7 +63,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Settings applied successfully!')),
         );
-
         if (context.router.canPop()) {
           context.router.back();
         } else {
@@ -95,7 +94,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final isInstalledAsync = ref.watch(
               isModelInstalledProvider(model.id),
             );
-
             return Card(
               child: ListTile(
                 title: Text(model.name),
@@ -126,13 +124,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             );
           }),
+
           const SizedBox(height: 30),
           Text(
-            'Inference Parameters',
+            'Inference & Memory',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          Text('Temperature: ${_draftSettings.temperature.toStringAsFixed(2)}'),
+
+          SwitchListTile(
+            title: const Text("Enable Memory Across Chats"),
+            subtitle: const Text(
+              "Allows the AI to silently reference facts from your other recent conversations.",
+            ),
+            value: _draftSettings.enableGlobalMemory,
+            onChanged: (val) => setState(
+              () => _draftSettings = _draftSettings.copyWith(
+                enableGlobalMemory: val,
+              ),
+            ),
+          ),
+          const Divider(),
+
+          ListTile(
+            title: const Text("Context Limit (Memory Size)"),
+            subtitle: Text(
+              "Keep the last ${_draftSettings.contextLimit} messages in memory per chat.\nLower this to save RAM and prevent overflow.",
+            ),
+          ),
+          Slider(
+            value: _draftSettings.contextLimit.toDouble(),
+            min: 2,
+            max: 100,
+            divisions: 49,
+            label: _draftSettings.contextLimit.toString(),
+            onChanged: (val) => setState(
+              () => _draftSettings = _draftSettings.copyWith(
+                contextLimit: val.toInt(),
+              ),
+            ),
+          ),
+
+          ListTile(
+            title: const Text("Max Output Length (Tokens)"),
+            subtitle: Text("Current limit: ${_draftSettings.maxTokens} tokens"),
+          ),
+          Slider(
+            value: _draftSettings.maxTokens.toDouble(),
+            min: 256,
+            max: 4096,
+            divisions: 15,
+            label: _draftSettings.maxTokens.toString(),
+            onChanged: (val) => setState(
+              () => _draftSettings = _draftSettings.copyWith(
+                maxTokens: val.toInt(),
+              ),
+            ),
+          ),
+
+          ListTile(
+            title: const Text("Temperature"),
+            subtitle: Text(
+              "Creativity level: ${_draftSettings.temperature.toStringAsFixed(2)}",
+            ),
+          ),
           Slider(
             value: _draftSettings.temperature,
             min: 0.0,
@@ -141,6 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               () => _draftSettings = _draftSettings.copyWith(temperature: val),
             ),
           ),
+          const SizedBox(height: 40),
         ],
       ),
       bottomNavigationBar: SafeArea(

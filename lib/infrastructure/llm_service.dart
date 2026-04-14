@@ -36,7 +36,6 @@ class LlmService {
       _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: settings.maxTokens,
       );
-
       _activeChat = await _activeModel!.createChat(
         systemInstruction: settings.systemPrompt,
       );
@@ -50,24 +49,51 @@ class LlmService {
 
   Future<void> loadSessionContext(
     ChatSession? session,
-    String systemPrompt,
+    AppSettings settings,
+    List<ChatSession> allSessions,
   ) async {
     if (_activeModel == null) return;
 
     try {
+      String finalSystemPrompt = settings.systemPrompt;
+
+      if (settings.enableGlobalMemory && allSessions.isNotEmpty) {
+        final otherMessages =
+            allSessions
+                .where((s) => s.id != session?.id)
+                .expand((s) => s.messages)
+                .toList()
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        final recentGlobal = otherMessages.take(10).toList().reversed;
+        if (recentGlobal.isNotEmpty) {
+          final memoryString = recentGlobal
+              .map((m) => "${m.authorId == 'user' ? 'User' : 'AI'}: ${m.text}")
+              .join("\n");
+          finalSystemPrompt +=
+              "\n\n[System Note: Context from the user's other recent conversations for cross-chat memory:]\n$memoryString\n[End cross-chat memory]";
+        }
+      }
+
       _activeChat = await _activeModel!.createChat(
-        systemInstruction: systemPrompt,
+        systemInstruction: finalSystemPrompt,
       );
 
       if (session != null && session.messages.isNotEmpty) {
-        appLogger.i(
-          "Restoring ${session.messages.length} messages to LLM context.",
-        );
-
         final sortedMessages = List<LocalChatMessage>.from(session.messages)
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-        for (final msg in sortedMessages) {
+        final limitedMessages = sortedMessages.length > settings.contextLimit
+            ? sortedMessages.sublist(
+                sortedMessages.length - settings.contextLimit,
+              )
+            : sortedMessages;
+
+        appLogger.i(
+          "Restoring ${limitedMessages.length} messages to LLM context (Limit: ${settings.contextLimit}).",
+        );
+
+        for (final msg in limitedMessages) {
           await _activeChat!.addQueryChunk(
             Message.text(text: msg.text, isUser: msg.authorId == 'user'),
           );
@@ -82,10 +108,8 @@ class LlmService {
     if (_activeChat == null) {
       throw Exception("Model not ready. Check settings or setup.");
     }
-
     await _activeChat!.addQueryChunk(Message.text(text: prompt, isUser: true));
     final stream = _activeChat!.generateChatResponseAsync();
-
     await for (final response in stream) {
       if (response is TextResponse) yield response.token;
     }
@@ -95,7 +119,6 @@ class LlmService {
     await _activeModel?.close();
     _activeModel = null;
     _activeChat = null;
-    appLogger.w("Model unloaded from memory.");
   }
 }
 

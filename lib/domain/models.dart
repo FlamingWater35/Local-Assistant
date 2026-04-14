@@ -46,7 +46,15 @@ class AppSettings extends HiveObject {
     this.maxTokens = 1024,
     this.systemPrompt = 'You are a helpful AI assistant.',
     this.hfToken = '',
+    this.enableGlobalMemory = false,
+    this.contextLimit = 20,
   });
+
+  @HiveField(6)
+  final int contextLimit;
+
+  @HiveField(5)
+  final bool enableGlobalMemory;
 
   @HiveField(4)
   final String hfToken;
@@ -69,6 +77,8 @@ class AppSettings extends HiveObject {
     int? maxTokens,
     String? systemPrompt,
     String? hfToken,
+    bool? enableGlobalMemory,
+    int? contextLimit,
   }) {
     return AppSettings(
       selectedModel: selectedModel ?? this.selectedModel,
@@ -76,6 +86,8 @@ class AppSettings extends HiveObject {
       maxTokens: maxTokens ?? this.maxTokens,
       systemPrompt: systemPrompt ?? this.systemPrompt,
       hfToken: hfToken ?? this.hfToken,
+      enableGlobalMemory: enableGlobalMemory ?? this.enableGlobalMemory,
+      contextLimit: contextLimit ?? this.contextLimit,
     );
   }
 }

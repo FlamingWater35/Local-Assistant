@@ -39,7 +39,6 @@ class ChatLogic extends _$ChatLogic {
       if (session != null) {
         final sortedMessages = List<LocalChatMessage>.from(session.messages)
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-
         for (final msg in sortedMessages) {
           newController.insertMessage(msg.toChatCoreType());
         }
@@ -47,12 +46,23 @@ class ChatLogic extends _$ChatLogic {
     }
 
     final settings = ref.read(settingsControllerProvider);
+    final allSessions = ref.read(hiveServiceProvider).getAllSessions();
+
     await ref
         .read(llmServiceProvider)
-        .loadSessionContext(session, settings.systemPrompt);
+        .loadSessionContext(session, settings, allSessions);
 
     state.dispose();
     state = newController;
+  }
+
+  Future<void> deleteSession(String sessionId) async {
+    await ref.read(hiveServiceProvider).deleteSession(sessionId);
+    ref.read(chatHistoryProvider.notifier).refresh();
+
+    if (currentSessionId == sessionId) {
+      await loadSession(null);
+    }
   }
 
   Future<void> sendMessage(String text) async {
