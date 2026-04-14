@@ -39,6 +39,8 @@ class ChatLogic extends _$ChatLogic {
 
   String? _activeGenerationSessionId;
   StreamSubscription? _generationSubscription;
+  final Map<String, String> _pendingTextUpdates = {};
+  Timer? _saveDebounceTimer;
   final _uuid = const Uuid();
 
   Future<void> loadSession(String? sessionId) async {
@@ -169,6 +171,7 @@ class ChatLogic extends _$ChatLogic {
           if (_activeGenerationSessionId == currentSessionId) {
             aiText += chunk;
             _updateLocalMessage(aiMsgId, aiText);
+            _debouncedSave();
           }
         },
         onError: (error) {
@@ -205,6 +208,7 @@ class ChatLogic extends _$ChatLogic {
           _generationSubscription = null;
           _activeGenerationSessionId = null;
           ref.read(isGeneratingProvider.notifier).setGenerating(false);
+          _flushPendingSaves();
         },
         cancelOnError: false,
       );
@@ -219,6 +223,7 @@ class ChatLogic extends _$ChatLogic {
           "⚠️ Error: Failed to start generation.\nDetails: $e",
         );
       }
+      _flushPendingSaves();
     }
   }
 
@@ -230,6 +235,7 @@ class ChatLogic extends _$ChatLogic {
     }
     _activeGenerationSessionId = null;
     ref.read(isGeneratingProvider.notifier).setGenerating(false);
+    _flushPendingSaves();
   }
 
   LocalChatMessage _createLocalMessage(
@@ -247,7 +253,7 @@ class ChatLogic extends _$ChatLogic {
 
   void _addMessageToStateAndDb(LocalChatMessage msg) {
     state.insertMessage(msg.toChatCoreType());
-    _saveSessionToHive();
+    _debouncedSave();
   }
 
   void _updateLocalMessage(String id, String newText) {
@@ -261,12 +267,31 @@ class ChatLogic extends _$ChatLogic {
         text: newText,
       );
       state.updateMessage(oldCoreMsg, newCoreMsg);
+    }
+
+    _pendingTextUpdates[id] = newText;
+  }
+
+  void _debouncedSave() {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(
+      const Duration(milliseconds: 300),
+      _saveSessionToHive,
+    );
+  }
+
+  void _flushPendingSaves() {
+    _saveDebounceTimer?.cancel();
+    if (_pendingTextUpdates.isNotEmpty || currentSessionId != null) {
       _saveSessionToHive();
     }
   }
 
   void _saveSessionToHive() {
     if (currentSessionId == null) return;
+
+    if (_pendingTextUpdates.isEmpty) return;
+
     final hiveService = ref.read(hiveServiceProvider);
     final session = hiveService.getSession(currentSessionId!);
     if (session != null) {
@@ -288,6 +313,8 @@ class ChatLogic extends _$ChatLogic {
       );
       hiveService.saveSession(updatedSession);
       ref.read(chatHistoryProvider.notifier).refresh();
+
+      _pendingTextUpdates.clear();
     }
   }
 
@@ -295,6 +322,7 @@ class ChatLogic extends _$ChatLogic {
   core.InMemoryChatController build() {
     final controller = core.InMemoryChatController();
     ref.onDispose(() async {
+      _saveDebounceTimer?.cancel();
       await _cancelActiveGeneration();
       controller.dispose();
     });
