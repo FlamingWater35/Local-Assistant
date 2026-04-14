@@ -20,6 +20,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late AppSettings _draftSettings;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -47,40 +48,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _saveAndLoad() async {
-    appLogger.i("Settings: Attempting to save and apply settings...");
     final isInstalled = await ref.read(
       isModelInstalledProvider(_draftSettings.selectedModel).future,
     );
+
+    if (!mounted) return;
+
     if (!isInstalled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selected model is not downloaded!')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selected model is not downloaded!')),
+      );
       return;
     }
+
+    setState(() => _isLoading = true);
+
+    final isFirstLaunch = !context.router.canPop();
 
     try {
       await ref
           .read(settingsControllerProvider.notifier)
-          .updateSettings(_draftSettings);
+          .updateSettings(_draftSettings, reloadModel: !isFirstLaunch);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings applied successfully!')),
-        );
-        if (context.router.canPop()) {
-          context.router.back();
-        } else {
-          context.router.replace(const ChatRoute());
-        }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Settings applied!')));
+
+      if (isFirstLaunch) {
+        context.router.replace(const SetupRoute());
+      } else {
+        context.router.back();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      appLogger.e("Settings: Error saving settings", error: e);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -115,19 +123,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     error: (_, _) => const Text("Error checking status"),
                   ),
                   trailing: isInstalledAsync.value == true
-                      ? Radio<String>(
-                          value: model.id,
-                          groupValue: _draftSettings.selectedModel,
-                          onChanged: (val) => setState(
-                            () => _draftSettings = _draftSettings.copyWith(
-                              selectedModel: val,
-                            ),
-                          ),
-                        )
+                      ? (_draftSettings.selectedModel == model.id
+                            ? Icon(
+                                Icons.radio_button_checked,
+                                color: Theme.of(context).colorScheme.primary,
+                              )
+                            : const Icon(Icons.radio_button_off))
                       : IconButton(
                           icon: const Icon(Icons.download),
                           onPressed: () => _showDownloadDialog(model),
                         ),
+                  onTap: isInstalledAsync.value == true
+                      ? () => setState(
+                          () => _draftSettings = _draftSettings.copyWith(
+                            selectedModel: model.id,
+                          ),
+                        )
+                      : null,
                 ),
               );
             }),
@@ -195,10 +207,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: FilledButton(
-            onPressed: _saveAndLoad,
-            child: const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text('Save & Apply', style: TextStyle(fontSize: 16)),
+            onPressed: _isLoading ? null : _saveAndLoad,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Save & Apply', style: TextStyle(fontSize: 16)),
             ),
           ),
         ),

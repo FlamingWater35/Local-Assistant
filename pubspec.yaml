@@ -49,6 +49,7 @@ dependencies:
   # UI
   flutter_chat_ui: ^2.11.1
   flutter_chat_core: ^2.9.0
+  flutter_markdown_plus: ^1.0.7
 
   # Routing
   auto_route: ^11.1.0

@@ -24,7 +24,7 @@ class HiveService {
   AppSettings getSettings() {
     final s = _settingsBox.get('app_settings');
     appLogger.i(
-      "📂 Loaded Settings from Hive: GlobalMemory=${s?.enableGlobalMemory}, ContextLimit=${s?.contextLimit}",
+      "📂 Loaded Settings from Hive: GlobalMemory=${s?.enableGlobalMemory}",
     );
     return s ?? AppSettings();
   }

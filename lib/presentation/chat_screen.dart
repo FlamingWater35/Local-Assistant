@@ -1,7 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
+import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_assistant/router/app_router.dart';
 
@@ -52,7 +54,9 @@ class ChatScreen extends ConsumerWidget {
     final activeSessionId = ref
         .watch(chatLogicProvider.notifier)
         .currentSessionId;
-    final theme = Theme.of(context);
+
+    final appTheme = Theme.of(context);
+    final chatTheme = ChatTheme.fromThemeData(appTheme);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Gemma Local AI'), centerTitle: true),
@@ -69,19 +73,19 @@ class ChatScreen extends ConsumerWidget {
                   right: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
+                  color: appTheme.colorScheme.surfaceContainerHighest,
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.auto_awesome,
-                      color: theme.colorScheme.primary,
+                      color: appTheme.colorScheme.primary,
                       size: 28,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       "Gemma AI",
-                      style: theme.textTheme.headlineSmall?.copyWith(
+                      style: appTheme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -112,8 +116,8 @@ class ChatScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   "RECENT",
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                  style: appTheme.textTheme.labelSmall?.copyWith(
+                    color: appTheme.colorScheme.outline,
                   ),
                 ),
               ),
@@ -128,11 +132,11 @@ class ChatScreen extends ConsumerWidget {
 
                     return ListTile(
                       selected: isActive,
-                      selectedTileColor: theme.colorScheme.primaryContainer
-                          .withOpacity(0.5),
+                      selectedTileColor: appTheme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.5),
                       leading: Icon(
                         Icons.chat_bubble_outline,
-                        color: isActive ? theme.colorScheme.primary : null,
+                        color: isActive ? appTheme.colorScheme.primary : null,
                       ),
                       title: Text(
                         session.title,
@@ -146,7 +150,7 @@ class ChatScreen extends ConsumerWidget {
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline, size: 20),
-                        color: theme.colorScheme.error,
+                        color: appTheme.colorScheme.error,
                         onPressed: () => _confirmDelete(
                           context,
                           ref,
@@ -190,19 +194,71 @@ class ChatScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         bottom: false,
-        child: SelectionArea(
-          child: Chat(
-            key: ValueKey(chatController.hashCode),
-            chatController: chatController,
-            currentUserId: 'user',
-            resolveUser: (core.UserID id) async {
-              return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
-            },
-            onMessageSend: (String text) {
-              appLogger.i("UI: Send button pressed.");
-              ref.read(chatLogicProvider.notifier).sendMessage(text);
-            },
+        child: Chat(
+          key: ValueKey(chatController.hashCode),
+          chatController: chatController,
+          currentUserId: 'user',
+
+          theme: chatTheme,
+
+          builders: Builders(
+            textMessageBuilder:
+                (
+                  context,
+                  core.TextMessage message,
+                  int index, {
+                  required bool isSentByMe,
+                  core.MessageGroupStatus? groupStatus,
+                }) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSentByMe
+                          ? appTheme.colorScheme.primaryContainer
+                          : appTheme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16).copyWith(
+                        bottomRight: isSentByMe
+                            ? Radius.zero
+                            : const Radius.circular(16),
+                        bottomLeft: !isSentByMe
+                            ? Radius.zero
+                            : const Radius.circular(16),
+                      ),
+                    ),
+                    child: MarkdownBody(
+                      data: message.text,
+                      selectable: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: appTheme.textTheme.bodyLarge?.copyWith(
+                          color: isSentByMe
+                              ? appTheme.colorScheme.onPrimaryContainer
+                              : appTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        code: appTheme.textTheme.bodyMedium?.copyWith(
+                          backgroundColor: Colors.transparent,
+                          fontFamily: 'monospace',
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: appTheme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  );
+                },
           ),
+
+          resolveUser: (core.UserID id) async {
+            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
+          },
+          onMessageSend: (String text) {
+            appLogger.i("UI: Send button pressed.");
+            ref.read(chatLogicProvider.notifier).sendMessage(text);
+          },
         ),
       ),
     );

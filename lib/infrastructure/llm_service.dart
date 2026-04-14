@@ -45,9 +45,7 @@ class LlmService {
         maxTokens: safeMaxTokens,
       );
 
-      if (_activeChat != null) {
-        await _activeChat!.close();
-      }
+      if (_activeChat != null) await _activeChat!.close();
 
       _activeChat = await _activeModel!.createChat(
         systemInstruction: settings.systemPrompt,
@@ -91,9 +89,7 @@ class LlmService {
         }
       }
 
-      if (_activeChat != null) {
-        await _activeChat!.close();
-      }
+      if (_activeChat != null) await _activeChat!.close();
 
       _activeChat = await _activeModel!.createChat(
         systemInstruction: finalSystemPrompt,
@@ -167,15 +163,10 @@ class LlmService {
     }
 
     if (!didPrune) {
-      appLogger.i("⚡ generateResponseStream: Appending to existing context...");
       await _activeChat!.addQueryChunk(
         Message.text(text: prompt, isUser: true),
       );
       _currentContextTokens += promptTokens;
-    } else {
-      appLogger.i(
-        "⚡ generateResponseStream: Context was rebuilt (prompt implicitly injected).",
-      );
     }
 
     try {

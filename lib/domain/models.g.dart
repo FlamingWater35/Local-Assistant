@@ -19,20 +19,19 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
     return AppSettings(
       selectedModel: fields[0] == null ? 'gemma-3n-2b' : fields[0] as String,
       temperature: fields[1] == null ? 0.7 : (fields[1] as num).toDouble(),
-      maxTokens: fields[2] == null ? 1024 : (fields[2] as num).toInt(),
+      maxTokens: fields[2] == null ? 2048 : (fields[2] as num).toInt(),
       systemPrompt: fields[3] == null
           ? 'You are a helpful AI assistant.'
           : fields[3] as String,
       hfToken: fields[4] == null ? '' : fields[4] as String,
       enableGlobalMemory: fields[5] == null ? false : fields[5] as bool,
-      contextLimit: fields[6] == null ? 20 : (fields[6] as num).toInt(),
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.selectedModel)
       ..writeByte(1)
@@ -44,9 +43,7 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(4)
       ..write(obj.hfToken)
       ..writeByte(5)
-      ..write(obj.enableGlobalMemory)
-      ..writeByte(6)
-      ..write(obj.contextLimit);
+      ..write(obj.enableGlobalMemory);
   }
 
   @override
