@@ -107,7 +107,7 @@ class ChatScreen extends ConsumerWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Gemma Local AI'),
+          title: const Text('Local AI Assistant'),
           centerTitle: true,
           actions: [
             if (isGenerating)
@@ -150,7 +150,7 @@ class ChatScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "Gemma AI",
+                        "Local Assistant",
                         style: appTheme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
