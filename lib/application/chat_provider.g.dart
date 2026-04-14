@@ -61,6 +61,57 @@ abstract class _$ChatHistory extends $Notifier<List<ChatSession>> {
   }
 }
 
+@ProviderFor(IsGenerating)
+final isGeneratingProvider = IsGeneratingProvider._();
+
+final class IsGeneratingProvider extends $NotifierProvider<IsGenerating, bool> {
+  IsGeneratingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isGeneratingProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$isGeneratingHash();
+
+  @$internal
+  @override
+  IsGenerating create() => IsGenerating();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$isGeneratingHash() => r'adb454772c97c6de50e5b0098b73f55ad794b613';
+
+abstract class _$IsGenerating extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(ChatLogic)
 final chatLogicProvider = ChatLogicProvider._();
 
@@ -93,7 +144,7 @@ final class ChatLogicProvider
   }
 }
 
-String _$chatLogicHash() => r'd7009e9efa5abfa956ef85a0ac44605202a8b3e8';
+String _$chatLogicHash() => r'ad7e02523c168d9e0fa5403b0210ea12dc1666e1';
 
 abstract class _$ChatLogic extends $Notifier<core.InMemoryChatController> {
   core.InMemoryChatController build();

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -24,12 +26,24 @@ class ChatHistory extends _$ChatHistory {
 }
 
 @Riverpod(keepAlive: true)
+class IsGenerating extends _$IsGenerating {
+  void setGenerating(bool value) => state = value;
+
+  @override
+  bool build() => false;
+}
+
+@Riverpod(keepAlive: true)
 class ChatLogic extends _$ChatLogic {
   String? currentSessionId;
 
+  String? _activeGenerationSessionId;
+  StreamSubscription? _generationSubscription;
   final _uuid = const Uuid();
 
   Future<void> loadSession(String? sessionId) async {
+    await _cancelActiveGeneration();
+
     currentSessionId = sessionId;
 
     final newController = core.InMemoryChatController();
@@ -58,6 +72,7 @@ class ChatLogic extends _$ChatLogic {
   }
 
   Future<void> deleteSession(String sessionId) async {
+    await _cancelActiveGeneration();
     await ref.read(hiveServiceProvider).deleteSession(sessionId);
     ref.read(chatHistoryProvider.notifier).refresh();
 
@@ -105,6 +120,8 @@ class ChatLogic extends _$ChatLogic {
   }
 
   Future<void> sendMessage(String text) async {
+    await _cancelActiveGeneration();
+
     final hiveService = ref.read(hiveServiceProvider);
 
     if (currentSessionId == null) {
@@ -118,6 +135,9 @@ class ChatLogic extends _$ChatLogic {
       await hiveService.saveSession(newSession);
       ref.read(chatHistoryProvider.notifier).refresh();
     }
+
+    _activeGenerationSessionId = currentSessionId;
+    ref.read(isGeneratingProvider.notifier).setGenerating(true);
 
     final userMsg = _createLocalMessage(text, 'user');
     _addMessageToStateAndDb(userMsg);
@@ -143,27 +163,67 @@ class ChatLogic extends _$ChatLogic {
             allSessions: allSessions,
           );
 
-      await for (final chunk in stream) {
-        aiText += chunk;
-        _updateLocalMessage(aiMsgId, aiText);
-      }
-    } catch (e) {
-      appLogger.e("Inference error", error: e);
+      _generationSubscription = stream.listen(
+        (chunk) {
+          if (_activeGenerationSessionId == currentSessionId) {
+            aiText += chunk;
+            _updateLocalMessage(aiMsgId, aiText);
+          }
+        },
+        onError: (error) {
+          if (error.toString().contains('CANCELLED') ||
+              error.toString().contains('Process cancelled')) {
+            appLogger.i("Generation cancelled gracefully (expected)");
+            return;
+          }
 
-      if (e.toString().contains('CONTEXT_OVERFLOW')) {
+          if (error.toString().contains('CONTEXT_OVERFLOW')) {
+            if (_activeGenerationSessionId == currentSessionId) {
+              _updateLocalMessage(
+                aiMsgId,
+                "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
+              );
+            }
+          } else {
+            if (_activeGenerationSessionId == currentSessionId) {
+              _updateLocalMessage(
+                aiMsgId,
+                "⚠️ Error: Model inference failed.\nDetails: $error",
+              );
+            }
+          }
+          appLogger.e("Inference error", error: error);
+        },
+        onDone: () {
+          appLogger.i("Generation stream completed");
+          _generationSubscription = null;
+          _activeGenerationSessionId = null;
+          ref.read(isGeneratingProvider.notifier).setGenerating(false);
+        },
+        cancelOnError: false,
+      );
+    } catch (e) {
+      WakelockPlus.disable();
+      ref.read(isGeneratingProvider.notifier).setGenerating(false);
+      appLogger.e("Inference setup error", error: e);
+
+      if (_activeGenerationSessionId == currentSessionId) {
         _updateLocalMessage(
           aiMsgId,
-          "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
-        );
-      } else {
-        _updateLocalMessage(
-          aiMsgId,
-          "⚠️ Error: Model inference failed.\nDetails: $e",
+          "⚠️ Error: Failed to start generation.\nDetails: $e",
         );
       }
-    } finally {
-      WakelockPlus.disable();
     }
+  }
+
+  Future<void> _cancelActiveGeneration() async {
+    if (_generationSubscription != null) {
+      appLogger.i("Cancelling active generation stream...");
+      await _generationSubscription!.cancel();
+      _generationSubscription = null;
+    }
+    _activeGenerationSessionId = null;
+    ref.read(isGeneratingProvider.notifier).setGenerating(false);
   }
 
   LocalChatMessage _createLocalMessage(
@@ -228,7 +288,10 @@ class ChatLogic extends _$ChatLogic {
   @override
   core.InMemoryChatController build() {
     final controller = core.InMemoryChatController();
-    ref.onDispose(() => controller.dispose());
+    ref.onDispose(() async {
+      await _cancelActiveGeneration();
+      controller.dispose();
+    });
     return controller;
   }
 }

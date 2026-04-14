@@ -93,253 +93,296 @@ class ChatScreen extends ConsumerWidget {
     final activeSessionId = ref
         .watch(chatLogicProvider.notifier)
         .currentSessionId;
+    final isGenerating = ref.watch(isGeneratingProvider);
 
     final appTheme = Theme.of(context);
     final chatTheme = ChatTheme.fromThemeData(appTheme);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Gemma Local AI'), centerTitle: true),
-      drawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.only(
-                  top: 20,
-                  bottom: 20,
-                  left: 16,
-                  right: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: appTheme.colorScheme.surfaceContainerHighest,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      color: appTheme.colorScheme.primary,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      "Gemma AI",
-                      style: appTheme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          await ref.read(chatLogicProvider.notifier).loadSession(null);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Gemma Local AI'),
+          centerTitle: true,
+          actions: [
+            if (isGenerating)
               Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: FilledButton.icon(
-                  onPressed: () {
-                    appLogger.i("UI: Starting new chat from drawer.");
-                    ref.read(chatLogicProvider.notifier).loadSession(null);
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('New Chat'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.only(right: 16),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      appTheme.colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Text(
-                  "RECENT",
-                  style: appTheme.textTheme.labelSmall?.copyWith(
-                    color: appTheme.colorScheme.outline,
-                  ),
-                ),
-              ),
-
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: history.length,
-                  itemBuilder: (context, index) {
-                    final session = history[index];
-                    final isActive = session.id == activeSessionId;
-
-                    return ListTile(
-                      selected: isActive,
-                      selectedTileColor: appTheme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.5),
-                      leading: Icon(
-                        Icons.chat_bubble_outline,
-                        color: isActive ? appTheme.colorScheme.primary : null,
-                      ),
-                      title: Text(
-                        session.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: isActive
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        color: appTheme.colorScheme.error,
-                        onPressed: () => _confirmDelete(
-                          context,
-                          ref,
-                          session.id,
-                          session.title,
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        if (!isActive) {
-                          appLogger.i(
-                            "UI: Loading existing chat: ${session.title}",
-                          );
-                          ref
-                              .read(chatLogicProvider.notifier)
-                              .loadSession(session.id);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-              const Divider(height: 1),
-
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
-                ),
-                leading: const Icon(Icons.settings),
-                title: const Text('Settings & Models'),
-                onTap: () {
-                  appLogger.i("UI: Navigating to Settings.");
-                  Navigator.pop(context);
-                  context.router.push(const SettingsRoute());
-                },
-              ),
-            ],
-          ),
+          ],
         ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Chat(
-          key: ValueKey(chatController.hashCode),
-          chatController: chatController,
-          currentUserId: 'user',
-
-          theme: chatTheme,
-
-          builders: Builders(
-            textMessageBuilder:
-                (
-                  context,
-                  core.TextMessage message,
-                  int index, {
-                  required bool isSentByMe,
-                  core.MessageGroupStatus? groupStatus,
-                }) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        drawer: Drawer(
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.only(
+                    top: 20,
+                    bottom: 20,
+                    left: 16,
+                    right: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appTheme.colorScheme.surfaceContainerHighest,
+                  ),
+                  child: Row(
                     children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isSentByMe
-                              ? appTheme.colorScheme.primaryContainer
-                              : appTheme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(16).copyWith(
-                            bottomRight: isSentByMe
-                                ? Radius.zero
-                                : const Radius.circular(16),
-                            bottomLeft: !isSentByMe
-                                ? Radius.zero
-                                : const Radius.circular(16),
-                          ),
-                        ),
-                        child: MarkdownBody(
-                          data: message.text,
-                          selectable: true,
-                          styleSheet: MarkdownStyleSheet(
-                            p: appTheme.textTheme.bodyLarge?.copyWith(
-                              color: isSentByMe
-                                  ? appTheme.colorScheme.onPrimaryContainer
-                                  : appTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            code: appTheme.textTheme.bodyMedium?.copyWith(
-                              backgroundColor: Colors.transparent,
-                              fontFamily: 'monospace',
-                            ),
-                            codeblockDecoration: BoxDecoration(
-                              color: appTheme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
+                      Icon(
+                        Icons.auto_awesome,
+                        color: appTheme.colorScheme.primary,
+                        size: 28,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 16,
-                          right: 16,
-                          top: 2,
-                          bottom: 4,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.content_copy, size: 18),
-                              visualDensity: VisualDensity.compact,
-                              tooltip: 'Copy message',
-                              onPressed: () {
-                                Clipboard.setData(
-                                  ClipboardData(text: message.text),
-                                );
-                                if (context.mounted) {
-                                  showInfoSnackBar(
-                                    context,
-                                    'Copied to clipboard',
-                                  );
-                                }
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18),
-                              visualDensity: VisualDensity.compact,
-                              tooltip: 'Delete message',
-                              onPressed: () {
-                                _confirmDeleteMessage(context, ref, message.id);
-                              },
-                            ),
-                          ],
+                      const SizedBox(width: 12),
+                      Text(
+                        "Gemma AI",
+                        style: appTheme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
-                  );
-                },
-          ),
+                  ),
+                ),
 
-          resolveUser: (core.UserID id) async {
-            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
-          },
-          onMessageSend: (String text) {
-            appLogger.i("UI: Send button pressed.");
-            ref.read(chatLogicProvider.notifier).sendMessage(text);
-          },
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      appLogger.i("UI: Starting new chat from drawer.");
+                      await ref
+                          .read(chatLogicProvider.notifier)
+                          .loadSession(null);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('New Chat'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    "RECENT",
+                    style: appTheme.textTheme.labelSmall?.copyWith(
+                      color: appTheme.colorScheme.outline,
+                    ),
+                  ),
+                ),
+
+                Expanded(
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: history.length,
+                    itemBuilder: (context, index) {
+                      final session = history[index];
+                      final isActive = session.id == activeSessionId;
+
+                      return ListTile(
+                        selected: isActive,
+                        selectedTileColor: appTheme.colorScheme.primaryContainer
+                            .withValues(alpha: 0.5),
+                        leading: Icon(
+                          Icons.chat_bubble_outline,
+                          color: isActive ? appTheme.colorScheme.primary : null,
+                        ),
+                        title: Text(
+                          session.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: isActive
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 20),
+                          color: appTheme.colorScheme.error,
+                          onPressed: () => _confirmDelete(
+                            context,
+                            ref,
+                            session.id,
+                            session.title,
+                          ),
+                        ),
+                        onTap: () async {
+                          if (!isActive) {
+                            appLogger.i(
+                              "UI: Loading existing chat: ${session.title}",
+                            );
+                            await ref
+                                .read(chatLogicProvider.notifier)
+                                .loadSession(session.id);
+                          }
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const Divider(height: 1),
+
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  leading: const Icon(Icons.settings),
+                  title: const Text('Settings & Models'),
+                  onTap: () {
+                    appLogger.i("UI: Navigating to Settings.");
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      context.router.push(const SettingsRoute());
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: SafeArea(
+          bottom: false,
+          child: Chat(
+            key: ValueKey(chatController.hashCode),
+            chatController: chatController,
+            currentUserId: 'user',
+
+            theme: chatTheme,
+
+            builders: Builders(
+              textMessageBuilder:
+                  (
+                    context,
+                    core.TextMessage message,
+                    int index, {
+                    required bool isSentByMe,
+                    core.MessageGroupStatus? groupStatus,
+                  }) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isSentByMe
+                                ? appTheme.colorScheme.primaryContainer
+                                : appTheme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16).copyWith(
+                              bottomRight: isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                              bottomLeft: !isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                            ),
+                          ),
+                          child: MarkdownBody(
+                            data: message.text,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: appTheme.textTheme.bodyLarge?.copyWith(
+                                color: isSentByMe
+                                    ? appTheme.colorScheme.onPrimaryContainer
+                                    : appTheme.colorScheme.onSurfaceVariant,
+                              ),
+                              code: appTheme.textTheme.bodyMedium?.copyWith(
+                                backgroundColor: Colors.transparent,
+                                fontFamily: 'monospace',
+                              ),
+                              codeblockDecoration: BoxDecoration(
+                                color: appTheme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 2,
+                            bottom: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.content_copy, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                tooltip: 'Copy message',
+                                onPressed: () {
+                                  Clipboard.setData(
+                                    ClipboardData(text: message.text),
+                                  );
+                                  if (context.mounted) {
+                                    showInfoSnackBar(
+                                      context,
+                                      'Copied to clipboard',
+                                    );
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                tooltip: 'Delete message',
+                                onPressed: () {
+                                  _confirmDeleteMessage(
+                                    context,
+                                    ref,
+                                    message.id,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+            ),
+
+            resolveUser: (core.UserID id) async {
+              return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
+            },
+            onMessageSend: (String text) {
+              appLogger.i("UI: Send button pressed.");
+              ref.read(chatLogicProvider.notifier).sendMessage(text);
+            },
+          ),
         ),
       ),
     );
