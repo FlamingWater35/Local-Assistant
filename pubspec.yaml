@@ -125,3 +125,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  min_sdk_android: 26
+
+  image_path_android: "assets/icon_transparent.png"
+  adaptive_icon_background: "#EDE07A"
+  adaptive_icon_foreground: "assets/icon_transparent.png"
+  adaptive_icon_foreground_inset: 16 # only available for Android 8.0 devices and above
+  # adaptive_icon_monochrome: "assets/icon/monochrome.png" # only available for Android 13 devices and above
