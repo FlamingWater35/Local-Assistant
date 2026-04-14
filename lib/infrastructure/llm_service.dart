@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -10,8 +12,23 @@ class LlmService {
   InferenceChat? _activeChat;
   InferenceModel? _activeModel;
   int _currentContextTokens = 0;
+  bool _isSessionActive = false;
+  bool _isUnloading = false;
+  final _sessionLock = Completer<void>();
 
   Future<void> initModel(AppSettings settings) async {
+    if (_isUnloading) {
+      await _sessionLock.future
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => appLogger.w("Session lock timeout during init"),
+          )
+          .catchError((_) {});
+    }
+
+    _isSessionActive = false;
+    _isUnloading = false;
+
     try {
       appLogger.i("⚙️ initModel: Starting model initialization...");
       final modelDef = kAvailableModels.firstWhere(
@@ -51,9 +68,11 @@ class LlmService {
         systemInstruction: settings.systemPrompt,
       );
       _currentContextTokens = _estimateTokens(settings.systemPrompt);
+      _isSessionActive = true;
       appLogger.i("✅ initModel: Model initialized successfully.");
     } catch (e) {
       appLogger.e("❌ initModel: Failed to initialize model.", error: e);
+      _isSessionActive = false;
       rethrow;
     }
   }
@@ -63,7 +82,10 @@ class LlmService {
     AppSettings settings,
     List<ChatSession> allSessions,
   ) async {
-    if (_activeModel == null) return;
+    if (_isUnloading || !_isSessionActive || _activeModel == null) {
+      appLogger.i("loadSessionContext: Skipped - session not active");
+      return;
+    }
 
     try {
       appLogger.i("🔄 loadSessionContext: Rebuilding chat context...");
@@ -106,6 +128,11 @@ class LlmService {
         bool isFirstMessage = true;
 
         for (final msg in sortedMessages.reversed) {
+          if (_isUnloading || !_isSessionActive) {
+            appLogger.i("loadSessionContext: Aborted mid-processing");
+            return;
+          }
+
           if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
 
           final msgTokens = _estimateTokens(msg.text);
@@ -123,6 +150,7 @@ class LlmService {
         }
 
         for (final msg in messagesToInject.reversed) {
+          if (_isUnloading) return;
           await _activeChat!.addQueryChunk(
             Message.text(text: msg.text, isUser: msg.authorId == 'user'),
           );
@@ -134,10 +162,12 @@ class LlmService {
         "📂 loadSessionContext: Rebuilt context with $_currentContextTokens estimated tokens.",
       );
     } catch (e) {
-      appLogger.e(
-        "❌ loadSessionContext: Failed to restore LLM context",
-        error: e,
-      );
+      if (!e.toString().contains('CANCELLED')) {
+        appLogger.e(
+          "❌ loadSessionContext: Failed to restore LLM context",
+          error: e,
+        );
+      }
     }
   }
 
@@ -147,8 +177,9 @@ class LlmService {
     required AppSettings settings,
     required List<ChatSession> allSessions,
   }) async* {
-    if (_activeChat == null) {
-      throw Exception("Model not ready. Check settings or setup.");
+    if (_isUnloading || !_isSessionActive || _activeChat == null) {
+      appLogger.w("generateResponseStream: Aborted - session not ready");
+      throw Exception("MODEL_NOT_READY");
     }
 
     int promptTokens = _estimateTokens(prompt);
@@ -172,12 +203,28 @@ class LlmService {
     try {
       final stream = _activeChat!.generateChatResponseAsync();
       await for (final response in stream) {
+        if (_isUnloading || !_isSessionActive) {
+          appLogger.i("generateResponseStream: Stream cancelled by lifecycle");
+          break;
+        }
+
         if (response is TextResponse) {
-          _currentContextTokens += _estimateTokens(response.token);
+          if (_isSessionActive && !_isUnloading) {
+            try {
+              _currentContextTokens += _estimateTokens(response.token);
+            } catch (_) {}
+          }
           yield response.token;
         }
       }
     } catch (e) {
+      if (e.toString().contains('CANCELLED') ||
+          e.toString().contains('Process cancelled') ||
+          e.toString().contains('Session not created')) {
+        appLogger.i("generateResponseStream: Expected cancellation");
+        return;
+      }
+
       if (e.toString().contains('Failed to invoke') ||
           e.toString().contains('SizeOfDimension')) {
         throw Exception("CONTEXT_OVERFLOW");
@@ -187,10 +234,58 @@ class LlmService {
   }
 
   Future<void> unloadModel() async {
-    await _activeChat?.close();
-    await _activeModel?.close();
-    _activeModel = null;
-    _activeChat = null;
+    if (_isUnloading) {
+      appLogger.i("unloadModel: Already unloading, skipping");
+      return;
+    }
+
+    _isUnloading = true;
+    _isSessionActive = false;
+
+    try {
+      appLogger.i("🔄 unloadModel: Closing active chat...");
+
+      if (_activeChat != null) {
+        try {
+          await _activeChat!.close();
+        } catch (e) {
+          if (!e.toString().contains('CANCELLED')) {
+            appLogger.w("unloadModel: Close warning", error: e);
+          }
+        }
+        _activeChat = null;
+      }
+
+      appLogger.i("🔄 unloadModel: Closing model...");
+      if (_activeModel != null) {
+        try {
+          await _activeModel!.close();
+        } catch (e) {
+          if (!e.toString().contains('CANCELLED')) {
+            appLogger.w("unloadModel: Model close warning", error: e);
+          }
+        }
+        _activeModel = null;
+      }
+
+      _currentContextTokens = 0;
+      appLogger.i("✅ unloadModel: Complete");
+    } catch (e) {
+      appLogger.e("❌ unloadModel: Error during cleanup", error: e);
+    } finally {
+      _isUnloading = false;
+      if (!_sessionLock.isCompleted) {
+        _sessionLock.complete();
+      }
+    }
+  }
+
+  void markSessionReady() {
+    if (_activeModel != null && _activeChat != null) {
+      _isSessionActive = true;
+      _isUnloading = false;
+      appLogger.i("Session marked ready for inference");
+    }
   }
 
   int _estimateTokens(String text) =>

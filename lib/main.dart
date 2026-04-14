@@ -33,29 +33,60 @@ class GemmaChatApp extends ConsumerStatefulWidget {
 class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
     with WidgetsBindingObserver {
   final _appRouter = AppRouter();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
+  bool _isResuming = false;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      appLogger.w("App paused: Freeing memory...");
-      ref.read(llmServiceProvider).unloadModel();
-    } else if (state == AppLifecycleState.resumed) {
-      appLogger.i("App resumed: Restoring model...");
-      final settings = ref.read(settingsControllerProvider);
-      ref.read(llmServiceProvider).initModel(settings).catchError((_) {});
+    switch (state) {
+      case AppLifecycleState.paused:
+        appLogger.w("App paused: Freeing memory...");
+        unawaited(ref.read(llmServiceProvider).unloadModel());
+        break;
+
+      case AppLifecycleState.resumed:
+        if (_isResuming) return;
+        _isResuming = true;
+
+        appLogger.i("App resumed: Restoring model...");
+        final settings = ref.read(settingsControllerProvider);
+        ref
+            .read(llmServiceProvider)
+            .initModel(settings)
+            .then((_) {
+              ref.read(llmServiceProvider).markSessionReady();
+            })
+            .catchError((e) {
+              appLogger.e("Failed to restore model after resume", error: e);
+            })
+            .whenComplete(() {
+              _isResuming = false;
+            });
+        break;
+
+      case AppLifecycleState.inactive:
+        break;
+
+      case AppLifecycleState.detached:
+        appLogger.i("App detached: Final cleanup");
+        unawaited(ref.read(llmServiceProvider).unloadModel());
+        break;
+
+      case AppLifecycleState.hidden:
+        break;
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(ref.read(llmServiceProvider).unloadModel());
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -80,4 +111,10 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
       routerConfig: _appRouter.config(),
     );
   }
+}
+
+Future<void> unawaited(Future<void> future) {
+  return future.catchError((error, stackTrace) {
+    appLogger.e("Unawaited future error", error: error, stackTrace: stackTrace);
+  });
 }

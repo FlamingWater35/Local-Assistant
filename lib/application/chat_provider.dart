@@ -63,9 +63,9 @@ class ChatLogic extends _$ChatLogic {
     final settings = ref.read(settingsControllerProvider);
     final allSessions = ref.read(hiveServiceProvider).getAllSessions();
 
-    await ref
-        .read(llmServiceProvider)
-        .loadSessionContext(session, settings, allSessions);
+    final llmService = ref.read(llmServiceProvider);
+    await Future.delayed(const Duration(milliseconds: 50));
+    await llmService.loadSessionContext(session, settings, allSessions);
 
     state.dispose();
     state = newController;
@@ -110,9 +110,10 @@ class ChatLogic extends _$ChatLogic {
 
     final settings = ref.read(settingsControllerProvider);
     final allSessions = hiveService.getAllSessions();
-    await ref
-        .read(llmServiceProvider)
-        .loadSessionContext(updatedSession, settings, allSessions);
+    final llmService = ref.read(llmServiceProvider);
+
+    await Future.delayed(const Duration(milliseconds: 50));
+    await llmService.loadSessionContext(updatedSession, settings, allSessions);
 
     appLogger.i(
       "Message deleted from memory: $messageId from session: $currentSessionId",
@@ -171,13 +172,18 @@ class ChatLogic extends _$ChatLogic {
           }
         },
         onError: (error) {
-          if (error.toString().contains('CANCELLED') ||
-              error.toString().contains('Process cancelled')) {
-            appLogger.i("Generation cancelled gracefully (expected)");
+          final errorStr = error.toString();
+          if (errorStr.contains('CANCELLED') ||
+              errorStr.contains('Process cancelled') ||
+              errorStr.contains('Session not created') ||
+              errorStr.contains('MODEL_NOT_READY')) {
+            appLogger.i(
+              "Generation cancelled gracefully (expected): $errorStr",
+            );
             return;
           }
 
-          if (error.toString().contains('CONTEXT_OVERFLOW')) {
+          if (errorStr.contains('CONTEXT_OVERFLOW')) {
             if (_activeGenerationSessionId == currentSessionId) {
               _updateLocalMessage(
                 aiMsgId,
