@@ -1,6 +1,7 @@
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/logger.dart';
 import '../domain/models.dart';
@@ -88,6 +89,8 @@ class ChatLogic extends _$ChatLogic {
     final aiMsg = _createLocalMessage(aiText, 'ai', id: aiMsgId);
     _addMessageToStateAndDb(aiMsg);
 
+    WakelockPlus.enable();
+
     try {
       final stream = ref.read(llmServiceProvider).generateResponseStream(text);
       await for (final chunk in stream) {
@@ -97,6 +100,8 @@ class ChatLogic extends _$ChatLogic {
     } catch (e) {
       appLogger.e("Inference error", error: e);
       _updateLocalMessage(aiMsgId, "⚠️ Error: Model inference failed.");
+    } finally {
+      WakelockPlus.disable();
     }
   }
 

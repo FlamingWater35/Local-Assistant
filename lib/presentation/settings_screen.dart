@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
@@ -266,6 +267,8 @@ class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
       _error = null;
     });
 
+    WakelockPlus.enable();
+
     try {
       await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
           .fromNetwork(widget.model.url, token: _tokenController.text.trim())
@@ -288,6 +291,8 @@ class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
     } catch (e) {
       appLogger.e("DownloadDialog: Download failed", error: e);
       if (mounted) setState(() => _error = e.toString());
+    } finally {
+      WakelockPlus.disable();
     }
   }
 

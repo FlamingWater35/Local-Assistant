@@ -190,17 +190,19 @@ class ChatScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         bottom: false,
-        child: Chat(
-          key: ValueKey(chatController.hashCode),
-          chatController: chatController,
-          currentUserId: 'user',
-          resolveUser: (core.UserID id) async {
-            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
-          },
-          onMessageSend: (String text) {
-            appLogger.i("UI: Send button pressed.");
-            ref.read(chatLogicProvider.notifier).sendMessage(text);
-          },
+        child: SelectionArea(
+          child: Chat(
+            key: ValueKey(chatController.hashCode),
+            chatController: chatController,
+            currentUserId: 'user',
+            resolveUser: (core.UserID id) async {
+              return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
+            },
+            onMessageSend: (String text) {
+              appLogger.i("UI: Send button pressed.");
+              ref.read(chatLogicProvider.notifier).sendMessage(text);
+            },
+          ),
         ),
       ),
     );

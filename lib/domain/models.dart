@@ -50,25 +50,25 @@ class AppSettings extends HiveObject {
     this.contextLimit = 20,
   });
 
-  @HiveField(6)
+  @HiveField(6, defaultValue: 20)
   final int contextLimit;
 
-  @HiveField(5)
+  @HiveField(5, defaultValue: false)
   final bool enableGlobalMemory;
 
-  @HiveField(4)
+  @HiveField(4, defaultValue: '')
   final String hfToken;
 
-  @HiveField(2)
+  @HiveField(2, defaultValue: 1024)
   final int maxTokens;
 
-  @HiveField(0)
+  @HiveField(0, defaultValue: 'gemma-3n-2b')
   final String selectedModel;
 
-  @HiveField(3)
+  @HiveField(3, defaultValue: 'You are a helpful AI assistant.')
   final String systemPrompt;
 
-  @HiveField(1)
+  @HiveField(1, defaultValue: 0.7)
   final double temperature;
 
   AppSettings copyWith({

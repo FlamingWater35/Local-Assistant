@@ -41,7 +41,7 @@ final class ChatHistoryProvider
   }
 }
 
-String _$chatHistoryHash() => r'8fdeec7a7362f3a98cc3f2da0c56edf8d383933d';
+String _$chatHistoryHash() => r'c36560df224dfb8df1b89c9ad1c0ae7c8453cf11';
 
 abstract class _$ChatHistory extends $Notifier<List<ChatSession>> {
   List<ChatSession> build();
@@ -93,7 +93,7 @@ final class ChatLogicProvider
   }
 }
 
-String _$chatLogicHash() => r'decd8dcf2ea4ac85246f48c26e7ead188e933f8d';
+String _$chatLogicHash() => r'c960bdd4770b7f8a62dfcf680ed5d3feead979ba';
 
 abstract class _$ChatLogic extends $Notifier<core.InMemoryChatController> {
   core.InMemoryChatController build();

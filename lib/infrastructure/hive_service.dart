@@ -7,8 +7,8 @@ import '../domain/models.dart';
 part 'hive_service.g.dart';
 
 class HiveService {
-  late final Box<AppSettings> _settingsBox;
   late final Box<ChatSession> _sessionsBox;
+  late final Box<AppSettings> _settingsBox;
 
   Future<void> init() async {
     await Hive.initFlutter();
@@ -18,14 +18,21 @@ class HiveService {
 
     _settingsBox = await Hive.openBox<AppSettings>('settingsBox');
     _sessionsBox = await Hive.openBox<ChatSession>('sessionsBox');
-    appLogger.i("Hive Initialized");
+    appLogger.i("💡 Hive Initialized");
   }
 
-  AppSettings getSettings() =>
-      _settingsBox.get('app_settings') ?? AppSettings();
+  AppSettings getSettings() {
+    final s = _settingsBox.get('app_settings');
+    appLogger.i(
+      "📂 Loaded Settings from Hive: GlobalMemory=${s?.enableGlobalMemory}, ContextLimit=${s?.contextLimit}",
+    );
+    return s ?? AppSettings();
+  }
 
   Future<void> saveSettings(AppSettings settings) async {
+    appLogger.i("💾 Saving settings to Hive DB...");
     await _settingsBox.put('app_settings', settings);
+    appLogger.i("✅ Settings successfully persisted.");
   }
 
   List<ChatSession> getAllSessions() {
