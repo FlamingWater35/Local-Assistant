@@ -93,7 +93,15 @@ class ChatLogic extends _$ChatLogic {
     await hiveService.saveSession(updatedSession);
     ref.read(chatHistoryProvider.notifier).refresh();
 
-    appLogger.i("Message deleted: $messageId from session: $currentSessionId");
+    final settings = ref.read(settingsControllerProvider);
+    final allSessions = hiveService.getAllSessions();
+    await ref
+        .read(llmServiceProvider)
+        .loadSessionContext(updatedSession, settings, allSessions);
+
+    appLogger.i(
+      "Message deleted from memory: $messageId from session: $currentSessionId",
+    );
   }
 
   Future<void> sendMessage(String text) async {

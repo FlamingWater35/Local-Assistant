@@ -7,6 +7,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
 import '../core/logger.dart';
+import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../router/app_router.dart';
 
@@ -55,9 +56,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!mounted) return;
 
     if (!isInstalled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selected model is not downloaded!')),
-      );
+      showErrorSnackBar(context, 'Selected model is not downloaded!');
       return;
     }
 
@@ -72,9 +71,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Settings applied!')));
+      showSuccessSnackBar(context, 'Settings applied!');
 
       if (isFirstLaunch) {
         context.router.replace(const SetupRoute());
@@ -84,9 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       appLogger.e("Settings: Error saving settings", error: e);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      showErrorSnackBar(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -289,10 +284,16 @@ class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
       ref.invalidate(isModelInstalledProvider(widget.model.id));
       widget.onDownloaded();
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        showSuccessSnackBar(context, 'Model downloaded successfully!');
+      }
     } catch (e) {
       appLogger.e("DownloadDialog: Download failed", error: e);
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+        showErrorSnackBar(context, 'Download failed: $e');
+      }
     } finally {
       WakelockPlus.disable();
     }

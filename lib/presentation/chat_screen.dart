@@ -10,6 +10,7 @@ import 'package:local_assistant/router/app_router.dart';
 
 import '../application/chat_provider.dart';
 import '../core/logger.dart';
+import '../core/snackbar_helper.dart';
 
 @RoutePage()
 class ChatScreen extends ConsumerWidget {
@@ -40,6 +41,43 @@ class ChatScreen extends ConsumerWidget {
               appLogger.i("UI: Deleting chat session ID: $sessionId");
               ref.read(chatLogicProvider.notifier).deleteSession(sessionId);
               Navigator.pop(ctx);
+              if (context.mounted) {
+                showSuccessSnackBar(context, 'Chat deleted');
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteMessage(
+    BuildContext context,
+    WidgetRef ref,
+    String messageId,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Message'),
+        content: const Text('Are you sure you want to delete this message?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              appLogger.i("UI: Deleting message ID: $messageId");
+              await ref
+                  .read(chatLogicProvider.notifier)
+                  .deleteMessage(messageId);
+              if (context.mounted) {
+                Navigator.pop(ctx);
+                showSuccessSnackBar(context, 'Message deleted');
+              }
             },
             child: const Text('Delete'),
           ),
@@ -214,7 +252,6 @@ class ChatScreen extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Message bubble with markdown content
                       Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -254,7 +291,6 @@ class ChatScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      // Action buttons row under the message
                       Padding(
                         padding: const EdgeInsets.only(
                           left: 16,
@@ -265,7 +301,6 @@ class ChatScreen extends ConsumerWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Copy button
                             IconButton(
                               icon: const Icon(Icons.content_copy, size: 18),
                               visualDensity: VisualDensity.compact,
@@ -274,16 +309,14 @@ class ChatScreen extends ConsumerWidget {
                                 Clipboard.setData(
                                   ClipboardData(text: message.text),
                                 );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Copied to clipboard'),
-                                    duration: Duration(seconds: 1),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
+                                if (context.mounted) {
+                                  showInfoSnackBar(
+                                    context,
+                                    'Copied to clipboard',
+                                  );
+                                }
                               },
                             ),
-                            // Delete button (only for user messages or allow for all)
                             IconButton(
                               icon: const Icon(Icons.delete_outline, size: 18),
                               visualDensity: VisualDensity.compact,
@@ -308,35 +341,6 @@ class ChatScreen extends ConsumerWidget {
             ref.read(chatLogicProvider.notifier).sendMessage(text);
           },
         ),
-      ),
-    );
-  }
-
-  void _confirmDeleteMessage(
-    BuildContext context,
-    WidgetRef ref,
-    String messageId,
-  ) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Message'),
-        content: const Text('Are you sure you want to delete this message?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              appLogger.i("UI: Deleting message ID: $messageId");
-              ref.read(chatLogicProvider.notifier).deleteMessage(messageId);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }
