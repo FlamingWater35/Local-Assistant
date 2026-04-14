@@ -6,46 +6,47 @@ import '../core/logger.dart';
 import '../domain/models.dart';
 import '../infrastructure/hive_service.dart';
 import '../infrastructure/llm_service.dart';
+import 'settings_provider.dart';
 
 part 'chat_provider.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ChatHistory extends _$ChatHistory {
+  void refresh() {
+    state = ref.read(hiveServiceProvider).getAllSessions();
+  }
+
   @override
   List<ChatSession> build() {
     return ref.watch(hiveServiceProvider).getAllSessions();
   }
-
-  void refresh() {
-    state = ref.read(hiveServiceProvider).getAllSessions();
-  }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ChatLogic extends _$ChatLogic {
-  final _uuid = const Uuid();
   String? currentSessionId;
 
-  @override
-  core.InMemoryChatController build() {
-    final controller = core.InMemoryChatController();
-    ref.onDispose(() => controller.dispose());
-    return controller;
-  }
+  final _uuid = const Uuid();
 
-  void loadSession(String? sessionId) {
+  Future<void> loadSession(String? sessionId) async {
     currentSessionId = sessionId;
 
     final newController = core.InMemoryChatController();
+    ChatSession? session;
 
     if (sessionId != null) {
-      final session = ref.read(hiveServiceProvider).getSession(sessionId);
+      session = ref.read(hiveServiceProvider).getSession(sessionId);
       if (session != null) {
         for (final msg in session.messages) {
           newController.insertMessage(msg.toChatCoreType());
         }
       }
     }
+
+    final settings = ref.read(settingsControllerProvider);
+    await ref
+        .read(llmServiceProvider)
+        .loadSessionContext(session, settings.systemPrompt);
 
     state.dispose();
     state = newController;
@@ -143,5 +144,12 @@ class ChatLogic extends _$ChatLogic {
       hiveService.saveSession(updatedSession);
       ref.read(chatHistoryProvider.notifier).refresh();
     }
+  }
+
+  @override
+  core.InMemoryChatController build() {
+    final controller = core.InMemoryChatController();
+    ref.onDispose(() => controller.dispose());
+    return controller;
   }
 }

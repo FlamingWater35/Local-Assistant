@@ -51,10 +51,15 @@ class ChatScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     onTap: () {
-                      ref
-                          .read(chatLogicProvider.notifier)
-                          .loadSession(session.id);
                       Navigator.pop(context);
+                      if (ref
+                              .read(chatLogicProvider.notifier)
+                              .currentSessionId !=
+                          session.id) {
+                        ref
+                            .read(chatLogicProvider.notifier)
+                            .loadSession(session.id);
+                      }
                     },
                   );
                 },
@@ -74,6 +79,7 @@ class ChatScreen extends ConsumerWidget {
         ),
       ),
       body: Chat(
+        key: ValueKey(chatController.hashCode),
         chatController: chatController,
         currentUserId: 'user',
         resolveUser: (core.UserID id) async {

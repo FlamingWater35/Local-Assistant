@@ -16,11 +16,6 @@ Future<bool> isModelInstalled(Ref ref, String modelId) async {
 
 @riverpod
 class ModelDownloader extends _$ModelDownloader {
-  @override
-  AsyncValue<int?> build() {
-    return const AsyncData(null);
-  }
-
   Future<void> download(AvailableModel model, String token) async {
     state = const AsyncLoading();
     try {
@@ -38,5 +33,10 @@ class ModelDownloader extends _$ModelDownloader {
       state = AsyncError(e, st);
       rethrow;
     }
+  }
+
+  @override
+  AsyncValue<int?> build() {
+    return const AsyncData(null);
   }
 }

@@ -4,12 +4,6 @@ import 'package:hive_ce/hive.dart';
 part 'models.g.dart';
 
 class AvailableModel {
-  final String id;
-  final String name;
-  final String url;
-  final String fileName;
-  final bool requiresAuth;
-
   const AvailableModel({
     required this.id,
     required this.name,
@@ -17,6 +11,12 @@ class AvailableModel {
     required this.fileName,
     required this.requiresAuth,
   });
+
+  final String fileName;
+  final String id;
+  final String name;
+  final bool requiresAuth;
+  final String url;
 }
 
 const List<AvailableModel> kAvailableModels = [
@@ -40,17 +40,6 @@ const List<AvailableModel> kAvailableModels = [
 
 @HiveType(typeId: 0)
 class AppSettings extends HiveObject {
-  @HiveField(0)
-  final String selectedModel;
-  @HiveField(1)
-  final double temperature;
-  @HiveField(2)
-  final int maxTokens;
-  @HiveField(3)
-  final String systemPrompt;
-  @HiveField(4)
-  final String hfToken;
-
   AppSettings({
     this.selectedModel = 'gemma-3n-2b',
     this.temperature = 0.7,
@@ -58,6 +47,21 @@ class AppSettings extends HiveObject {
     this.systemPrompt = 'You are a helpful AI assistant.',
     this.hfToken = '',
   });
+
+  @HiveField(4)
+  final String hfToken;
+
+  @HiveField(2)
+  final int maxTokens;
+
+  @HiveField(0)
+  final String selectedModel;
+
+  @HiveField(3)
+  final String systemPrompt;
+
+  @HiveField(1)
+  final double temperature;
 
   AppSettings copyWith({
     String? selectedModel,
@@ -78,21 +82,24 @@ class AppSettings extends HiveObject {
 
 @HiveType(typeId: 1)
 class LocalChatMessage extends HiveObject {
-  @HiveField(0)
-  final String id;
-  @HiveField(1)
-  final String text;
-  @HiveField(2)
-  final String authorId;
-  @HiveField(3)
-  final int createdAt;
-
   LocalChatMessage({
     required this.id,
     required this.text,
     required this.authorId,
     required this.createdAt,
   });
+
+  @HiveField(2)
+  final String authorId;
+
+  @HiveField(3)
+  final int createdAt;
+
+  @HiveField(0)
+  final String id;
+
+  @HiveField(1)
+  final String text;
 
   core.TextMessage toChatCoreType() {
     return core.TextMessage(
@@ -106,21 +113,24 @@ class LocalChatMessage extends HiveObject {
 
 @HiveType(typeId: 2)
 class ChatSession extends HiveObject {
-  @HiveField(0)
-  final String id;
-  @HiveField(1)
-  final String title;
-  @HiveField(2)
-  final int updatedAt;
-  @HiveField(3)
-  final List<LocalChatMessage> messages;
-
   ChatSession({
     required this.id,
     required this.title,
     required this.updatedAt,
     required this.messages,
   });
+
+  @HiveField(0)
+  final String id;
+
+  @HiveField(3)
+  final List<LocalChatMessage> messages;
+
+  @HiveField(1)
+  final String title;
+
+  @HiveField(2)
+  final int updatedAt;
 
   ChatSession copyWith({
     String? title,

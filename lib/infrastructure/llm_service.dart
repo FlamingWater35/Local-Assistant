@@ -7,8 +7,8 @@ import '../domain/models.dart';
 part 'llm_service.g.dart';
 
 class LlmService {
-  InferenceModel? _activeModel;
   InferenceChat? _activeChat;
+  InferenceModel? _activeModel;
 
   Future<void> initModel(AppSettings settings) async {
     try {
@@ -38,6 +38,32 @@ class LlmService {
     } catch (e) {
       appLogger.e("Failed to initialize model.", error: e);
       rethrow;
+    }
+  }
+
+  Future<void> loadSessionContext(
+    ChatSession? session,
+    String systemPrompt,
+  ) async {
+    if (_activeModel == null) return;
+
+    try {
+      _activeChat = await _activeModel!.createChat(
+        systemInstruction: systemPrompt,
+      );
+
+      if (session != null && session.messages.isNotEmpty) {
+        appLogger.i(
+          "Restoring ${session.messages.length} messages to LLM context.",
+        );
+        for (final msg in session.messages) {
+          await _activeChat!.addQueryChunk(
+            Message.text(text: msg.text, isUser: msg.authorId == 'user'),
+          );
+        }
+      }
+    } catch (e) {
+      appLogger.e("Failed to restore LLM context", error: e);
     }
   }
 

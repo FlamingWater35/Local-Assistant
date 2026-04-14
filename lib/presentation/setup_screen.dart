@@ -44,15 +44,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         await ref
             .read(settingsControllerProvider.notifier)
             .updateSettings(
-              settings.copyWith(selectedModel: firstInstalledId!),
+              settings.copyWith(selectedModel: firstInstalledId),
               reloadModel: false,
             );
       }
 
-      ref
-          .read(llmServiceProvider)
-          .initModel(ref.read(settingsControllerProvider))
-          .catchError((_) {});
+      try {
+        await ref
+            .read(llmServiceProvider)
+            .initModel(ref.read(settingsControllerProvider));
+      } catch (e) {
+        // Safe fail
+      }
 
       if (mounted) context.router.replace(const ChatRoute());
     } else {

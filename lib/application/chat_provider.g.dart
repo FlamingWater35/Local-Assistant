@@ -20,7 +20,7 @@ final class ChatHistoryProvider
         argument: null,
         retry: null,
         name: r'chatHistoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -41,7 +41,7 @@ final class ChatHistoryProvider
   }
 }
 
-String _$chatHistoryHash() => r'08788633d5227db8f7d6490f4664240600664f7a';
+String _$chatHistoryHash() => r'8fdeec7a7362f3a98cc3f2da0c56edf8d383933d';
 
 abstract class _$ChatHistory extends $Notifier<List<ChatSession>> {
   List<ChatSession> build();
@@ -72,7 +72,7 @@ final class ChatLogicProvider
         argument: null,
         retry: null,
         name: r'chatLogicProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -93,7 +93,7 @@ final class ChatLogicProvider
   }
 }
 
-String _$chatLogicHash() => r'ff44a90966172794ac7e9db640f49b42a1292bfd';
+String _$chatLogicHash() => r'decd8dcf2ea4ac85246f48c26e7ead188e933f8d';
 
 abstract class _$ChatLogic extends $Notifier<core.InMemoryChatController> {
   core.InMemoryChatController build();
