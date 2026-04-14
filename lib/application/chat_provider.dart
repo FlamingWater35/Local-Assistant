@@ -66,6 +66,36 @@ class ChatLogic extends _$ChatLogic {
     }
   }
 
+  Future<void> deleteMessage(String messageId) async {
+    if (currentSessionId == null) return;
+
+    final hiveService = ref.read(hiveServiceProvider);
+    final session = hiveService.getSession(currentSessionId!);
+    if (session == null) return;
+
+    final coreMsg = state.messages.firstWhere(
+      (m) => m.id == messageId,
+      orElse: () =>
+          core.TextMessage(id: '', text: '', authorId: '', createdAt: null),
+    );
+    if (coreMsg.id.isNotEmpty) {
+      state.removeMessage(coreMsg);
+    }
+
+    final updatedMessages = session.messages
+        .where((msg) => msg.id != messageId)
+        .toList();
+
+    final updatedSession = session.copyWith(
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+      messages: updatedMessages,
+    );
+    await hiveService.saveSession(updatedSession);
+    ref.read(chatHistoryProvider.notifier).refresh();
+
+    appLogger.i("Message deleted: $messageId from session: $currentSessionId");
+  }
+
   Future<void> sendMessage(String text) async {
     final hiveService = ref.read(hiveServiceProvider);
 

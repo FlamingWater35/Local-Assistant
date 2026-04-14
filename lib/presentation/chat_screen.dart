@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
@@ -210,44 +211,91 @@ class ChatScreen extends ConsumerWidget {
                   required bool isSentByMe,
                   core.MessageGroupStatus? groupStatus,
                 }) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSentByMe
-                          ? appTheme.colorScheme.primaryContainer
-                          : appTheme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(16).copyWith(
-                        bottomRight: isSentByMe
-                            ? Radius.zero
-                            : const Radius.circular(16),
-                        bottomLeft: !isSentByMe
-                            ? Radius.zero
-                            : const Radius.circular(16),
-                      ),
-                    ),
-                    child: MarkdownBody(
-                      data: message.text,
-                      selectable: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: appTheme.textTheme.bodyLarge?.copyWith(
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Message bubble with markdown content
+                      Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
                           color: isSentByMe
-                              ? appTheme.colorScheme.onPrimaryContainer
-                              : appTheme.colorScheme.onSurfaceVariant,
+                              ? appTheme.colorScheme.primaryContainer
+                              : appTheme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(16).copyWith(
+                            bottomRight: isSentByMe
+                                ? Radius.zero
+                                : const Radius.circular(16),
+                            bottomLeft: !isSentByMe
+                                ? Radius.zero
+                                : const Radius.circular(16),
+                          ),
                         ),
-                        code: appTheme.textTheme.bodyMedium?.copyWith(
-                          backgroundColor: Colors.transparent,
-                          fontFamily: 'monospace',
-                        ),
-                        codeblockDecoration: BoxDecoration(
-                          color: appTheme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(8),
+                        child: MarkdownBody(
+                          data: message.text,
+                          selectable: true,
+                          styleSheet: MarkdownStyleSheet(
+                            p: appTheme.textTheme.bodyLarge?.copyWith(
+                              color: isSentByMe
+                                  ? appTheme.colorScheme.onPrimaryContainer
+                                  : appTheme.colorScheme.onSurfaceVariant,
+                            ),
+                            code: appTheme.textTheme.bodyMedium?.copyWith(
+                              backgroundColor: Colors.transparent,
+                              fontFamily: 'monospace',
+                            ),
+                            codeblockDecoration: BoxDecoration(
+                              color: appTheme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      // Action buttons row under the message
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          top: 2,
+                          bottom: 4,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Copy button
+                            IconButton(
+                              icon: const Icon(Icons.content_copy, size: 18),
+                              visualDensity: VisualDensity.compact,
+                              tooltip: 'Copy message',
+                              onPressed: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: message.text),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Copied to clipboard'),
+                                    duration: Duration(seconds: 1),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                            ),
+                            // Delete button (only for user messages or allow for all)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                              visualDensity: VisualDensity.compact,
+                              tooltip: 'Delete message',
+                              onPressed: () {
+                                _confirmDeleteMessage(context, ref, message.id);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   );
                 },
           ),
@@ -260,6 +308,35 @@ class ChatScreen extends ConsumerWidget {
             ref.read(chatLogicProvider.notifier).sendMessage(text);
           },
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteMessage(
+    BuildContext context,
+    WidgetRef ref,
+    String messageId,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Message'),
+        content: const Text('Are you sure you want to delete this message?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              appLogger.i("UI: Deleting message ID: $messageId");
+              ref.read(chatLogicProvider.notifier).deleteMessage(messageId);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
