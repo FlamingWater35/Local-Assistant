@@ -26,6 +26,13 @@ class LlmService {
 
       appLogger.i("Activating Gemma model: ${modelDef.name}");
 
+      await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+          .fromNetwork(
+            modelDef.url,
+            token: settings.hfToken.isNotEmpty ? settings.hfToken : null,
+          )
+          .install();
+
       _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: settings.maxTokens,
       );
@@ -56,7 +63,11 @@ class LlmService {
         appLogger.i(
           "Restoring ${session.messages.length} messages to LLM context.",
         );
-        for (final msg in session.messages) {
+
+        final sortedMessages = List<LocalChatMessage>.from(session.messages)
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+        for (final msg in sortedMessages) {
           await _activeChat!.addQueryChunk(
             Message.text(text: msg.text, isUser: msg.authorId == 'user'),
           );

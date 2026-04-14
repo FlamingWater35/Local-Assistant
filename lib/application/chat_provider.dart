@@ -37,7 +37,10 @@ class ChatLogic extends _$ChatLogic {
     if (sessionId != null) {
       session = ref.read(hiveServiceProvider).getSession(sessionId);
       if (session != null) {
-        for (final msg in session.messages) {
+        final sortedMessages = List<LocalChatMessage>.from(session.messages)
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+        for (final msg in sortedMessages) {
           newController.insertMessage(msg.toChatCoreType());
         }
       }
@@ -139,7 +142,7 @@ class ChatLogic extends _$ChatLogic {
 
       final updatedSession = session.copyWith(
         updatedAt: DateTime.now().millisecondsSinceEpoch,
-        messages: currentLocalMessages.reversed.toList(),
+        messages: currentLocalMessages,
       );
       hiveService.saveSession(updatedSession);
       ref.read(chatHistoryProvider.notifier).refresh();
