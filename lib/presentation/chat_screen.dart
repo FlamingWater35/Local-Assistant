@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_assistant/router/app_router.dart';
 
 import '../application/chat_provider.dart';
+import '../core/logger.dart';
 
 @RoutePage()
 class ChatScreen extends ConsumerWidget {
@@ -17,6 +18,7 @@ class ChatScreen extends ConsumerWidget {
     String sessionId,
     String title,
   ) {
+    appLogger.i("UI: Opened delete confirmation for chat: $title");
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -32,6 +34,7 @@ class ChatScreen extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
+              appLogger.i("UI: Deleting chat session ID: $sessionId");
               ref.read(chatLogicProvider.notifier).deleteSession(sessionId);
               Navigator.pop(ctx);
             },
@@ -54,138 +57,151 @@ class ChatScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Gemma Local AI'), centerTitle: true),
       drawer: Drawer(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 20,
-                bottom: 20,
-                left: 16,
-                right: 16,
-              ),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    color: theme.colorScheme.primary,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Gemma AI",
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: FilledButton.icon(
-                onPressed: () {
-                  ref.read(chatLogicProvider.notifier).loadSession(null);
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('New Chat'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.only(
+                  top: 20,
+                  bottom: 20,
+                  left: 16,
+                  right: 16,
                 ),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                "RECENT",
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
                 ),
-              ),
-            ),
-
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: history.length,
-                itemBuilder: (context, index) {
-                  final session = history[index];
-                  final isActive = session.id == activeSessionId;
-
-                  return ListTile(
-                    selected: isActive,
-                    selectedTileColor: theme.colorScheme.primaryContainer
-                        .withOpacity(0.5),
-                    leading: Icon(
-                      Icons.chat_bubble_outline,
-                      color: isActive ? theme.colorScheme.primary : null,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      color: theme.colorScheme.primary,
+                      size: 28,
                     ),
-                    title: Text(
-                      session.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: isActive
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                    const SizedBox(width: 12),
+                    Text(
+                      "Gemma AI",
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      color: theme.colorScheme.error,
-                      onPressed: () => _confirmDelete(
-                        context,
-                        ref,
-                        session.id,
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: FilledButton.icon(
+                  onPressed: () {
+                    appLogger.i("UI: Starting new chat from drawer.");
+                    ref.read(chatLogicProvider.notifier).loadSession(null);
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Chat'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Text(
+                  "RECENT",
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: history.length,
+                  itemBuilder: (context, index) {
+                    final session = history[index];
+                    final isActive = session.id == activeSessionId;
+
+                    return ListTile(
+                      selected: isActive,
+                      selectedTileColor: theme.colorScheme.primaryContainer
+                          .withOpacity(0.5),
+                      leading: Icon(
+                        Icons.chat_bubble_outline,
+                        color: isActive ? theme.colorScheme.primary : null,
+                      ),
+                      title: Text(
                         session.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: isActive
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
                       ),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (!isActive) {
-                        ref
-                            .read(chatLogicProvider.notifier)
-                            .loadSession(session.id);
-                      }
-                    },
-                  );
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        color: theme.colorScheme.error,
+                        onPressed: () => _confirmDelete(
+                          context,
+                          ref,
+                          session.id,
+                          session.title,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (!isActive) {
+                          appLogger.i(
+                            "UI: Loading existing chat: ${session.title}",
+                          );
+                          ref
+                              .read(chatLogicProvider.notifier)
+                              .loadSession(session.id);
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+              const Divider(height: 1),
+
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                leading: const Icon(Icons.settings),
+                title: const Text('Settings & Models'),
+                onTap: () {
+                  appLogger.i("UI: Navigating to Settings.");
+                  Navigator.pop(context);
+                  context.router.push(const SettingsRoute());
                 },
               ),
-            ),
-            const Divider(height: 1),
-
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 8,
-              ),
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings & Models'),
-              onTap: () {
-                Navigator.pop(context);
-                context.router.push(const SettingsRoute());
-              },
-            ),
-            const SizedBox(height: 10),
-          ],
+            ],
+          ),
         ),
       ),
-      body: Chat(
-        key: ValueKey(chatController.hashCode),
-        chatController: chatController,
-        currentUserId: 'user',
-        resolveUser: (core.UserID id) async {
-          return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
-        },
-        onMessageSend: (String text) {
-          ref.read(chatLogicProvider.notifier).sendMessage(text);
-        },
+      body: SafeArea(
+        bottom: false,
+        child: Chat(
+          key: ValueKey(chatController.hashCode),
+          chatController: chatController,
+          currentUserId: 'user',
+          resolveUser: (core.UserID id) async {
+            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
+          },
+          onMessageSend: (String text) {
+            appLogger.i("UI: Send button pressed.");
+            ref.read(chatLogicProvider.notifier).sendMessage(text);
+          },
+        ),
       ),
     );
   }

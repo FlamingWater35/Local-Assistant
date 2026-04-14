@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_assistant/router/app_router.dart';
 
 import '../application/settings_provider.dart';
+import '../core/logger.dart';
 import '../domain/models.dart';
 import '../infrastructure/llm_service.dart';
 
@@ -24,6 +25,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _checkInitialState() async {
+    appLogger.i("SetupScreen: Checking initial state...");
     final settings = ref.read(settingsControllerProvider);
     bool anyInstalled = false;
     String? firstInstalledId;
@@ -36,6 +38,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
 
     if (anyInstalled) {
+      appLogger.i(
+        "SetupScreen: Found installed model. Proceeding to initialization.",
+      );
       if (!(await FlutterGemma.isModelInstalled(
         kAvailableModels
             .firstWhere((m) => m.id == settings.selectedModel)
@@ -54,11 +59,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             .read(llmServiceProvider)
             .initModel(ref.read(settingsControllerProvider));
       } catch (e) {
-        // Safe fail
+        appLogger.e("SetupScreen: Error during initModel", error: e);
       }
 
       if (mounted) context.router.replace(const ChatRoute());
     } else {
+      appLogger.w("SetupScreen: No models installed. Redirecting to Settings.");
       if (mounted) context.router.replace(const SettingsRoute());
     }
   }
@@ -66,14 +72,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text("Checking Model Status..."),
-          ],
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text("Checking Model Status..."),
+            ],
+          ),
         ),
       ),
     );
