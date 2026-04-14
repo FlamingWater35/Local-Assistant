@@ -1,0 +1,137 @@
+import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
+import 'package:hive_ce/hive.dart';
+
+part 'models.g.dart';
+
+class AvailableModel {
+  final String id;
+  final String name;
+  final String url;
+  final String fileName;
+  final bool requiresAuth;
+
+  const AvailableModel({
+    required this.id,
+    required this.name,
+    required this.url,
+    required this.fileName,
+    required this.requiresAuth,
+  });
+}
+
+const List<AvailableModel> kAvailableModels = [
+  AvailableModel(
+    id: 'gemma-3n-2b',
+    name: 'Gemma 3n 2B (INT4)',
+    url:
+        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+    fileName: 'gemma-3n-E2B-it-int4.task',
+    requiresAuth: true,
+  ),
+  AvailableModel(
+    id: 'gemma-4-e2b',
+    name: 'Gemma 4 E2B (INT4)',
+    url:
+        'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
+    fileName: 'gemma-4-E2B-it.litertlm',
+    requiresAuth: false,
+  ),
+];
+
+@HiveType(typeId: 0)
+class AppSettings extends HiveObject {
+  @HiveField(0)
+  final String selectedModel;
+  @HiveField(1)
+  final double temperature;
+  @HiveField(2)
+  final int maxTokens;
+  @HiveField(3)
+  final String systemPrompt;
+  @HiveField(4)
+  final String hfToken;
+
+  AppSettings({
+    this.selectedModel = 'gemma-3n-2b',
+    this.temperature = 0.7,
+    this.maxTokens = 1024,
+    this.systemPrompt = 'You are a helpful AI assistant.',
+    this.hfToken = '',
+  });
+
+  AppSettings copyWith({
+    String? selectedModel,
+    double? temperature,
+    int? maxTokens,
+    String? systemPrompt,
+    String? hfToken,
+  }) {
+    return AppSettings(
+      selectedModel: selectedModel ?? this.selectedModel,
+      temperature: temperature ?? this.temperature,
+      maxTokens: maxTokens ?? this.maxTokens,
+      systemPrompt: systemPrompt ?? this.systemPrompt,
+      hfToken: hfToken ?? this.hfToken,
+    );
+  }
+}
+
+@HiveType(typeId: 1)
+class LocalChatMessage extends HiveObject {
+  @HiveField(0)
+  final String id;
+  @HiveField(1)
+  final String text;
+  @HiveField(2)
+  final String authorId;
+  @HiveField(3)
+  final int createdAt;
+
+  LocalChatMessage({
+    required this.id,
+    required this.text,
+    required this.authorId,
+    required this.createdAt,
+  });
+
+  core.TextMessage toChatCoreType() {
+    return core.TextMessage(
+      id: id,
+      text: text,
+      authorId: authorId,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
+    );
+  }
+}
+
+@HiveType(typeId: 2)
+class ChatSession extends HiveObject {
+  @HiveField(0)
+  final String id;
+  @HiveField(1)
+  final String title;
+  @HiveField(2)
+  final int updatedAt;
+  @HiveField(3)
+  final List<LocalChatMessage> messages;
+
+  ChatSession({
+    required this.id,
+    required this.title,
+    required this.updatedAt,
+    required this.messages,
+  });
+
+  ChatSession copyWith({
+    String? title,
+    int? updatedAt,
+    List<LocalChatMessage>? messages,
+  }) {
+    return ChatSession(
+      id: id,
+      title: title ?? this.title,
+      updatedAt: updatedAt ?? this.updatedAt,
+      messages: messages ?? this.messages,
+    );
+  }
+}
