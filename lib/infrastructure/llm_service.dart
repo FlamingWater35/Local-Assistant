@@ -9,6 +9,7 @@ part 'llm_service.g.dart';
 class LlmService {
   InferenceChat? _activeChat;
   InferenceModel? _activeModel;
+  int _currentContextTokens = 0;
 
   Future<void> initModel(AppSettings settings) async {
     try {
@@ -34,20 +35,24 @@ class LlmService {
           )
           .install();
 
+      final safeMaxTokens = settings.maxTokens < 2048
+          ? 2048
+          : settings.maxTokens;
+      appLogger.i(
+        "⚙️ initModel: Allocating LiteRT KV Cache for $safeMaxTokens tokens.",
+      );
       _activeModel = await FlutterGemma.getActiveModel(
-        maxTokens: settings.maxTokens,
+        maxTokens: safeMaxTokens,
       );
 
       if (_activeChat != null) {
-        appLogger.i(
-          "🧹 initModel: Clearing previous chat memory from C++ engine...",
-        );
         await _activeChat!.close();
       }
 
       _activeChat = await _activeModel!.createChat(
         systemInstruction: settings.systemPrompt,
       );
+      _currentContextTokens = _estimateTokens(settings.systemPrompt);
       appLogger.i("✅ initModel: Model initialized successfully.");
     } catch (e) {
       appLogger.e("❌ initModel: Failed to initialize model.", error: e);
@@ -60,21 +65,14 @@ class LlmService {
     AppSettings settings,
     List<ChatSession> allSessions,
   ) async {
-    if (_activeModel == null) {
-      appLogger.w(
-        "⚠️ loadSessionContext: _activeModel is null, aborting context load.",
-      );
-      return;
-    }
+    if (_activeModel == null) return;
 
     try {
-      appLogger.i("🔄 loadSessionContext: Preparing to switch chat context...");
+      appLogger.i("🔄 loadSessionContext: Rebuilding chat context...");
       String finalSystemPrompt = settings.systemPrompt;
+      int systemTokens = _estimateTokens(finalSystemPrompt);
 
       if (settings.enableGlobalMemory && allSessions.isNotEmpty) {
-        appLogger.i(
-          "🧠 loadSessionContext: Global Memory is ENABLED. Fetching cross-chat context.",
-        );
         final otherMessages =
             allSessions
                 .where((s) => s.id != session?.id)
@@ -82,61 +80,63 @@ class LlmService {
                 .toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-        final recentGlobal = otherMessages.take(10).toList().reversed;
+        final recentGlobal = otherMessages.take(3).toList().reversed;
         if (recentGlobal.isNotEmpty) {
           final memoryString = recentGlobal
               .map((m) => "${m.authorId == 'user' ? 'User' : 'AI'}: ${m.text}")
               .join("\n");
           finalSystemPrompt +=
               "\n\n[System Note: Context from the user's other recent conversations for cross-chat memory:]\n$memoryString\n[End cross-chat memory]";
-          appLogger.i(
-            "🧠 loadSessionContext: Injected ${recentGlobal.length} global memory messages into System Prompt.",
-          );
+          systemTokens = _estimateTokens(finalSystemPrompt);
         }
-      } else {
-        appLogger.i(
-          "🔒 loadSessionContext: Global Memory is DISABLED. Strict isolation enforced.",
-        );
       }
 
       if (_activeChat != null) {
-        appLogger.i(
-          "🧹 loadSessionContext: Wiping previous hardware memory state...",
-        );
         await _activeChat!.close();
       }
 
-      appLogger.i(
-        "💬 loadSessionContext: Creating clean InferenceChat session...",
-      );
       _activeChat = await _activeModel!.createChat(
         systemInstruction: finalSystemPrompt,
       );
+      int totalTokens = systemTokens;
 
       if (session != null && session.messages.isNotEmpty) {
         final sortedMessages = List<LocalChatMessage>.from(session.messages)
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-        final limitedMessages = sortedMessages.length > settings.contextLimit
-            ? sortedMessages.sublist(
-                sortedMessages.length - settings.contextLimit,
-              )
-            : sortedMessages;
+        final maxInputTokens = (settings.maxTokens * 0.8).toInt();
+        final messagesToInject = <LocalChatMessage>[];
 
-        appLogger.i(
-          "📂 loadSessionContext: Injecting ${limitedMessages.length} past messages from this session into active context (Limit: ${settings.contextLimit}).",
-        );
+        bool isFirstMessage = true;
 
-        for (final msg in limitedMessages) {
+        for (final msg in sortedMessages.reversed) {
+          if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
+
+          final msgTokens = _estimateTokens(msg.text);
+
+          if (!isFirstMessage && totalTokens + msgTokens > maxInputTokens) {
+            appLogger.i(
+              "✂️ Smart Truncation: Stopped adding older history at ${messagesToInject.length} messages (Context reached $totalTokens tokens).",
+            );
+            break;
+          }
+
+          totalTokens += msgTokens;
+          messagesToInject.add(msg);
+          isFirstMessage = false;
+        }
+
+        for (final msg in messagesToInject.reversed) {
           await _activeChat!.addQueryChunk(
             Message.text(text: msg.text, isUser: msg.authorId == 'user'),
           );
         }
-      } else {
-        appLogger.i(
-          "📂 loadSessionContext: New/Empty session loaded. Context is completely clean.",
-        );
       }
+
+      _currentContextTokens = totalTokens;
+      appLogger.i(
+        "📂 loadSessionContext: Rebuilt context with $_currentContextTokens estimated tokens.",
+      );
     } catch (e) {
       appLogger.e(
         "❌ loadSessionContext: Failed to restore LLM context",
@@ -145,31 +145,65 @@ class LlmService {
     }
   }
 
-  Stream<String> generateResponseStream(String prompt) async* {
+  Stream<String> generateResponseStream({
+    required String prompt,
+    required ChatSession session,
+    required AppSettings settings,
+    required List<ChatSession> allSessions,
+  }) async* {
     if (_activeChat == null) {
       throw Exception("Model not ready. Check settings or setup.");
     }
 
-    appLogger.i("⚡ generateResponseStream: Sending prompt to model: '$prompt'");
-    await _activeChat!.addQueryChunk(Message.text(text: prompt, isUser: true));
+    int promptTokens = _estimateTokens(prompt);
+    bool didPrune = false;
 
-    final stream = _activeChat!.generateChatResponseAsync();
-    await for (final response in stream) {
-      if (response is TextResponse) {
-        yield response.token;
-      }
+    if (_currentContextTokens + promptTokens > settings.maxTokens * 0.8) {
+      appLogger.w(
+        "⚠️ Context threshold exceeded. Forcing smart memory prune...",
+      );
+      await loadSessionContext(session, settings, allSessions);
+      didPrune = true;
     }
-    appLogger.i("✅ generateResponseStream: Stream completed successfully.");
+
+    if (!didPrune) {
+      appLogger.i("⚡ generateResponseStream: Appending to existing context...");
+      await _activeChat!.addQueryChunk(
+        Message.text(text: prompt, isUser: true),
+      );
+      _currentContextTokens += promptTokens;
+    } else {
+      appLogger.i(
+        "⚡ generateResponseStream: Context was rebuilt (prompt implicitly injected).",
+      );
+    }
+
+    try {
+      final stream = _activeChat!.generateChatResponseAsync();
+      await for (final response in stream) {
+        if (response is TextResponse) {
+          _currentContextTokens += _estimateTokens(response.token);
+          yield response.token;
+        }
+      }
+    } catch (e) {
+      if (e.toString().contains('Failed to invoke') ||
+          e.toString().contains('SizeOfDimension')) {
+        throw Exception("CONTEXT_OVERFLOW");
+      }
+      rethrow;
+    }
   }
 
   Future<void> unloadModel() async {
-    appLogger.w("🧹 unloadModel: Freeing all RAM and VRAM...");
     await _activeChat?.close();
     await _activeModel?.close();
     _activeModel = null;
     _activeChat = null;
-    appLogger.i("✅ unloadModel: Model fully unloaded from memory.");
   }
+
+  int _estimateTokens(String text) =>
+      text.isEmpty ? 0 : (text.length / 3.5).ceil();
 }
 
 @Riverpod(keepAlive: true)

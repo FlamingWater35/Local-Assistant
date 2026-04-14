@@ -43,7 +43,7 @@ class AppSettings extends HiveObject {
   AppSettings({
     this.selectedModel = 'gemma-3n-2b',
     this.temperature = 0.7,
-    this.maxTokens = 1024,
+    this.maxTokens = 2048,
     this.systemPrompt = 'You are a helpful AI assistant.',
     this.hfToken = '',
     this.enableGlobalMemory = false,
@@ -59,7 +59,7 @@ class AppSettings extends HiveObject {
   @HiveField(4, defaultValue: '')
   final String hfToken;
 
-  @HiveField(2, defaultValue: 1024)
+  @HiveField(2, defaultValue: 2048)
   final int maxTokens;
 
   @HiveField(0, defaultValue: 'gemma-3n-2b')

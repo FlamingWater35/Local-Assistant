@@ -25,6 +25,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     _draftSettings = ref.read(settingsControllerProvider);
+    if (_draftSettings.maxTokens < 2048) {
+      _draftSettings = _draftSettings.copyWith(maxTokens: 2048);
+    }
   }
 
   void _showDownloadDialog(AvailableModel model) {
@@ -49,7 +52,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       isModelInstalledProvider(_draftSettings.selectedModel).future,
     );
     if (!isInstalled) {
-      appLogger.w("Settings: Cannot save. Selected model is not downloaded.");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Selected model is not downloaded!')),
@@ -62,7 +64,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref
           .read(settingsControllerProvider.notifier)
           .updateSettings(_draftSettings);
-      appLogger.i("Settings: Settings saved successfully.");
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -75,7 +76,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
       }
     } catch (e) {
-      appLogger.e("Settings: Error saving settings", error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -154,35 +154,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const Divider(),
 
             ListTile(
-              title: const Text("Context Limit (Memory Size)"),
+              title: const Text("Total Context Window (Tokens)"),
               subtitle: Text(
-                "Keep the last ${_draftSettings.contextLimit} messages in memory per chat.\nLower this to save RAM and prevent overflow.",
-              ),
-            ),
-            Slider(
-              value: _draftSettings.contextLimit.toDouble(),
-              min: 2,
-              max: 100,
-              divisions: 49,
-              label: _draftSettings.contextLimit.toString(),
-              onChanged: (val) => setState(
-                () => _draftSettings = _draftSettings.copyWith(
-                  contextLimit: val.toInt(),
-                ),
-              ),
-            ),
-
-            ListTile(
-              title: const Text("Max Output Length (Tokens)"),
-              subtitle: Text(
-                "Current limit: ${_draftSettings.maxTokens} tokens",
+                "Hardware memory for Input + Output. Smart Truncation will automatically prune older messages when the limit is reached.\nCurrent limit: ${_draftSettings.maxTokens} tokens",
               ),
             ),
             Slider(
               value: _draftSettings.maxTokens.toDouble(),
-              min: 256,
-              max: 4096,
-              divisions: 15,
+              min: 2048,
+              max: 8192,
+              divisions: 12,
               label: _draftSettings.maxTokens.toString(),
               onChanged: (val) => setState(
                 () => _draftSettings = _draftSettings.copyWith(

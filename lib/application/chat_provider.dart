@@ -92,14 +92,37 @@ class ChatLogic extends _$ChatLogic {
     WakelockPlus.enable();
 
     try {
-      final stream = ref.read(llmServiceProvider).generateResponseStream(text);
+      final session = hiveService.getSession(currentSessionId!)!;
+      final settings = ref.read(settingsControllerProvider);
+      final allSessions = hiveService.getAllSessions();
+
+      final stream = ref
+          .read(llmServiceProvider)
+          .generateResponseStream(
+            prompt: text,
+            session: session,
+            settings: settings,
+            allSessions: allSessions,
+          );
+
       await for (final chunk in stream) {
         aiText += chunk;
         _updateLocalMessage(aiMsgId, aiText);
       }
     } catch (e) {
       appLogger.e("Inference error", error: e);
-      _updateLocalMessage(aiMsgId, "⚠️ Error: Model inference failed.");
+
+      if (e.toString().contains('CONTEXT_OVERFLOW')) {
+        _updateLocalMessage(
+          aiMsgId,
+          "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
+        );
+      } else {
+        _updateLocalMessage(
+          aiMsgId,
+          "⚠️ Error: Model inference failed.\nDetails: $e",
+        );
+      }
     } finally {
       WakelockPlus.disable();
     }
