@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:local_assistant/router/app_router.dart';
 
 import '../application/chat_provider.dart';
@@ -306,24 +306,14 @@ class ChatScreen extends ConsumerWidget {
                                   : const Radius.circular(16),
                             ),
                           ),
-                          child: MarkdownBody(
-                            data: message.text,
-                            selectable: true,
-                            styleSheet: MarkdownStyleSheet(
-                              p: appTheme.textTheme.bodyLarge?.copyWith(
-                                color: isSentByMe
-                                    ? appTheme.colorScheme.onPrimaryContainer
-                                    : appTheme.colorScheme.onSurfaceVariant,
-                              ),
-                              code: appTheme.textTheme.bodyMedium?.copyWith(
-                                backgroundColor: Colors.transparent,
-                                fontFamily: 'monospace',
-                              ),
-                              codeblockDecoration: BoxDecoration(
-                                color: appTheme.colorScheme.surface,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                          child: GptMarkdown(
+                            message.text,
+                            style: appTheme.textTheme.bodyLarge?.copyWith(
+                              color: isSentByMe
+                                  ? appTheme.colorScheme.onPrimaryContainer
+                                  : appTheme.colorScheme.onSurfaceVariant,
                             ),
+                            useDollarSignsForLatex: true,
                           ),
                         ),
                         Padding(
