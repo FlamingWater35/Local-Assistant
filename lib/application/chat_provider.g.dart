@@ -144,7 +144,7 @@ final class ChatLogicProvider
   }
 }
 
-String _$chatLogicHash() => r'6ac4eb73c29a6290867e33bbd364643f6329f81c';
+String _$chatLogicHash() => r'4aef86ef007e85aeac8258ef6710391db47b4901';
 
 abstract class _$ChatLogic extends $Notifier<core.InMemoryChatController> {
   core.InMemoryChatController build();

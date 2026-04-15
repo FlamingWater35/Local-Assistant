@@ -34,11 +34,23 @@ void _showSnackBar(
   required IconData icon,
 }) {
   final contentColor = Colors.white;
+  final padding = MediaQuery.of(context).padding;
+  final height = MediaQuery.of(context).size.height;
+
+  ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       backgroundColor: backgroundColor,
       behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.only(
+        bottom: height - padding.top - 120,
+        left: 16,
+        right: 16,
+      ),
+      dismissDirection: DismissDirection.up,
+      duration: const Duration(seconds: 2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       content: Row(
         children: [
           Icon(icon, color: contentColor),
@@ -46,7 +58,11 @@ void _showSnackBar(
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: contentColor, fontSize: 15),
+              style: TextStyle(
+                color: contentColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
