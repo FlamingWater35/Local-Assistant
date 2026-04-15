@@ -267,7 +267,6 @@ class ChatScreen extends ConsumerWidget {
           ),
         ),
         body: SafeArea(
-          bottom: false,
           child: Chat(
             key: ValueKey(chatController.hashCode),
             chatController: chatController,
