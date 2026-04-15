@@ -106,6 +106,7 @@ class ChatScreen extends ConsumerWidget {
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: const Text('Local AI Assistant'),
           centerTitle: true,
@@ -266,119 +267,111 @@ class ChatScreen extends ConsumerWidget {
             ),
           ),
         ),
-        body: SafeArea(
-          child: Chat(
-            key: ValueKey(chatController.hashCode),
-            chatController: chatController,
-            currentUserId: 'user',
+        body: Chat(
+          key: ValueKey(chatController.hashCode),
+          chatController: chatController,
+          currentUserId: 'user',
+          theme: chatTheme,
 
-            theme: chatTheme,
-
-            builders: Builders(
-              textMessageBuilder:
-                  (
-                    context,
-                    core.TextMessage message,
-                    int index, {
-                    required bool isSentByMe,
-                    core.MessageGroupStatus? groupStatus,
-                  }) {
-                    return SelectionArea(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
+          builders: Builders(
+            textMessageBuilder:
+                (
+                  context,
+                  core.TextMessage message,
+                  int index, {
+                  required bool isSentByMe,
+                  core.MessageGroupStatus? groupStatus,
+                }) {
+                  return SelectionArea(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isSentByMe
+                                ? appTheme.colorScheme.primaryContainer
+                                : appTheme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16).copyWith(
+                              bottomRight: isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                              bottomLeft: !isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
                             ),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
+                          ),
+                          child: GptMarkdown(
+                            message.text,
+                            style: appTheme.textTheme.bodyLarge?.copyWith(
                               color: isSentByMe
-                                  ? appTheme.colorScheme.primaryContainer
-                                  : appTheme
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(16).copyWith(
-                                bottomRight: isSentByMe
-                                    ? Radius.zero
-                                    : const Radius.circular(16),
-                                bottomLeft: !isSentByMe
-                                    ? Radius.zero
-                                    : const Radius.circular(16),
-                              ),
+                                  ? appTheme.colorScheme.onPrimaryContainer
+                                  : appTheme.colorScheme.onSurfaceVariant,
                             ),
-                            child: GptMarkdown(
-                              message.text,
-                              style: appTheme.textTheme.bodyLarge?.copyWith(
-                                color: isSentByMe
-                                    ? appTheme.colorScheme.onPrimaryContainer
-                                    : appTheme.colorScheme.onSurfaceVariant,
-                              ),
-                              useDollarSignsForLatex: true,
-                            ),
+                            useDollarSignsForLatex: true,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                              top: 2,
-                              bottom: 4,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.content_copy,
-                                    size: 18,
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                  tooltip: 'Copy message',
-                                  onPressed: () {
-                                    Clipboard.setData(
-                                      ClipboardData(text: message.text),
-                                    );
-                                    if (context.mounted) {
-                                      showInfoSnackBar(
-                                        context,
-                                        'Copied to clipboard',
-                                      );
-                                    }
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    size: 18,
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                  tooltip: 'Delete message',
-                                  onPressed: () {
-                                    _confirmDeleteMessage(
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 2,
+                            bottom: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.content_copy, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                tooltip: 'Copy message',
+                                onPressed: () {
+                                  Clipboard.setData(
+                                    ClipboardData(text: message.text),
+                                  );
+                                  if (context.mounted) {
+                                    showInfoSnackBar(
                                       context,
-                                      ref,
-                                      message.id,
+                                      'Copied to clipboard',
                                     );
-                                  },
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
                                 ),
-                              ],
-                            ),
+                                visualDensity: VisualDensity.compact,
+                                tooltip: 'Delete message',
+                                onPressed: () {
+                                  _confirmDeleteMessage(
+                                    context,
+                                    ref,
+                                    message.id,
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-            ),
-
-            resolveUser: (core.UserID id) async {
-              return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
-            },
-            onMessageSend: (String text) {
-              appLogger.i("UI: Send button pressed.");
-              ref.read(chatLogicProvider.notifier).sendMessage(text);
-            },
+                        ),
+                      ],
+                    ),
+                  );
+                },
           ),
+
+          resolveUser: (core.UserID id) async {
+            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
+          },
+          onMessageSend: (String text) {
+            appLogger.i("UI: Send button pressed.");
+            ref.read(chatLogicProvider.notifier).sendMessage(text);
+          },
         ),
       ),
     );
