@@ -237,7 +237,23 @@ class ChatScreen extends ConsumerWidget {
       );
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
-        String textContent = await file.readAsString();
+
+        String textContent;
+        try {
+          textContent = await file.readAsString();
+        } catch (e) {
+          appLogger.w(
+            "File read error: User picked a non-text document",
+            error: e,
+          );
+          if (context.mounted) {
+            showErrorSnackBar(
+              context,
+              'Cannot read file. Please ensure it is a valid text document.',
+            );
+          }
+          return;
+        }
 
         if (textContent.length > 20000) {
           textContent =
