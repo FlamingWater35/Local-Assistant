@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -60,12 +62,15 @@ class LlmService {
       );
       _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: safeMaxTokens,
+        supportImage: true,
+        maxNumImages: 1,
       );
 
       if (_activeChat != null) await _activeChat!.close();
 
       _activeChat = await _activeModel!.createChat(
         systemInstruction: settings.systemPrompt,
+        supportImage: true,
       );
       _currentContextTokens = _estimateTokens(settings.systemPrompt);
       _isSessionActive = true;
@@ -115,6 +120,7 @@ class LlmService {
 
       _activeChat = await _activeModel!.createChat(
         systemInstruction: finalSystemPrompt,
+        supportImage: true,
       );
       int totalTokens = systemTokens;
 
@@ -135,7 +141,8 @@ class LlmService {
 
           if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
 
-          final msgTokens = _estimateTokens(msg.text);
+          final msgTokens =
+              _estimateTokens(msg.text) + (msg.imageUrl != null ? 256 : 0);
 
           if (!isFirstMessage && totalTokens + msgTokens > maxInputTokens) {
             appLogger.i(
@@ -151,9 +158,45 @@ class LlmService {
 
         for (final msg in messagesToInject.reversed) {
           if (_isUnloading) return;
-          await _activeChat!.addQueryChunk(
-            Message.text(text: msg.text, isUser: msg.authorId == 'user'),
-          );
+
+          if (msg.imageUrl != null) {
+            final fileInfo = await DefaultCacheManager().getFileFromCache(
+              msg.imageUrl!,
+            );
+            if (fileInfo != null) {
+              final bytes = await fileInfo.file.readAsBytes();
+              if (msg.text.isEmpty) {
+                await _activeChat!.addQueryChunk(
+                  Message.imageOnly(
+                    imageBytes: bytes,
+                    isUser: msg.authorId == 'user',
+                  ),
+                );
+              } else {
+                await _activeChat!.addQueryChunk(
+                  Message.withImage(
+                    text: msg.text,
+                    imageBytes: bytes,
+                    isUser: msg.authorId == 'user',
+                  ),
+                );
+              }
+            } else {
+              final fallbackText = msg.text.isEmpty
+                  ? "[Image missing]"
+                  : msg.text;
+              await _activeChat!.addQueryChunk(
+                Message.text(
+                  text: fallbackText,
+                  isUser: msg.authorId == 'user',
+                ),
+              );
+            }
+          } else {
+            await _activeChat!.addQueryChunk(
+              Message.text(text: msg.text, isUser: msg.authorId == 'user'),
+            );
+          }
         }
       }
 
@@ -176,6 +219,7 @@ class LlmService {
     required ChatSession session,
     required AppSettings settings,
     required List<ChatSession> allSessions,
+    Uint8List? imageBytes,
   }) async* {
     if (_isUnloading || !_isSessionActive || _activeChat == null) {
       appLogger.w("generateResponseStream: Aborted - session not ready");
@@ -183,22 +227,32 @@ class LlmService {
     }
 
     int promptTokens = _estimateTokens(prompt);
-    bool didPrune = false;
+    if (imageBytes != null) promptTokens += 256;
 
     if (_currentContextTokens + promptTokens > settings.maxTokens * 0.8) {
       appLogger.w(
         "⚠️ Context threshold exceeded. Forcing smart memory prune...",
       );
       await loadSessionContext(session, settings, allSessions);
-      didPrune = true;
     }
 
-    if (!didPrune) {
+    if (imageBytes != null) {
+      if (prompt.isEmpty) {
+        await _activeChat!.addQueryChunk(
+          Message.imageOnly(imageBytes: imageBytes, isUser: true),
+        );
+      } else {
+        await _activeChat!.addQueryChunk(
+          Message.withImage(text: prompt, imageBytes: imageBytes, isUser: true),
+        );
+      }
+    } else {
       await _activeChat!.addQueryChunk(
         Message.text(text: prompt, isUser: true),
       );
-      _currentContextTokens += promptTokens;
     }
+
+    _currentContextTokens += promptTokens;
 
     try {
       final stream = _activeChat!.generateChatResponseAsync();

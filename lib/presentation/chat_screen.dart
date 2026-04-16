@@ -1,12 +1,15 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:local_assistant/router/app_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../application/chat_provider.dart';
 import '../core/logger.dart';
@@ -84,6 +87,65 @@ class ChatScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleAttachmentTap(BuildContext context, WidgetRef ref) async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(source: ImageSource.gallery);
+    if (xFile == null) return;
+
+    final bytes = await xFile.readAsBytes();
+
+    if (!context.mounted) return;
+
+    final textController = TextEditingController();
+    final bool? send = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Send Image'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.memory(bytes, height: 200, fit: BoxFit.contain),
+              const SizedBox(height: 16),
+              TextField(
+                controller: textController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Add a prompt/caption (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (send == true) {
+      final url = 'http://local_image_${const Uuid().v4()}.jpg';
+      await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
+
+      ref
+          .read(chatLogicProvider.notifier)
+          .sendMessage(
+            textController.text.trim(),
+            imageBytes: bytes,
+            imageUrl: url,
+          );
+    }
   }
 
   @override
@@ -272,8 +334,133 @@ class ChatScreen extends ConsumerWidget {
           chatController: chatController,
           currentUserId: 'user',
           theme: chatTheme,
+          onAttachmentTap: () => _handleAttachmentTap(context, ref),
 
           builders: Builders(
+            imageMessageBuilder:
+                (
+                  context,
+                  core.ImageMessage message,
+                  int index, {
+                  required bool isSentByMe,
+                  core.MessageGroupStatus? groupStatus,
+                }) {
+                  return SelectionArea(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSentByMe
+                                ? appTheme.colorScheme.primaryContainer
+                                : appTheme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16).copyWith(
+                              bottomRight: isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                              bottomLeft: !isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: StreamBuilder<FileResponse>(
+                                  stream: DefaultCacheManager().getFileStream(
+                                    message.source,
+                                  ),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasError) {
+                                      return const SizedBox(
+                                        height: 150,
+                                        width: 250,
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            size: 48,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    if (snapshot.hasData &&
+                                        snapshot.data is FileInfo) {
+                                      final fileInfo =
+                                          snapshot.data as FileInfo;
+                                      return Image.file(
+                                        fileInfo.file,
+                                        width: 250,
+                                        fit: BoxFit.contain,
+                                      );
+                                    }
+                                    return const SizedBox(
+                                      height: 150,
+                                      width: 250,
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              if (message.text != null &&
+                                  message.text!.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                GptMarkdown(
+                                  message.text!,
+                                  style: appTheme.textTheme.bodyLarge?.copyWith(
+                                    color: isSentByMe
+                                        ? appTheme
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                        : appTheme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  useDollarSignsForLatex: true,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 2,
+                            bottom: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                tooltip: 'Delete message',
+                                onPressed: () {
+                                  _confirmDeleteMessage(
+                                    context,
+                                    ref,
+                                    message.id,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
             textMessageBuilder:
                 (
                   context,

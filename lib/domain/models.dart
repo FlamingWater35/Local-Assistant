@@ -93,6 +93,7 @@ class LocalChatMessage extends HiveObject {
     required this.text,
     required this.authorId,
     required this.createdAt,
+    this.imageUrl,
   });
 
   @HiveField(2)
@@ -104,10 +105,22 @@ class LocalChatMessage extends HiveObject {
   @HiveField(0)
   final String id;
 
+  @HiveField(4)
+  final String? imageUrl;
+
   @HiveField(1)
   final String text;
 
-  core.TextMessage toChatCoreType() {
+  core.Message toChatCoreType() {
+    if (imageUrl != null) {
+      return core.ImageMessage(
+        id: id,
+        authorId: authorId,
+        createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
+        source: imageUrl!,
+        text: text.isEmpty ? null : text,
+      );
+    }
     return core.TextMessage(
       id: id,
       text: text,

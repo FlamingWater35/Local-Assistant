@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -122,16 +123,24 @@ class ChatLogic extends _$ChatLogic {
     );
   }
 
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(
+    String text, {
+    Uint8List? imageBytes,
+    String? imageUrl,
+  }) async {
     await _cancelActiveGeneration();
 
     final hiveService = ref.read(hiveServiceProvider);
 
     if (currentSessionId == null) {
       currentSessionId = _uuid.v4();
+      final newTitle = text.isNotEmpty
+          ? (text.length > 25 ? '${text.substring(0, 25)}...' : text)
+          : (imageBytes != null ? 'Image chat' : 'New chat');
+
       final newSession = ChatSession(
         id: currentSessionId!,
-        title: text.length > 25 ? '${text.substring(0, 25)}...' : text,
+        title: newTitle,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         messages: [],
       );
@@ -142,7 +151,7 @@ class ChatLogic extends _$ChatLogic {
     _activeGenerationSessionId = currentSessionId;
     ref.read(isGeneratingProvider.notifier).setGenerating(true);
 
-    final userMsg = _createLocalMessage(text, 'user');
+    final userMsg = _createLocalMessage(text, 'user', imageUrl: imageUrl);
     _addMessageToStateAndDb(userMsg);
 
     final aiMsgId = _uuid.v4();
@@ -164,6 +173,7 @@ class ChatLogic extends _$ChatLogic {
             session: session,
             settings: settings,
             allSessions: allSessions,
+            imageBytes: imageBytes,
           );
 
       _generationSubscription = stream.listen(
@@ -242,12 +252,14 @@ class ChatLogic extends _$ChatLogic {
     String text,
     String authorId, {
     String? id,
+    String? imageUrl,
   }) {
     return LocalChatMessage(
       id: id ?? _uuid.v4(),
       text: text,
       authorId: authorId,
       createdAt: DateTime.now().millisecondsSinceEpoch,
+      imageUrl: imageUrl,
     );
   }
 
@@ -296,15 +308,27 @@ class ChatLogic extends _$ChatLogic {
     final session = hiveService.getSession(currentSessionId!);
     if (session != null) {
       final currentLocalMessages = state.messages.map((m) {
-        final tm = m as core.TextMessage;
-        return LocalChatMessage(
-          id: tm.id,
-          text: tm.text,
-          authorId: tm.authorId,
-          createdAt:
-              tm.createdAt?.millisecondsSinceEpoch ??
-              DateTime.now().millisecondsSinceEpoch,
-        );
+        if (m is core.ImageMessage) {
+          return LocalChatMessage(
+            id: m.id,
+            text: m.text ?? '',
+            authorId: m.authorId,
+            createdAt:
+                m.createdAt?.millisecondsSinceEpoch ??
+                DateTime.now().millisecondsSinceEpoch,
+            imageUrl: m.source,
+          );
+        } else {
+          final tm = m as core.TextMessage;
+          return LocalChatMessage(
+            id: tm.id,
+            text: tm.text,
+            authorId: tm.authorId,
+            createdAt:
+                tm.createdAt?.millisecondsSinceEpoch ??
+                DateTime.now().millisecondsSinceEpoch,
+          );
+        }
       }).toList();
 
       final updatedSession = session.copyWith(
