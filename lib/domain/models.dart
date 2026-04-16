@@ -23,8 +23,8 @@ class AvailableModel {
 
 const List<AvailableModel> kAvailableModels = [
   AvailableModel(
-    id: 'gemma-3n-2b',
-    name: 'Gemma 3n 2B (INT4)',
+    id: 'gemma-3n-e2b',
+    name: 'Gemma 3n E2B (INT4)',
     url:
         'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
     fileName: 'gemma-3n-E2B-it-int4.task',
@@ -36,6 +36,22 @@ const List<AvailableModel> kAvailableModels = [
     url:
         'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
     fileName: 'gemma-4-E2B-it.litertlm',
+    requiresAuth: false,
+  ),
+  AvailableModel(
+    id: 'gemma-3n-e4b',
+    name: 'Gemma 3n E4B (INT4)',
+    url:
+        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+    fileName: 'gemma-3n-E4B-it-int4.task',
+    requiresAuth: true,
+  ),
+  AvailableModel(
+    id: 'gemma-4-e4b',
+    name: 'Gemma 4 E4B (INT4)',
+    url:
+        'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
+    fileName: 'gemma-4-E4B-it.litertlm',
     requiresAuth: false,
   ),
 ];
@@ -63,7 +79,7 @@ class ChatAttachment {
 @HiveType(typeId: 0)
 class AppSettings extends HiveObject {
   AppSettings({
-    this.selectedModel = 'gemma-3n-2b',
+    this.selectedModel = 'gemma-4-e2b',
     this.temperature = 0.7,
     this.maxTokens = 2048,
     this.systemPrompt = 'You are a helpful AI assistant.',
@@ -80,7 +96,7 @@ class AppSettings extends HiveObject {
   @HiveField(2, defaultValue: 2048)
   final int maxTokens;
 
-  @HiveField(0, defaultValue: 'gemma-3n-2b')
+  @HiveField(0, defaultValue: 'gemma-4-e2b')
   final String selectedModel;
 
   @HiveField(3, defaultValue: 'You are a helpful AI assistant.')
