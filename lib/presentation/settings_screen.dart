@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -418,6 +419,47 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
     );
   }
 
+  Future<void> _checkConnectivityAndStart() async {
+    final connectivityResult = await (Connectivity().checkConnectivity());
+
+    if (connectivityResult.contains(ConnectivityResult.none)) {
+      setState(() => _error = "No internet connection detected.");
+      return;
+    }
+
+    if (mounted && connectivityResult.contains(ConnectivityResult.mobile)) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              SizedBox(width: 10),
+              Text('Large File Warning'),
+            ],
+          ),
+          content: const Text(
+            'You are connected via Mobile Data. This model is a large file (approx 1-2GB) and downloading it may consume significant data or incur additional charges. Proceed anyway?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Proceed'),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+    }
+
+    _startDownload();
+  }
+
   Future<void> _startDownload() async {
     appLogger.i("DownloadDialog: Starting download for ${widget.model.id}");
     if (widget.model.requiresAuth && _tokenController.text.trim().isEmpty) {
@@ -522,7 +564,7 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
           ),
         if (_progress == null)
           FilledButton(
-            onPressed: _startDownload,
+            onPressed: _checkConnectivityAndStart,
             child: const Text('Start Download'),
           ),
       ],
