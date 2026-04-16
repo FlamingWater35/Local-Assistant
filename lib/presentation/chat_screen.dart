@@ -250,59 +250,65 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _openExpandedComposer() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      useSafeArea: false,
-      builder: (context) {
-        return Dialog.fullscreen(
-          child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Compose Prompt'),
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-              actions: [
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _composerController,
-                  builder: (context, value, child) {
-                    final canSend =
-                        value.text.trim().isNotEmpty ||
-                        _pendingAttachments.isNotEmpty;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12.0),
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.arrow_upward, size: 18),
-                        label: const Text("Send"),
-                        onPressed: canSend
-                            ? () {
-                                Navigator.pop(context);
-                                _triggerSend(_composerController.text);
-                              }
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              ],
+      barrierDismissible: false,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Compose Prompt'),
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.pop(context),
             ),
-            body: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _composerController,
-                maxLines: null,
-                expands: true,
-                autofocus: true,
-                textAlignVertical: TextAlignVertical.top,
-                style: Theme.of(context).textTheme.bodyLarge,
-                decoration: const InputDecoration(
-                  hintText: 'Write your detailed prompt here...',
-                  border: InputBorder.none,
-                ),
+            actions: [
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _composerController,
+                builder: (context, value, child) {
+                  final canSend =
+                      value.text.trim().isNotEmpty ||
+                      _pendingAttachments.isNotEmpty;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.arrow_upward, size: 18),
+                      label: const Text("Send"),
+                      onPressed: canSend
+                          ? () {
+                              Navigator.pop(context);
+                              _triggerSend(_composerController.text);
+                            }
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _composerController,
+              maxLines: null,
+              expands: true,
+              autofocus: true,
+              textAlignVertical: TextAlignVertical.top,
+              style: Theme.of(context).textTheme.bodyLarge,
+              decoration: const InputDecoration(
+                hintText: 'Write your detailed prompt here...',
+                border: InputBorder.none,
               ),
             ),
           ),
         );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final tween = Tween(
+          begin: const Offset(0.0, 1.0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic));
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
@@ -414,7 +420,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha(12),
               offset: const Offset(0, -2),
               blurRadius: 5,
             ),
@@ -514,7 +520,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest
-                            .withOpacity(0.5),
+                            .withAlpha(128),
                         borderRadius: BorderRadius.circular(24),
                       ),
                       padding: const EdgeInsets.only(left: 16, right: 4),
@@ -524,7 +530,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           Expanded(
                             child: TextField(
                               controller: _composerController,
-                              maxLines: 5,
+                              maxLines: 2,
                               minLines: 1,
                               textCapitalization: TextCapitalization.sentences,
                               decoration: const InputDecoration(
@@ -785,21 +791,129 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   final text = message.metadata?['text'] as String? ?? '';
                   final atts = message.metadata?['attachments'] as List? ?? [];
 
-                  return SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: isSentByMe
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
-                        if (atts.isNotEmpty)
-                          ...atts.map(
-                            (att) => _buildUnifiedAttachmentBubble(
-                              att,
-                              isSentByMe,
-                              appTheme,
+                  final isNewestMessage =
+                      index == chatController.messages.length - 1;
+
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: isNewestMessage ? 64.0 : 0,
+                    ),
+                    child: SelectionArea(
+                      child: Column(
+                        crossAxisAlignment: isSentByMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          if (atts.isNotEmpty)
+                            ...atts.map(
+                              (att) => _buildUnifiedAttachmentBubble(
+                                att,
+                                isSentByMe,
+                                appTheme,
+                              ),
+                            ),
+                          if (text.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSentByMe
+                                    ? appTheme.colorScheme.primaryContainer
+                                    : appTheme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(16)
+                                    .copyWith(
+                                      bottomRight: isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                      bottomLeft: !isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                    ),
+                              ),
+                              child: GptMarkdown(
+                                text,
+                                style: appTheme.textTheme.bodyLarge?.copyWith(
+                                  color: isSentByMe
+                                      ? appTheme.colorScheme.onPrimaryContainer
+                                      : appTheme.colorScheme.onSurfaceVariant,
+                                ),
+                                useDollarSignsForLatex: true,
+                              ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 2,
+                              bottom: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (text.isNotEmpty)
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.content_copy,
+                                      size: 18,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    tooltip: 'Copy message',
+                                    onPressed: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: text),
+                                      );
+                                      if (mounted) {
+                                        showInfoSnackBar(
+                                          context,
+                                          'Copied to clipboard',
+                                        );
+                                      }
+                                    },
+                                  ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'Delete message group',
+                                  onPressed: () =>
+                                      _confirmDeleteMessage(message.id),
+                                ),
+                              ],
                             ),
                           ),
-                        if (text.isNotEmpty)
+                        ],
+                      ),
+                    ),
+                  );
+                },
+            textMessageBuilder:
+                (
+                  context,
+                  core.TextMessage message,
+                  int index, {
+                  required bool isSentByMe,
+                  core.MessageGroupStatus? groupStatus,
+                }) {
+                  final isNewestMessage =
+                      index == chatController.messages.length - 1;
+
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: isNewestMessage ? 64.0 : 0,
+                    ),
+                    child: SelectionArea(
+                      child: Column(
+                        crossAxisAlignment: isSentByMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
                           Container(
                             margin: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -822,7 +936,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                             ),
                             child: GptMarkdown(
-                              text,
+                              message.text,
                               style: appTheme.textTheme.bodyLarge?.copyWith(
                                 color: isSentByMe
                                     ? appTheme.colorScheme.onPrimaryContainer
@@ -831,17 +945,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               useDollarSignsForLatex: true,
                             ),
                           ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 2,
-                            bottom: 8,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (text.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 2,
+                              bottom: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 IconButton(
                                   icon: const Icon(
                                     Icons.content_copy,
@@ -851,7 +964,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   tooltip: 'Copy message',
                                   onPressed: () {
                                     Clipboard.setData(
-                                      ClipboardData(text: text),
+                                      ClipboardData(text: message.text),
                                     );
                                     if (mounted) {
                                       showInfoSnackBar(
@@ -861,107 +974,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     }
                                   },
                                 ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 18,
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'Delete message',
+                                  onPressed: () {
+                                    _confirmDeleteMessage(message.id);
+                                  },
                                 ),
-                                visualDensity: VisualDensity.compact,
-                                tooltip: 'Delete message group',
-                                onPressed: () =>
-                                    _confirmDeleteMessage(message.id),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-            textMessageBuilder:
-                (
-                  context,
-                  core.TextMessage message,
-                  int index, {
-                  required bool isSentByMe,
-                  core.MessageGroupStatus? groupStatus,
-                }) {
-                  return SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: isSentByMe
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isSentByMe
-                                ? appTheme.colorScheme.primaryContainer
-                                : appTheme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(16).copyWith(
-                              bottomRight: isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
-                              bottomLeft: !isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
+                              ],
                             ),
                           ),
-                          child: GptMarkdown(
-                            message.text,
-                            style: appTheme.textTheme.bodyLarge?.copyWith(
-                              color: isSentByMe
-                                  ? appTheme.colorScheme.onPrimaryContainer
-                                  : appTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            useDollarSignsForLatex: true,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 2,
-                            bottom: 8,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.content_copy, size: 18),
-                                visualDensity: VisualDensity.compact,
-                                tooltip: 'Copy message',
-                                onPressed: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: message.text),
-                                  );
-                                  if (mounted) {
-                                    showInfoSnackBar(
-                                      context,
-                                      'Copied to clipboard',
-                                    );
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 18,
-                                ),
-                                visualDensity: VisualDensity.compact,
-                                tooltip: 'Delete message',
-                                onPressed: () {
-                                  _confirmDeleteMessage(message.id);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
