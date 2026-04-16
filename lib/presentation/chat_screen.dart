@@ -17,17 +17,20 @@ import 'package:uuid/uuid.dart';
 import '../application/chat_provider.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
+import '../domain/models.dart';
 
 @RoutePage()
-class ChatScreen extends ConsumerWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
 
-  void _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    String sessionId,
-    String title,
-  ) {
+  @override
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends ConsumerState<ChatScreen> {
+  final List<ChatAttachment> _pendingAttachments = [];
+
+  void _confirmDelete(String sessionId, String title) {
     appLogger.i("UI: Opened delete confirmation for chat: $title");
     showDialog(
       context: context,
@@ -47,7 +50,7 @@ class ChatScreen extends ConsumerWidget {
               appLogger.i("UI: Deleting chat session ID: $sessionId");
               ref.read(chatLogicProvider.notifier).deleteSession(sessionId);
               Navigator.pop(ctx);
-              if (context.mounted) {
+              if (mounted) {
                 showSuccessSnackBar(context, 'Chat deleted');
               }
             },
@@ -58,11 +61,7 @@ class ChatScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmDeleteMessage(
-    BuildContext context,
-    WidgetRef ref,
-    String messageId,
-  ) {
+  void _confirmDeleteMessage(String messageId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -80,7 +79,7 @@ class ChatScreen extends ConsumerWidget {
               await ref
                   .read(chatLogicProvider.notifier)
                   .deleteMessage(messageId);
-              if (context.mounted) {
+              if (mounted && ctx.mounted) {
                 Navigator.pop(ctx);
                 showSuccessSnackBar(context, 'Message deleted');
               }
@@ -92,7 +91,15 @@ class ChatScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleAttachmentTap(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleAttachmentTap() async {
+    if (_pendingAttachments.length >= 2) {
+      showErrorSnackBar(
+        context,
+        'Maximum of 2 attachments allowed per message.',
+      );
+      return;
+    }
+
     final choice = await showModalBottomSheet<String>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -119,7 +126,7 @@ class ChatScreen extends ConsumerWidget {
       ),
     );
 
-    if (choice == null || !context.mounted) return;
+    if (choice == null || !mounted) return;
 
     if (choice == 'photo') {
       final picker = ImagePicker();
@@ -127,56 +134,21 @@ class ChatScreen extends ConsumerWidget {
       if (xFile == null) return;
 
       final bytes = await xFile.readAsBytes();
-      if (!context.mounted) return;
+      final url = 'http://local_image_${const Uuid().v4()}.jpg';
+      await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
 
-      final textController = TextEditingController();
-      final bool? send = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Send Image'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.memory(bytes, height: 200, fit: BoxFit.contain),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: textController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a prompt/caption (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: null,
-                ),
-              ],
-            ),
+      if (!mounted) return;
+      setState(() {
+        _pendingAttachments.add(
+          ChatAttachment(
+            type: 'photo',
+            bytes: bytes,
+            url: url,
+            fileName: xFile.name,
+            mimeType: 'image/jpeg',
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Send'),
-            ),
-          ],
-        ),
-      );
-
-      if (send == true) {
-        final url = 'http://local_image_${const Uuid().v4()}.jpg';
-        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
-
-        ref
-            .read(chatLogicProvider.notifier)
-            .sendMessage(
-              textController.text.trim(),
-              imageBytes: bytes,
-              imageUrl: url,
-            );
-      }
+        );
+      });
     } else if (choice == 'audio') {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
@@ -185,50 +157,22 @@ class ChatScreen extends ConsumerWidget {
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
         final bytes = await file.readAsBytes();
-        if (!context.mounted) return;
+        final url = 'http://local_audio_${const Uuid().v4()}.wav';
+        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'wav');
 
-        final textController = TextEditingController();
-        final bool? send = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text('Send Audio: ${result.files.single.name}'),
-            content: TextField(
-              controller: textController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Add a prompt (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: null,
+        if (!mounted) return;
+        setState(() {
+          _pendingAttachments.add(
+            ChatAttachment(
+              type: 'audio',
+              bytes: bytes,
+              url: url,
+              fileName: result.files.single.name,
+              fileSize: result.files.single.size,
+              mimeType: 'audio/wav',
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Send'),
-              ),
-            ],
-          ),
-        );
-
-        if (send == true) {
-          final url = 'http://local_audio_${const Uuid().v4()}.wav';
-          await DefaultCacheManager().putFile(url, bytes, fileExtension: 'wav');
-
-          ref
-              .read(chatLogicProvider.notifier)
-              .sendMessage(
-                textController.text.trim(),
-                audioBytes: bytes,
-                fileUrl: url,
-                fileName: result.files.single.name,
-                fileSize: result.files.single.size,
-                mimeType: 'audio/wav',
-              );
-        }
+          );
+        });
       }
     } else if (choice == 'doc') {
       final result = await FilePicker.pickFiles(
@@ -246,7 +190,7 @@ class ChatScreen extends ConsumerWidget {
             "File read error: User picked a non-text document",
             error: e,
           );
-          if (context.mounted) {
+          if (mounted) {
             showErrorSnackBar(
               context,
               'Cannot read file. Please ensure it is a valid text document.',
@@ -260,55 +204,125 @@ class ChatScreen extends ConsumerWidget {
               "${textContent.substring(0, 20000)}\n\n...[TRUNCATED due to length constraints]";
         }
 
-        if (!context.mounted) return;
+        final bytes = await file.readAsBytes();
+        final url = 'http://local_doc_${const Uuid().v4()}.txt';
+        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'txt');
 
-        final textController = TextEditingController();
-        final bool? send = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text('Send Document: ${result.files.single.name}'),
-            content: TextField(
-              controller: textController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'What should the AI do with this file?',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: null,
+        if (!mounted) return;
+        setState(() {
+          _pendingAttachments.add(
+            ChatAttachment(
+              type: 'doc',
+              bytes: bytes,
+              url: url,
+              fileName: result.files.single.name,
+              fileSize: result.files.single.size,
+              mimeType: 'text/plain',
+              textContent: textContent,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Send'),
-              ),
-            ],
-          ),
-        );
-
-        if (send == true) {
-          final url = 'http://local_doc_${const Uuid().v4()}.txt';
-
-          ref
-              .read(chatLogicProvider.notifier)
-              .sendMessage(
-                textController.text.trim(),
-                fileExtractedText: textContent,
-                fileUrl: url,
-                fileName: result.files.single.name,
-                fileSize: result.files.single.size,
-                mimeType: 'text/plain',
-              );
-        }
+          );
+        });
       }
     }
   }
 
+  void _triggerSend(String text) {
+    if (text.trim().isEmpty && _pendingAttachments.isEmpty) return;
+
+    appLogger.i("UI: Send triggered.");
+    ref
+        .read(chatLogicProvider.notifier)
+        .sendMessage(text.trim(), attachments: List.from(_pendingAttachments));
+
+    setState(() {
+      _pendingAttachments.clear();
+    });
+  }
+
+  Widget _buildPendingAttachments(ThemeData appTheme) {
+    if (_pendingAttachments.isEmpty) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 120,
+      left: 16,
+      right: 16,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _pendingAttachments.map((att) {
+          return Card(
+            elevation: 6,
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  if (att.type == 'photo')
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        att.bytes,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: appTheme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        att.type == 'audio'
+                            ? Icons.audio_file
+                            : Icons.insert_drive_file,
+                        color: appTheme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          att.fileName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Ready to send',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: appTheme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Remove attachment',
+                    onPressed: () =>
+                        setState(() => _pendingAttachments.remove(att)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final chatController = ref.watch(chatLogicProvider);
     final history = ref.watch(chatHistoryProvider);
     final activeSessionId = ref
@@ -380,7 +394,6 @@ class ChatScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: FilledButton.icon(
@@ -400,7 +413,6 @@ class ChatScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -413,7 +425,6 @@ class ChatScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
@@ -443,12 +454,8 @@ class ChatScreen extends ConsumerWidget {
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline, size: 20),
                           color: appTheme.colorScheme.error,
-                          onPressed: () => _confirmDelete(
-                            context,
-                            ref,
-                            session.id,
-                            session.title,
-                          ),
+                          onPressed: () =>
+                              _confirmDelete(session.id, session.title),
                         ),
                         onTap: () async {
                           if (!isActive) {
@@ -468,7 +475,6 @@ class ChatScreen extends ConsumerWidget {
                   ),
                 ),
                 const Divider(height: 1),
-
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -478,7 +484,7 @@ class ChatScreen extends ConsumerWidget {
                   title: const Text('Settings & Models'),
                   onTap: () {
                     appLogger.i("UI: Navigating to Settings.");
-                    if (context.mounted) {
+                    if (mounted) {
                       Navigator.pop(context);
                       context.router.push(const SettingsRoute());
                     }
@@ -488,316 +494,335 @@ class ChatScreen extends ConsumerWidget {
             ),
           ),
         ),
-        body: Chat(
-          key: ValueKey(chatController.hashCode),
-          chatController: chatController,
-          currentUserId: 'user',
-          theme: chatTheme,
-          onAttachmentTap: () => _handleAttachmentTap(context, ref),
-
-          builders: Builders(
-            fileMessageBuilder:
-                (
-                  context,
-                  core.FileMessage message,
-                  int index, {
-                  required bool isSentByMe,
-                  core.MessageGroupStatus? groupStatus,
-                }) {
-                  return SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isSentByMe
-                                ? appTheme.colorScheme.primaryContainer
-                                : appTheme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(16).copyWith(
-                              bottomRight: isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
-                              bottomLeft: !isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                message.mimeType?.startsWith('audio/') == true
-                                    ? Icons.audio_file
-                                    : Icons.insert_drive_file,
+        body: Stack(
+          children: [
+            Chat(
+              key: ValueKey(chatController.hashCode),
+              chatController: chatController,
+              currentUserId: 'user',
+              theme: chatTheme,
+              onAttachmentTap: _handleAttachmentTap,
+              builders: Builders(
+                fileMessageBuilder:
+                    (
+                      context,
+                      core.FileMessage message,
+                      int index, {
+                      required bool isSentByMe,
+                      core.MessageGroupStatus? groupStatus,
+                    }) {
+                      return SelectionArea(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
                                 color: isSentByMe
-                                    ? appTheme.colorScheme.onPrimaryContainer
-                                    : appTheme.colorScheme.onSurfaceVariant,
-                                size: 28,
+                                    ? appTheme.colorScheme.primaryContainer
+                                    : appTheme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(16)
+                                    .copyWith(
+                                      bottomRight: isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                      bottomLeft: !isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                    ),
                               ),
-                              const SizedBox(width: 12),
-                              Flexible(
-                                child: Text(
-                                  message.name,
-                                  style: appTheme.textTheme.bodyLarge?.copyWith(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    message.mimeType?.startsWith('audio/') ==
+                                            true
+                                        ? Icons.audio_file
+                                        : Icons.insert_drive_file,
                                     color: isSentByMe
                                         ? appTheme
                                               .colorScheme
                                               .onPrimaryContainer
                                         : appTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w600,
+                                    size: 28,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 2,
-                            bottom: 4,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 18),
-                            visualDensity: VisualDensity.compact,
-                            tooltip: 'Delete message',
-                            onPressed: () =>
-                                _confirmDeleteMessage(context, ref, message.id),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-            imageMessageBuilder:
-                (
-                  context,
-                  core.ImageMessage message,
-                  int index, {
-                  required bool isSentByMe,
-                  core.MessageGroupStatus? groupStatus,
-                }) {
-                  return SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isSentByMe
-                                ? appTheme.colorScheme.primaryContainer
-                                : appTheme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(16).copyWith(
-                              bottomRight: isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
-                              bottomLeft: !isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: StreamBuilder<FileResponse>(
-                                  stream: DefaultCacheManager().getFileStream(
-                                    message.source,
-                                  ),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.hasError) {
-                                      return const SizedBox(
-                                        height: 150,
-                                        width: 250,
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            size: 48,
-                                            color: Colors.grey,
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    child: Text(
+                                      message.name,
+                                      style: appTheme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            color: isSentByMe
+                                                ? appTheme
+                                                      .colorScheme
+                                                      .onPrimaryContainer
+                                                : appTheme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                        ),
-                                      );
-                                    }
-                                    if (snapshot.hasData &&
-                                        snapshot.data is FileInfo) {
-                                      final fileInfo =
-                                          snapshot.data as FileInfo;
-                                      return Image.file(
-                                        fileInfo.file,
-                                        width: 250,
-                                        fit: BoxFit.contain,
-                                      );
-                                    }
-                                    return const SizedBox(
-                                      height: 150,
-                                      width: 250,
-                                      child: Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              if (message.text != null &&
-                                  message.text!.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                GptMarkdown(
-                                  message.text!,
-                                  style: appTheme.textTheme.bodyLarge?.copyWith(
-                                    color: isSentByMe
-                                        ? appTheme
-                                              .colorScheme
-                                              .onPrimaryContainer
-                                        : appTheme.colorScheme.onSurfaceVariant,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  useDollarSignsForLatex: true,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 2,
-                            bottom: 4,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                                top: 2,
+                                bottom: 4,
+                              ),
+                              child: IconButton(
                                 icon: const Icon(
                                   Icons.delete_outline,
                                   size: 18,
                                 ),
                                 visualDensity: VisualDensity.compact,
                                 tooltip: 'Delete message',
-                                onPressed: () {
-                                  _confirmDeleteMessage(
-                                    context,
-                                    ref,
-                                    message.id,
-                                  );
-                                },
+                                onPressed: () =>
+                                    _confirmDeleteMessage(message.id),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-            textMessageBuilder:
-                (
-                  context,
-                  core.TextMessage message,
-                  int index, {
-                  required bool isSentByMe,
-                  core.MessageGroupStatus? groupStatus,
-                }) {
-                  return SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isSentByMe
-                                ? appTheme.colorScheme.primaryContainer
-                                : appTheme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(16).copyWith(
-                              bottomRight: isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
-                              bottomLeft: !isSentByMe
-                                  ? Radius.zero
-                                  : const Radius.circular(16),
                             ),
-                          ),
-                          child: GptMarkdown(
-                            message.text,
-                            style: appTheme.textTheme.bodyLarge?.copyWith(
-                              color: isSentByMe
-                                  ? appTheme.colorScheme.onPrimaryContainer
-                                  : appTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            useDollarSignsForLatex: true,
-                          ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 2,
-                            bottom: 4,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.content_copy, size: 18),
-                                visualDensity: VisualDensity.compact,
-                                tooltip: 'Copy message',
-                                onPressed: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: message.text),
-                                  );
-                                  if (context.mounted) {
-                                    showInfoSnackBar(
-                                      context,
-                                      'Copied to clipboard',
-                                    );
-                                  }
-                                },
+                      );
+                    },
+                imageMessageBuilder:
+                    (
+                      context,
+                      core.ImageMessage message,
+                      int index, {
+                      required bool isSentByMe,
+                      core.MessageGroupStatus? groupStatus,
+                    }) {
+                      return SelectionArea(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
                               ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 18,
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isSentByMe
+                                    ? appTheme.colorScheme.primaryContainer
+                                    : appTheme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(16)
+                                    .copyWith(
+                                      bottomRight: isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                      bottomLeft: !isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                    ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: StreamBuilder<FileResponse>(
+                                      stream: DefaultCacheManager()
+                                          .getFileStream(message.source),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasError) {
+                                          return const SizedBox(
+                                            height: 150,
+                                            width: 250,
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                size: 48,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        if (snapshot.hasData &&
+                                            snapshot.data is FileInfo) {
+                                          final fileInfo =
+                                              snapshot.data as FileInfo;
+                                          return Image.file(
+                                            fileInfo.file,
+                                            width: 250,
+                                            fit: BoxFit.contain,
+                                          );
+                                        }
+                                        return const SizedBox(
+                                          height: 150,
+                                          width: 250,
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  if (message.text != null &&
+                                      message.text!.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    GptMarkdown(
+                                      message.text!,
+                                      style: appTheme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            color: isSentByMe
+                                                ? appTheme
+                                                      .colorScheme
+                                                      .onPrimaryContainer
+                                                : appTheme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                          ),
+                                      useDollarSignsForLatex: true,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                                top: 2,
+                                bottom: 4,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    tooltip: 'Delete message',
+                                    onPressed: () {
+                                      _confirmDeleteMessage(message.id);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                textMessageBuilder:
+                    (
+                      context,
+                      core.TextMessage message,
+                      int index, {
+                      required bool isSentByMe,
+                      core.MessageGroupStatus? groupStatus,
+                    }) {
+                      return SelectionArea(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSentByMe
+                                    ? appTheme.colorScheme.primaryContainer
+                                    : appTheme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(16)
+                                    .copyWith(
+                                      bottomRight: isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                      bottomLeft: !isSentByMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                    ),
+                              ),
+                              child: GptMarkdown(
+                                message.text,
+                                style: appTheme.textTheme.bodyLarge?.copyWith(
+                                  color: isSentByMe
+                                      ? appTheme.colorScheme.onPrimaryContainer
+                                      : appTheme.colorScheme.onSurfaceVariant,
                                 ),
-                                visualDensity: VisualDensity.compact,
-                                tooltip: 'Delete message',
-                                onPressed: () {
-                                  _confirmDeleteMessage(
-                                    context,
-                                    ref,
-                                    message.id,
-                                  );
-                                },
+                                useDollarSignsForLatex: true,
                               ),
-                            ],
-                          ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                                top: 2,
+                                bottom: 4,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.content_copy,
+                                      size: 18,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    tooltip: 'Copy message',
+                                    onPressed: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: message.text),
+                                      );
+                                      if (mounted) {
+                                        showInfoSnackBar(
+                                          context,
+                                          'Copied to clipboard',
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    tooltip: 'Delete message',
+                                    onPressed: () {
+                                      _confirmDeleteMessage(message.id);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-          ),
+                      );
+                    },
+              ),
+              resolveUser: (core.UserID id) async {
+                return core.User(
+                  id: id,
+                  name: id == 'user' ? 'Me' : 'Gemma AI',
+                );
+              },
+              onMessageSend: _triggerSend,
+            ),
 
-          resolveUser: (core.UserID id) async {
-            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
-          },
-          onMessageSend: (String text) {
-            appLogger.i("UI: Send button pressed.");
-            ref.read(chatLogicProvider.notifier).sendMessage(text);
-          },
+            _buildPendingAttachments(appTheme),
+          ],
         ),
       ),
     );

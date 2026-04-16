@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
@@ -14,6 +13,7 @@ class LlmService {
   InferenceChat? _activeChat;
   InferenceModel? _activeModel;
   int _currentContextTokens = 0;
+  int _currentImageCount = 0;
   bool _isSessionActive = false;
   bool _isUnloading = false;
   final _sessionLock = Completer<void>();
@@ -64,7 +64,7 @@ class LlmService {
         maxTokens: safeMaxTokens,
         supportImage: true,
         supportAudio: true,
-        maxNumImages: 1,
+        maxNumImages: 2,
       );
 
       if (_activeChat != null) await _activeChat!.close();
@@ -75,6 +75,7 @@ class LlmService {
         supportAudio: true,
       );
       _currentContextTokens = _estimateTokens(settings.systemPrompt);
+      _currentImageCount = 0;
       _isSessionActive = true;
       appLogger.i("✅ initModel: Model initialized successfully.");
     } catch (e) {
@@ -87,8 +88,9 @@ class LlmService {
   Future<void> loadSessionContext(
     ChatSession? session,
     AppSettings settings,
-    List<ChatSession> allSessions,
-  ) async {
+    List<ChatSession> allSessions, {
+    int reserveImages = 0,
+  }) async {
     if (_isUnloading || !_isSessionActive || _activeModel == null) {
       appLogger.i("loadSessionContext: Skipped - session not active");
       return;
@@ -126,6 +128,7 @@ class LlmService {
         supportAudio: true,
       );
       int totalTokens = systemTokens;
+      int imageCount = reserveImages;
 
       if (session != null && session.messages.isNotEmpty) {
         final sortedMessages = List<LocalChatMessage>.from(session.messages)
@@ -138,8 +141,13 @@ class LlmService {
 
         for (final msg in sortedMessages.reversed) {
           if (_isUnloading || !_isSessionActive) return;
-
           if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
+
+          if (msg.imageUrl != null) {
+            if (imageCount >= 2) {
+              continue;
+            }
+          }
 
           int msgTokens = _estimateTokens(msg.text);
           if (msg.imageUrl != null ||
@@ -154,81 +162,131 @@ class LlmService {
             break;
           }
 
+          if (msg.imageUrl != null) imageCount++;
           totalTokens += msgTokens;
           messagesToInject.add(msg);
           isFirstMessage = false;
         }
 
+        List<List<LocalChatMessage>> groupedMessages = [];
         for (final msg in messagesToInject.reversed) {
-          if (_isUnloading) return;
+          if (groupedMessages.isEmpty) {
+            groupedMessages.add([msg]);
+          } else {
+            if (groupedMessages.last.first.authorId == msg.authorId) {
+              groupedMessages.last.add(msg);
+            } else {
+              groupedMessages.add([msg]);
+            }
+          }
+        }
 
-          if (msg.imageUrl != null) {
-            final fileInfo = await DefaultCacheManager().getFileFromCache(
-              msg.imageUrl!,
-            );
-            if (fileInfo != null) {
-              final bytes = await fileInfo.file.readAsBytes();
-              if (msg.text.isEmpty) {
-                await _activeChat!.addQueryChunk(
-                  Message.imageOnly(
-                    imageBytes: bytes,
-                    isUser: msg.authorId == 'user',
-                  ),
-                );
+        for (final group in groupedMessages) {
+          if (_isUnloading) return;
+          if (group.first.authorId == 'user') {
+            String combinedText = "";
+            List<LocalChatMessage> mediaMsgs = [];
+
+            for (final msg in group) {
+              if (msg.imageUrl != null ||
+                  (msg.fileUrl != null && msg.mimeType == 'audio/wav')) {
+                mediaMsgs.add(msg);
+                if (msg.text.isNotEmpty) combinedText += "${msg.text}\n\n";
+              } else if (msg.fileUrl != null) {
+                combinedText +=
+                    "Document '${msg.fileName}' contents:\n\n${msg.text}\n\n";
               } else {
+                if (msg.text.isNotEmpty) combinedText += "${msg.text}\n\n";
+              }
+            }
+            combinedText = combinedText.trim();
+
+            if (mediaMsgs.isEmpty) {
+              if (combinedText.isNotEmpty) {
                 await _activeChat!.addQueryChunk(
-                  Message.withImage(
-                    text: msg.text,
-                    imageBytes: bytes,
-                    isUser: msg.authorId == 'user',
-                  ),
+                  Message.text(text: combinedText, isUser: true),
                 );
               }
             } else {
-              await _activeChat!.addQueryChunk(
-                Message.text(
-                  text: msg.text.isEmpty ? "[Image missing]" : msg.text,
-                  isUser: msg.authorId == 'user',
-                ),
-              );
+              for (int i = 0; i < mediaMsgs.length; i++) {
+                final msg = mediaMsgs[i];
+                bool isLast = (i == mediaMsgs.length - 1);
+
+                String textPayload = isLast ? combinedText : "";
+
+                if (msg.imageUrl != null) {
+                  final fileInfo = await DefaultCacheManager().getFileFromCache(
+                    msg.imageUrl!,
+                  );
+                  if (fileInfo != null) {
+                    final bytes = await fileInfo.file.readAsBytes();
+                    if (textPayload.isNotEmpty) {
+                      await _activeChat!.addQueryChunk(
+                        Message.withImage(
+                          text: textPayload,
+                          imageBytes: bytes,
+                          isUser: true,
+                        ),
+                      );
+                    } else {
+                      await _activeChat!.addQueryChunk(
+                        Message.imageOnly(imageBytes: bytes, isUser: true),
+                      );
+                    }
+                  } else {
+                    final fallback = textPayload.isNotEmpty
+                        ? "[Image missing]\n\n$textPayload"
+                        : "[Image missing]";
+                    await _activeChat!.addQueryChunk(
+                      Message.text(text: fallback, isUser: true),
+                    );
+                  }
+                } else if (msg.fileUrl != null && msg.mimeType == 'audio/wav') {
+                  final fileInfo = await DefaultCacheManager().getFileFromCache(
+                    msg.fileUrl!,
+                  );
+                  if (fileInfo != null) {
+                    final bytes = await fileInfo.file.readAsBytes();
+                    if (textPayload.isNotEmpty) {
+                      await _activeChat!.addQueryChunk(
+                        Message.withAudio(
+                          text: textPayload,
+                          audioBytes: bytes,
+                          isUser: true,
+                        ),
+                      );
+                    } else {
+                      await _activeChat!.addQueryChunk(
+                        Message.audioOnly(audioBytes: bytes, isUser: true),
+                      );
+                    }
+                  } else {
+                    final fallback = textPayload.isNotEmpty
+                        ? "[Audio missing]\n\n$textPayload"
+                        : "[Audio missing]";
+                    await _activeChat!.addQueryChunk(
+                      Message.text(text: fallback, isUser: true),
+                    );
+                  }
+                }
+              }
             }
-          } else if (msg.fileUrl != null && msg.mimeType == 'audio/wav') {
-            final fileInfo = await DefaultCacheManager().getFileFromCache(
-              msg.fileUrl!,
-            );
-            if (fileInfo != null) {
-              final bytes = await fileInfo.file.readAsBytes();
-              await _activeChat!.addQueryChunk(
-                Message.audioOnly(
-                  audioBytes: bytes,
-                  isUser: msg.authorId == 'user',
-                ),
-              );
-            } else {
-              await _activeChat!.addQueryChunk(
-                Message.text(
-                  text: "[Audio missing]",
-                  isUser: msg.authorId == 'user',
-                ),
-              );
-            }
-          } else if (msg.fileUrl != null) {
-            final docPrompt =
-                "Document '${msg.fileName}' contents:\n\n${msg.text}";
-            await _activeChat!.addQueryChunk(
-              Message.text(text: docPrompt, isUser: msg.authorId == 'user'),
-            );
           } else {
-            await _activeChat!.addQueryChunk(
-              Message.text(text: msg.text, isUser: msg.authorId == 'user'),
-            );
+            for (final msg in group) {
+              if (msg.text.isNotEmpty) {
+                await _activeChat!.addQueryChunk(
+                  Message.text(text: msg.text, isUser: false),
+                );
+              }
+            }
           }
         }
       }
 
       _currentContextTokens = totalTokens;
+      _currentImageCount = imageCount - reserveImages;
       appLogger.i(
-        "📂 loadSessionContext: Rebuilt context with $_currentContextTokens estimated tokens.",
+        "📂 loadSessionContext: Rebuilt context with $_currentContextTokens tokens & $_currentImageCount images.",
       );
     } catch (e) {
       if (!e.toString().contains('CANCELLED')) {
@@ -245,10 +303,7 @@ class LlmService {
     required ChatSession session,
     required AppSettings settings,
     required List<ChatSession> allSessions,
-    Uint8List? imageBytes,
-    Uint8List? audioBytes,
-    String? fileExtractedText,
-    String? fileName,
+    List<ChatAttachment> attachments = const [],
   }) async* {
     if (_isUnloading || !_isSessionActive || _activeChat == null) {
       appLogger.w("generateResponseStream: Aborted - session not ready");
@@ -256,51 +311,90 @@ class LlmService {
     }
 
     int promptTokens = _estimateTokens(prompt);
-    if (imageBytes != null || audioBytes != null) promptTokens += 256;
-    if (fileExtractedText != null) {
-      promptTokens += _estimateTokens(fileExtractedText);
-    }
+    int incomingImages = attachments.where((a) => a.type == 'photo').length;
 
-    if (_currentContextTokens + promptTokens > settings.maxTokens * 0.8) {
-      appLogger.w(
-        "⚠️ Context threshold exceeded. Forcing smart memory prune...",
-      );
-      await loadSessionContext(session, settings, allSessions);
-    }
-
-    if (audioBytes != null) {
-      if (prompt.isEmpty) {
-        await _activeChat!.addQueryChunk(
-          Message.audioOnly(audioBytes: audioBytes, isUser: true),
-        );
-      } else {
-        await _activeChat!.addQueryChunk(
-          Message.withAudio(text: prompt, audioBytes: audioBytes, isUser: true),
-        );
+    for (var att in attachments) {
+      if (att.type == 'photo' || att.type == 'audio') promptTokens += 256;
+      if (att.type == 'doc' && att.textContent != null) {
+        promptTokens += _estimateTokens(att.textContent!);
       }
-    } else if (fileExtractedText != null) {
-      String combined = "Document '$fileName' contents:\n\n$fileExtractedText";
-      if (prompt.isNotEmpty) combined += "\n\nUser prompt: $prompt";
-      await _activeChat!.addQueryChunk(
-        Message.text(text: combined, isUser: true),
+    }
+
+    if (_currentContextTokens + promptTokens > settings.maxTokens * 0.8 ||
+        _currentImageCount + incomingImages > 2) {
+      appLogger.w("⚠️ Threshold exceeded. Forcing memory prune...");
+      await loadSessionContext(
+        session,
+        settings,
+        allSessions,
+        reserveImages: incomingImages,
       );
-    } else if (imageBytes != null) {
-      if (prompt.isEmpty) {
+    }
+
+    String combinedText = "";
+
+    for (var att in attachments) {
+      if (att.type == 'doc' && att.textContent != null) {
+        combinedText +=
+            "Document '${att.fileName}' contents:\n\n${att.textContent}\n\n";
+      }
+    }
+    if (prompt.isNotEmpty) {
+      combinedText += prompt;
+    }
+    combinedText = combinedText.trim();
+
+    final photos = attachments.where((a) => a.type == 'photo').toList();
+    final audios = attachments.where((a) => a.type == 'audio').toList();
+    final mediaAttachments = [...audios, ...photos];
+
+    if (mediaAttachments.isEmpty) {
+      if (combinedText.isNotEmpty) {
         await _activeChat!.addQueryChunk(
-          Message.imageOnly(imageBytes: imageBytes, isUser: true),
-        );
-      } else {
-        await _activeChat!.addQueryChunk(
-          Message.withImage(text: prompt, imageBytes: imageBytes, isUser: true),
+          Message.text(text: combinedText, isUser: true),
         );
       }
     } else {
-      await _activeChat!.addQueryChunk(
-        Message.text(text: prompt, isUser: true),
-      );
+      for (int i = 0; i < mediaAttachments.length; i++) {
+        final att = mediaAttachments[i];
+        bool isLast = (i == mediaAttachments.length - 1);
+
+        String textPayload = isLast ? combinedText : "";
+
+        if (att.type == 'photo') {
+          if (textPayload.isNotEmpty) {
+            await _activeChat!.addQueryChunk(
+              Message.withImage(
+                text: textPayload,
+                imageBytes: att.bytes,
+                isUser: true,
+              ),
+            );
+          } else {
+            await _activeChat!.addQueryChunk(
+              Message.imageOnly(imageBytes: att.bytes, isUser: true),
+            );
+          }
+        } else if (att.type == 'audio') {
+          if (textPayload.isNotEmpty) {
+            await _activeChat!.addQueryChunk(
+              Message.withAudio(
+                text: textPayload,
+                audioBytes: att.bytes,
+                isUser: true,
+              ),
+            );
+          } else {
+            await _activeChat!.addQueryChunk(
+              Message.audioOnly(audioBytes: att.bytes, isUser: true),
+            );
+          }
+        }
+      }
     }
 
     _currentContextTokens += promptTokens;
+    _currentImageCount += incomingImages;
 
     try {
       final stream = _activeChat!.generateChatResponseAsync();
@@ -368,6 +462,7 @@ class LlmService {
       }
 
       _currentContextTokens = 0;
+      _currentImageCount = 0;
       appLogger.i("✅ unloadModel: Complete");
     } catch (e) {
       appLogger.e("❌ unloadModel: Error during cleanup", error: e);

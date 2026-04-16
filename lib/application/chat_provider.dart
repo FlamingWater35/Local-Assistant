@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -125,14 +124,7 @@ class ChatLogic extends _$ChatLogic {
 
   Future<void> sendMessage(
     String text, {
-    Uint8List? imageBytes,
-    String? imageUrl,
-    Uint8List? audioBytes,
-    String? fileUrl,
-    String? fileName,
-    int? fileSize,
-    String? mimeType,
-    String? fileExtractedText,
+    List<ChatAttachment> attachments = const [],
   }) async {
     await _cancelActiveGeneration();
 
@@ -142,9 +134,7 @@ class ChatLogic extends _$ChatLogic {
       currentSessionId = _uuid.v4();
       final newTitle = text.isNotEmpty
           ? (text.length > 25 ? '${text.substring(0, 25)}...' : text)
-          : (imageBytes != null
-                ? 'Image chat'
-                : (fileUrl != null ? 'File chat' : 'New chat'));
+          : (attachments.isNotEmpty ? 'Attachment session' : 'New chat');
 
       final newSession = ChatSession(
         id: currentSessionId!,
@@ -159,27 +149,28 @@ class ChatLogic extends _$ChatLogic {
     _activeGenerationSessionId = currentSessionId;
     ref.read(isGeneratingProvider.notifier).setGenerating(true);
 
-    if (fileUrl != null) {
-      final fMsg = _createLocalMessage(
-        fileExtractedText ?? '',
-        'user',
-        fileUrl: fileUrl,
-        fileName: fileName,
-        fileSize: fileSize,
-        mimeType: mimeType,
-      );
-      _addMessageToStateAndDb(fMsg);
+    for (final att in attachments) {
+      if (att.type == 'doc' || att.type == 'audio') {
+        final fMsg = _createLocalMessage(
+          att.textContent ?? '',
+          'user',
+          fileUrl: att.url,
+          fileName: att.fileName,
+          fileSize: att.fileSize,
+          mimeType: att.mimeType,
+        );
+        _addMessageToStateAndDb(fMsg);
+      } else if (att.type == 'photo') {
+        final imgMsg = _createLocalMessage('', 'user', imageUrl: att.url);
+        _addMessageToStateAndDb(imgMsg);
+      }
+    }
 
+    if (text.isNotEmpty || attachments.isEmpty) {
       if (text.isNotEmpty) {
         final tMsg = _createLocalMessage(text, 'user');
         _addMessageToStateAndDb(tMsg);
       }
-    } else if (imageUrl != null) {
-      final imgMsg = _createLocalMessage(text, 'user', imageUrl: imageUrl);
-      _addMessageToStateAndDb(imgMsg);
-    } else {
-      final tMsg = _createLocalMessage(text, 'user');
-      _addMessageToStateAndDb(tMsg);
     }
 
     final aiMsgId = _uuid.v4();
@@ -201,10 +192,7 @@ class ChatLogic extends _$ChatLogic {
             session: session,
             settings: settings,
             allSessions: allSessions,
-            imageBytes: imageBytes,
-            audioBytes: audioBytes,
-            fileExtractedText: fileExtractedText,
-            fileName: fileName,
+            attachments: attachments,
           );
 
       _generationSubscription = stream.listen(

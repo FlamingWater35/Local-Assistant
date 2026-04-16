@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:hive_ce/hive.dart';
 
@@ -37,6 +39,26 @@ const List<AvailableModel> kAvailableModels = [
     requiresAuth: false,
   ),
 ];
+
+class ChatAttachment {
+  ChatAttachment({
+    required this.type,
+    required this.bytes,
+    required this.url,
+    required this.fileName,
+    this.fileSize,
+    required this.mimeType,
+    this.textContent,
+  });
+
+  final Uint8List bytes;
+  final String fileName;
+  final int? fileSize;
+  final String mimeType;
+  final String? textContent;
+  final String type;
+  final String url;
+}
 
 @HiveType(typeId: 0)
 class AppSettings extends HiveObject {
