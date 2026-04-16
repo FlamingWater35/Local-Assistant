@@ -9,7 +9,6 @@ import '../application/settings_provider.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
-import '../router/app_router.dart';
 
 @RoutePage()
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -36,7 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => _DownloadDialog(
+      builder: (ctx) => DownloadModelDialog(
         model: model,
         currentSettings: _draftSettings,
         onDownloaded: () {
@@ -62,22 +61,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     setState(() => _isLoading = true);
 
-    final isFirstLaunch = !context.router.canPop();
-
     try {
       await ref
           .read(settingsControllerProvider.notifier)
-          .updateSettings(_draftSettings, reloadModel: !isFirstLaunch);
+          .updateSettings(_draftSettings, reloadModel: true);
 
       if (!mounted) return;
 
-      showSuccessSnackBar(context, 'Settings applied!');
-
-      if (isFirstLaunch) {
-        context.router.replace(const SetupRoute());
-      } else {
-        context.router.back();
-      }
+      showSuccessSnackBar(context, 'Settings applied successfully');
+      context.router.back();
     } catch (e) {
       appLogger.e("Settings: Error saving settings", error: e);
       if (!mounted) return;
@@ -87,66 +79,135 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        forceMaterialTransparency: true,
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            Text(
-              'Available Models',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 10),
-            ...kAvailableModels.map((model) {
-              final isInstalledAsync = ref.watch(
-                isModelInstalledProvider(model.id),
-              );
-              return Card(
-                child: ListTile(
-                  title: Text(model.name),
-                  subtitle: isInstalledAsync.when(
-                    data: (installed) => Text(
-                      installed ? "Ready to use" : "Not downloaded",
-                      style: TextStyle(
-                        color: installed ? Colors.green : Colors.grey,
-                      ),
-                    ),
-                    loading: () => const Text("Checking status..."),
-                    error: (_, _) => const Text("Error checking status"),
-                  ),
-                  trailing: isInstalledAsync.value == true
-                      ? (_draftSettings.selectedModel == model.id
-                            ? Icon(
-                                Icons.radio_button_checked,
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : const Icon(Icons.radio_button_off))
-                      : IconButton(
-                          icon: const Icon(Icons.download),
-                          onPressed: () => _showDownloadDialog(model),
-                        ),
-                  onTap: isInstalledAsync.value == true
-                      ? () => setState(
-                          () => _draftSettings = _draftSettings.copyWith(
-                            selectedModel: model.id,
-                          ),
-                        )
-                      : null,
-                ),
-              );
-            }),
+            _buildSectionHeader(context, 'AI Models', Icons.smart_toy_outlined),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: kAvailableModels.map((model) {
+                  final isInstalledAsync = ref.watch(
+                    isModelInstalledProvider(model.id),
+                  );
+                  final isSelected = _draftSettings.selectedModel == model.id;
 
-            const SizedBox(height: 30),
-            Text(
-              'Inference & Memory',
-              style: Theme.of(context).textTheme.titleLarge,
+                  return Card.filled(
+                    elevation: isSelected ? 2 : 0,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    color: isSelected
+                        ? theme.colorScheme.primaryContainer
+                        : theme.colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.5,
+                          ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      title: Text(
+                        model.name,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      subtitle: isInstalledAsync.when(
+                        data: (installed) => Text(
+                          installed ? "Ready to use" : "Not downloaded",
+                          style: TextStyle(
+                            color: installed
+                                ? (isSelected
+                                      ? theme.colorScheme.primary
+                                      : Colors.green.shade600)
+                                : theme.colorScheme.onSurfaceVariant,
+                            fontWeight: installed
+                                ? FontWeight.w500
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        loading: () => const Text("Checking status..."),
+                        error: (_, _) => const Text("Error checking status"),
+                      ),
+                      trailing: isInstalledAsync.value == true
+                          ? (isSelected
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: theme.colorScheme.primary,
+                                  )
+                                : const Icon(Icons.circle_outlined))
+                          : IconButton(
+                              icon: const Icon(Icons.download_rounded),
+                              color: theme.colorScheme.primary,
+                              onPressed: () => _showDownloadDialog(model),
+                            ),
+                      onTap: isInstalledAsync.value == true
+                          ? () => setState(
+                              () => _draftSettings = _draftSettings.copyWith(
+                                selectedModel: model.id,
+                              ),
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
+
             const SizedBox(height: 16),
+            const Divider(indent: 16, endIndent: 16),
+            const SizedBox(height: 8),
+
+            _buildSectionHeader(
+              context,
+              'Inference & Memory',
+              Icons.memory_outlined,
+            ),
 
             SwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 8,
+              ),
               title: const Text("Enable Memory Across Chats"),
               subtitle: const Text(
                 "Allows the AI to silently reference facts from your other recent conversations.",
@@ -158,73 +219,130 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
-            const Divider(),
 
-            ListTile(
-              title: const Text("Total Context Window (Tokens)"),
-              subtitle: Text(
-                "Hardware memory for Input + Output. Smart Truncation will automatically prune older messages when the limit is reached.\nCurrent limit: ${_draftSettings.maxTokens} tokens",
-              ),
-            ),
-            Slider(
-              value: _draftSettings.maxTokens.toDouble(),
-              min: 2048,
-              max: 8192,
-              divisions: 12,
-              label: _draftSettings.maxTokens.toString(),
-              onChanged: (val) => setState(
-                () => _draftSettings = _draftSettings.copyWith(
-                  maxTokens: val.toInt(),
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Total Context Window",
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Hardware memory for Input + Output. Smart Truncation will automatically prune older messages when the limit is reached.",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text("2048", style: theme.textTheme.labelMedium),
+                      Expanded(
+                        child: Slider(
+                          value: _draftSettings.maxTokens.toDouble(),
+                          min: 2048,
+                          max: 8192,
+                          divisions: 12,
+                          label: '${_draftSettings.maxTokens} Tokens',
+                          onChanged: (val) => setState(
+                            () => _draftSettings = _draftSettings.copyWith(
+                              maxTokens: val.toInt(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Text("8192", style: theme.textTheme.labelMedium),
+                    ],
+                  ),
+                  Center(
+                    child: Text(
+                      '${_draftSettings.maxTokens} Tokens',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            ListTile(
-              title: const Text("Temperature"),
-              subtitle: Text(
-                "Creativity level: ${_draftSettings.temperature.toStringAsFixed(2)}",
+            const SizedBox(height: 8),
+            const Divider(indent: 16, endIndent: 16),
+            const SizedBox(height: 8),
+
+            _buildSectionHeader(context, 'Behavior', Icons.psychology_outlined),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Temperature", style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Controls creativity. Lower is more focused, higher is more random.",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text("0.0", style: theme.textTheme.labelMedium),
+                      Expanded(
+                        child: Slider(
+                          value: _draftSettings.temperature,
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 20,
+                          label: _draftSettings.temperature.toStringAsFixed(2),
+                          onChanged: (val) => setState(
+                            () => _draftSettings = _draftSettings.copyWith(
+                              temperature: val,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Text("1.0", style: theme.textTheme.labelMedium),
+                    ],
+                  ),
+                  Center(
+                    child: Text(
+                      _draftSettings.temperature.toStringAsFixed(2),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Slider(
-              value: _draftSettings.temperature,
-              min: 0.0,
-              max: 1.0,
-              onChanged: (val) => setState(
-                () =>
-                    _draftSettings = _draftSettings.copyWith(temperature: val),
-              ),
-            ),
-            const SizedBox(height: 40),
+
+            const SizedBox(height: 100),
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: FilledButton(
-            onPressed: _isLoading ? null : _saveAndLoad,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Save & Apply', style: TextStyle(fontSize: 16)),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _isLoading
+          ? const FloatingActionButton(
+              onPressed: null,
+              child: CircularProgressIndicator(),
+            )
+          : FloatingActionButton.extended(
+              onPressed: _saveAndLoad,
+              icon: const Icon(Icons.check),
+              label: const Text('Apply Changes'),
             ),
-          ),
-        ),
-      ),
     );
   }
 }
 
-class _DownloadDialog extends ConsumerStatefulWidget {
-  const _DownloadDialog({
+class DownloadModelDialog extends ConsumerStatefulWidget {
+  const DownloadModelDialog({
+    super.key,
     required this.model,
     required this.currentSettings,
     required this.onDownloaded,
@@ -235,10 +353,11 @@ class _DownloadDialog extends ConsumerStatefulWidget {
   final VoidCallback onDownloaded;
 
   @override
-  ConsumerState<_DownloadDialog> createState() => _DownloadDialogState();
+  ConsumerState<DownloadModelDialog> createState() =>
+      _DownloadModelDialogState();
 }
 
-class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
+class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
   String? _error;
   int? _progress;
   late TextEditingController _tokenController;
@@ -311,7 +430,7 @@ class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
               "This model requires HuggingFace access.",
               style: TextStyle(fontSize: 12),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             TextField(
               controller: _tokenController,
               decoration: const InputDecoration(
@@ -324,14 +443,26 @@ class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
           ],
           const SizedBox(height: 20),
           if (_progress != null) ...[
-            LinearProgressIndicator(value: _progress! / 100),
-            const SizedBox(height: 10),
-            Text('Downloading... $_progress%'),
+            LinearProgressIndicator(
+              value: _progress! / 100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Downloading... $_progress%',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
           if (_error != null)
-            Text(
-              _error!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                _error!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 13,
+                ),
+              ),
             ),
         ],
       ),
@@ -342,7 +473,7 @@ class _DownloadDialogState extends ConsumerState<_DownloadDialog> {
             child: const Text('Cancel'),
           ),
         if (_progress == null)
-          ElevatedButton(
+          FilledButton(
             onPressed: _startDownload,
             child: const Text('Start Download'),
           ),

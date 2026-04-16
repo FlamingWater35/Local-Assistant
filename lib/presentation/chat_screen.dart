@@ -367,35 +367,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  padding: const EdgeInsets.only(
-                    top: 20,
-                    bottom: 20,
-                    left: 16,
-                    right: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: appTheme.colorScheme.surfaceContainerHighest,
-                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                   child: Row(
                     children: [
                       Icon(
                         Icons.auto_awesome,
                         color: appTheme.colorScheme.primary,
-                        size: 28,
+                        size: 32,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Text(
-                        "Local Assistant",
+                        "Assistant",
                         style: appTheme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: appTheme.colorScheme.primary,
                         ),
                       ),
                     ],
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: FilledButton.icon(
                     onPressed: () async {
                       appLogger.i("UI: Starting new chat from drawer.");
@@ -410,85 +403,108 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     label: const Text('New Chat'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
+                    horizontal: 24,
                     vertical: 8,
                   ),
                   child: Text(
-                    "RECENT",
-                    style: appTheme.textTheme.labelSmall?.copyWith(
-                      color: appTheme.colorScheme.outline,
+                    "Recent History",
+                    style: appTheme.textTheme.labelMedium?.copyWith(
+                      color: appTheme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
                     ),
                   ),
                 ),
                 Expanded(
                   child: ListView.builder(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: history.length,
                     itemBuilder: (context, index) {
                       final session = history[index];
                       final isActive = session.id == activeSessionId;
 
-                      return ListTile(
-                        selected: isActive,
-                        selectedTileColor: appTheme.colorScheme.primaryContainer
-                            .withValues(alpha: 0.5),
-                        leading: Icon(
-                          Icons.chat_bubble_outline,
-                          color: isActive ? appTheme.colorScheme.primary : null,
-                        ),
-                        title: Text(
-                          session.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: isActive
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4.0),
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          selected: isActive,
+                          selectedTileColor:
+                              appTheme.colorScheme.primaryContainer,
+                          leading: Icon(
+                            Icons.chat_bubble_outline,
+                            color: isActive
+                                ? appTheme.colorScheme.onPrimaryContainer
+                                : appTheme.colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          title: Text(
+                            session.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: isActive
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                              color: isActive
+                                  ? appTheme.colorScheme.onPrimaryContainer
+                                  : appTheme.colorScheme.onSurface,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20),
+                            color: appTheme.colorScheme.error,
+                            onPressed: () =>
+                                _confirmDelete(session.id, session.title),
+                          ),
+                          onTap: () async {
+                            if (!isActive) {
+                              appLogger.i(
+                                "UI: Loading existing chat: ${session.title}",
+                              );
+                              await ref
+                                  .read(chatLogicProvider.notifier)
+                                  .loadSession(session.id);
+                            }
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20),
-                          color: appTheme.colorScheme.error,
-                          onPressed: () =>
-                              _confirmDelete(session.id, session.title),
-                        ),
-                        onTap: () async {
-                          if (!isActive) {
-                            appLogger.i(
-                              "UI: Loading existing chat: ${session.title}",
-                            );
-                            await ref
-                                .read(chatLogicProvider.notifier)
-                                .loadSession(session.id);
-                          }
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        },
                       );
                     },
                   ),
                 ),
                 const Divider(height: 1),
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
                   ),
-                  leading: const Icon(Icons.settings),
-                  title: const Text('Settings & Models'),
-                  onTap: () {
-                    appLogger.i("UI: Navigating to Settings.");
-                    if (mounted) {
-                      Navigator.pop(context);
-                      context.router.push(const SettingsRoute());
-                    }
-                  },
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('Settings & Models'),
+                    onTap: () {
+                      appLogger.i("UI: Navigating to Settings.");
+                      if (mounted) {
+                        Navigator.pop(context);
+                        context.router.push(const SettingsRoute());
+                      }
+                    },
+                  ),
                 ),
               ],
             ),
