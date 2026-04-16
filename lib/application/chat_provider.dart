@@ -149,29 +149,21 @@ class ChatLogic extends _$ChatLogic {
     _activeGenerationSessionId = currentSessionId;
     ref.read(isGeneratingProvider.notifier).setGenerating(true);
 
-    for (final att in attachments) {
-      if (att.type == 'doc' || att.type == 'audio') {
-        final fMsg = _createLocalMessage(
-          att.textContent ?? '',
-          'user',
-          fileUrl: att.url,
-          fileName: att.fileName,
-          fileSize: att.fileSize,
-          mimeType: att.mimeType,
-        );
-        _addMessageToStateAndDb(fMsg);
-      } else if (att.type == 'photo') {
-        final imgMsg = _createLocalMessage('', 'user', imageUrl: att.url);
-        _addMessageToStateAndDb(imgMsg);
-      }
-    }
+    final localAtts = attachments
+        .map(
+          (a) => LocalAttachment(
+            type: a.type,
+            url: a.url,
+            fileName: a.fileName,
+            mimeType: a.mimeType,
+            fileSize: a.fileSize,
+            textContent: a.textContent,
+          ),
+        )
+        .toList();
 
-    if (text.isNotEmpty || attachments.isEmpty) {
-      if (text.isNotEmpty) {
-        final tMsg = _createLocalMessage(text, 'user');
-        _addMessageToStateAndDb(tMsg);
-      }
-    }
+    final userMsg = _createLocalMessage(text, 'user', attachments: localAtts);
+    _addMessageToStateAndDb(userMsg);
 
     final aiMsgId = _uuid.v4();
     var aiText = '';
@@ -271,22 +263,14 @@ class ChatLogic extends _$ChatLogic {
     String text,
     String authorId, {
     String? id,
-    String? imageUrl,
-    String? fileUrl,
-    String? fileName,
-    int? fileSize,
-    String? mimeType,
+    List<LocalAttachment>? attachments,
   }) {
     return LocalChatMessage(
       id: id ?? _uuid.v4(),
       text: text,
       authorId: authorId,
       createdAt: DateTime.now().millisecondsSinceEpoch,
-      imageUrl: imageUrl,
-      fileUrl: fileUrl,
-      fileName: fileName,
-      fileSize: fileSize,
-      mimeType: mimeType,
+      attachments: attachments,
     );
   }
 
@@ -328,45 +312,32 @@ class ChatLogic extends _$ChatLogic {
 
   void _saveSessionToHive() {
     if (currentSessionId == null) return;
-
     if (_pendingTextUpdates.isEmpty) return;
 
     final hiveService = ref.read(hiveServiceProvider);
     final session = hiveService.getSession(currentSessionId!);
     if (session != null) {
       final currentLocalMessages = state.messages.map((m) {
-        if (m is core.ImageMessage) {
+        if (m is core.CustomMessage) {
           return LocalChatMessage(
             id: m.id,
-            text: m.text ?? '',
+            text: m.metadata?['text'] ?? '',
             authorId: m.authorId,
             createdAt:
                 m.createdAt?.millisecondsSinceEpoch ??
                 DateTime.now().millisecondsSinceEpoch,
-            imageUrl: m.source,
-          );
-        } else if (m is core.FileMessage) {
-          return LocalChatMessage(
-            id: m.id,
-            text: session.messages
-                .firstWhere(
-                  (old) => old.id == m.id,
-                  orElse: () => LocalChatMessage(
-                    id: m.id,
-                    text: '',
-                    authorId: m.authorId,
-                    createdAt: 0,
+            attachments: (m.metadata?['attachments'] as List?)
+                ?.map(
+                  (a) => LocalAttachment(
+                    type: a['type'],
+                    url: a['url'],
+                    fileName: a['fileName'],
+                    mimeType: a['mimeType'],
+                    fileSize: a['fileSize'],
+                    textContent: a['textContent'],
                   ),
                 )
-                .text,
-            authorId: m.authorId,
-            createdAt:
-                m.createdAt?.millisecondsSinceEpoch ??
-                DateTime.now().millisecondsSinceEpoch,
-            fileUrl: m.source,
-            fileName: m.name,
-            fileSize: m.size,
-            mimeType: m.mimeType,
+                .toList(),
           );
         } else {
           final tm = m as core.TextMessage;

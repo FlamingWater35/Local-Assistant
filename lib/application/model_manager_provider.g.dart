@@ -110,7 +110,7 @@ final class ModelDownloaderProvider
   }
 }
 
-String _$modelDownloaderHash() => r'b9c63d28670bcb458230b96f9400f0976c7b2d17';
+String _$modelDownloaderHash() => r'a81ba43f60baf905e443e9fe69a30fe1345be20f';
 
 abstract class _$ModelDownloader extends $Notifier<AsyncValue<int?>> {
   AsyncValue<int?> build();

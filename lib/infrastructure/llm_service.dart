@@ -143,16 +143,19 @@ class LlmService {
           if (_isUnloading || !_isSessionActive) return;
           if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
 
-          if (msg.imageUrl != null) {
-            if (imageCount >= 2) {
-              continue;
-            }
+          final atts = msg.attachments ?? [];
+          final msgPhotos = atts.where((a) => a.type == 'photo').length;
+
+          if (imageCount + msgPhotos > 2) {
+            continue;
           }
 
           int msgTokens = _estimateTokens(msg.text);
-          if (msg.imageUrl != null ||
-              (msg.fileUrl != null && msg.mimeType == 'audio/wav')) {
-            msgTokens += 256;
+          for (final att in atts) {
+            if (att.type == 'photo' || att.type == 'audio') msgTokens += 256;
+            if (att.type == 'doc' && att.textContent != null) {
+              msgTokens += _estimateTokens(att.textContent!);
+            }
           }
 
           if (!isFirstMessage && totalTokens + msgTokens > maxInputTokens) {
@@ -162,64 +165,52 @@ class LlmService {
             break;
           }
 
-          if (msg.imageUrl != null) imageCount++;
+          imageCount += msgPhotos;
           totalTokens += msgTokens;
           messagesToInject.add(msg);
           isFirstMessage = false;
         }
 
-        List<List<LocalChatMessage>> groupedMessages = [];
         for (final msg in messagesToInject.reversed) {
-          if (groupedMessages.isEmpty) {
-            groupedMessages.add([msg]);
-          } else {
-            if (groupedMessages.last.first.authorId == msg.authorId) {
-              groupedMessages.last.add(msg);
-            } else {
-              groupedMessages.add([msg]);
-            }
-          }
-        }
-
-        for (final group in groupedMessages) {
           if (_isUnloading) return;
-          if (group.first.authorId == 'user') {
-            String combinedText = "";
-            List<LocalChatMessage> mediaMsgs = [];
 
-            for (final msg in group) {
-              if (msg.imageUrl != null ||
-                  (msg.fileUrl != null && msg.mimeType == 'audio/wav')) {
-                mediaMsgs.add(msg);
-                if (msg.text.isNotEmpty) combinedText += "${msg.text}\n\n";
-              } else if (msg.fileUrl != null) {
+          if (msg.authorId == 'user') {
+            String combinedText = "";
+            List<LocalAttachment> mediaAtts = [];
+
+            final attsToProcess = msg.attachments ?? [];
+            for (final att in attsToProcess) {
+              if (att.type == 'photo' || att.type == 'audio') {
+                mediaAtts.add(att);
+              } else if (att.type == 'doc' && att.textContent != null) {
                 combinedText +=
-                    "Document '${msg.fileName}' contents:\n\n${msg.text}\n\n";
-              } else {
-                if (msg.text.isNotEmpty) combinedText += "${msg.text}\n\n";
+                    "Document '${att.fileName}' contents:\n\n${att.textContent}\n\n";
               }
             }
+            if (msg.text.isNotEmpty) combinedText += msg.text;
             combinedText = combinedText.trim();
 
-            if (mediaMsgs.isEmpty) {
+            if (mediaAtts.isEmpty) {
               if (combinedText.isNotEmpty) {
                 await _activeChat!.addQueryChunk(
                   Message.text(text: combinedText, isUser: true),
                 );
               }
             } else {
-              for (int i = 0; i < mediaMsgs.length; i++) {
-                final msg = mediaMsgs[i];
-                bool isLast = (i == mediaMsgs.length - 1);
-
+              for (int i = 0; i < mediaAtts.length; i++) {
+                final att = mediaAtts[i];
+                bool isLast = (i == mediaAtts.length - 1);
                 String textPayload = isLast ? combinedText : "";
 
-                if (msg.imageUrl != null) {
-                  final fileInfo = await DefaultCacheManager().getFileFromCache(
-                    msg.imageUrl!,
-                  );
-                  if (fileInfo != null) {
-                    final bytes = await fileInfo.file.readAsBytes();
+                final fileInfo = await DefaultCacheManager().getFileFromCache(
+                  att.url,
+                );
+                final bytes = fileInfo != null
+                    ? await fileInfo.file.readAsBytes()
+                    : null;
+
+                if (att.type == 'photo') {
+                  if (bytes != null) {
                     if (textPayload.isNotEmpty) {
                       await _activeChat!.addQueryChunk(
                         Message.withImage(
@@ -241,12 +232,8 @@ class LlmService {
                       Message.text(text: fallback, isUser: true),
                     );
                   }
-                } else if (msg.fileUrl != null && msg.mimeType == 'audio/wav') {
-                  final fileInfo = await DefaultCacheManager().getFileFromCache(
-                    msg.fileUrl!,
-                  );
-                  if (fileInfo != null) {
-                    final bytes = await fileInfo.file.readAsBytes();
+                } else if (att.type == 'audio') {
+                  if (bytes != null) {
                     if (textPayload.isNotEmpty) {
                       await _activeChat!.addQueryChunk(
                         Message.withAudio(
@@ -272,12 +259,10 @@ class LlmService {
               }
             }
           } else {
-            for (final msg in group) {
-              if (msg.text.isNotEmpty) {
-                await _activeChat!.addQueryChunk(
-                  Message.text(text: msg.text, isUser: false),
-                );
-              }
+            if (msg.text.isNotEmpty) {
+              await _activeChat!.addQueryChunk(
+                Message.text(text: msg.text, isUser: false),
+              );
             }
           }
         }
@@ -358,7 +343,6 @@ class LlmService {
       for (int i = 0; i < mediaAttachments.length; i++) {
         final att = mediaAttachments[i];
         bool isLast = (i == mediaAttachments.length - 1);
-
         String textPayload = isLast ? combinedText : "";
 
         if (att.type == 'photo') {

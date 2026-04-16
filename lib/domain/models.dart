@@ -108,6 +108,36 @@ class AppSettings extends HiveObject {
   }
 }
 
+@HiveType(typeId: 3)
+class LocalAttachment extends HiveObject {
+  LocalAttachment({
+    required this.type,
+    required this.url,
+    required this.fileName,
+    required this.mimeType,
+    this.fileSize,
+    this.textContent,
+  });
+
+  @HiveField(2)
+  final String fileName;
+
+  @HiveField(4)
+  final int? fileSize;
+
+  @HiveField(3)
+  final String mimeType;
+
+  @HiveField(5)
+  final String? textContent;
+
+  @HiveField(0)
+  final String type;
+
+  @HiveField(1)
+  final String url;
+}
+
 @HiveType(typeId: 1)
 class LocalChatMessage extends HiveObject {
   LocalChatMessage({
@@ -120,7 +150,11 @@ class LocalChatMessage extends HiveObject {
     this.fileName,
     this.fileSize,
     this.mimeType,
+    this.attachments,
   });
+
+  @HiveField(9)
+  final List<LocalAttachment>? attachments;
 
   @HiveField(2)
   final String authorId;
@@ -150,26 +184,43 @@ class LocalChatMessage extends HiveObject {
   final String text;
 
   core.Message toChatCoreType() {
-    if (imageUrl != null) {
-      return core.ImageMessage(
+    if (authorId == 'user') {
+      List<Map<String, dynamic>> metaAtts = [];
+
+      if (attachments != null && attachments!.isNotEmpty) {
+        metaAtts = attachments!
+            .map(
+              (a) => {
+                'type': a.type,
+                'url': a.url,
+                'fileName': a.fileName,
+                'mimeType': a.mimeType,
+                'fileSize': a.fileSize,
+                'textContent': a.textContent,
+              },
+            )
+            .toList();
+      } else if (imageUrl != null || fileUrl != null) {
+        metaAtts.add({
+          'type': imageUrl != null
+              ? 'photo'
+              : (mimeType == 'audio/wav' ? 'audio' : 'doc'),
+          'url': imageUrl ?? fileUrl,
+          'fileName': fileName ?? 'Attachment',
+          'mimeType':
+              mimeType ?? (imageUrl != null ? 'image/jpeg' : 'text/plain'),
+          'fileSize': fileSize,
+        });
+      }
+
+      return core.CustomMessage(
         id: id,
         authorId: authorId,
         createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
-        source: imageUrl!,
-        text: text.isEmpty ? null : text,
+        metadata: {'text': text, 'attachments': metaAtts},
       );
     }
-    if (fileUrl != null) {
-      return core.FileMessage(
-        id: id,
-        authorId: authorId,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
-        name: fileName ?? 'Attachment',
-        size: fileSize ?? 0,
-        source: fileUrl!,
-        mimeType: mimeType,
-      );
-    }
+
     return core.TextMessage(
       id: id,
       text: text,

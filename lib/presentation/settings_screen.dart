@@ -47,6 +47,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ).then((_) => setState(() {}));
   }
 
+  void _confirmDeleteModel(AvailableModel model) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Model'),
+        content: Text(
+          'Are you sure you want to delete ${model.name}? You will have to download it again to use it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(modelDownloaderProvider.notifier)
+                  .deleteModel(model);
+              if (mounted) {
+                showSuccessSnackBar(context, 'Model deleted successfully');
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveAndLoad() async {
     final isInstalled = await ref.read(
       isModelInstalledProvider(_draftSettings.selectedModel).future,
@@ -168,18 +201,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         loading: () => const Text("Checking status..."),
                         error: (_, _) => const Text("Error checking status"),
                       ),
-                      trailing: isInstalledAsync.value == true
-                          ? (isSelected
-                                ? Icon(
-                                    Icons.check_circle,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                : const Icon(Icons.circle_outlined))
-                          : IconButton(
-                              icon: const Icon(Icons.download_rounded),
-                              color: theme.colorScheme.primary,
-                              onPressed: () => _showDownloadDialog(model),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isInstalledAsync.value == true && !isSelected)
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: theme.colorScheme.error,
+                              ),
+                              tooltip: 'Delete Model',
+                              onPressed: () => _confirmDeleteModel(model),
                             ),
+                          isInstalledAsync.value == true
+                              ? (isSelected
+                                    ? Icon(
+                                        Icons.check_circle,
+                                        color: theme.colorScheme.primary,
+                                      )
+                                    : const Icon(Icons.circle_outlined))
+                              : IconButton(
+                                  icon: const Icon(Icons.download_rounded),
+                                  color: theme.colorScheme.primary,
+                                  tooltip: 'Download Model',
+                                  onPressed: () => _showDownloadDialog(model),
+                                ),
+                        ],
+                      ),
                       onTap: isInstalledAsync.value == true
                           ? () => setState(
                               () => _draftSettings = _draftSettings.copyWith(

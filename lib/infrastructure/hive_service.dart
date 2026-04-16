@@ -15,6 +15,7 @@ class HiveService {
     Hive.registerAdapter(AppSettingsAdapter());
     Hive.registerAdapter(LocalChatMessageAdapter());
     Hive.registerAdapter(ChatSessionAdapter());
+    Hive.registerAdapter(LocalAttachmentAdapter());
 
     _settingsBox = await Hive.openBox<AppSettings>('settingsBox');
     _sessionsBox = await Hive.openBox<ChatSession>('sessionsBox');

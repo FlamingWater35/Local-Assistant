@@ -9,6 +9,7 @@ extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
     registerAdapter(AppSettingsAdapter());
     registerAdapter(ChatSessionAdapter());
+    registerAdapter(LocalAttachmentAdapter());
     registerAdapter(LocalChatMessageAdapter());
   }
 }
@@ -17,6 +18,7 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
   void registerAdapters() {
     registerAdapter(AppSettingsAdapter());
     registerAdapter(ChatSessionAdapter());
+    registerAdapter(LocalAttachmentAdapter());
     registerAdapter(LocalChatMessageAdapter());
   }
 }

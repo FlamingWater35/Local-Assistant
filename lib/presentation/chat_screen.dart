@@ -66,7 +66,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Message'),
-        content: const Text('Are you sure you want to delete this message?'),
+        content: const Text(
+          'Are you sure you want to delete this entire message and its attachments?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -75,7 +77,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              appLogger.i("UI: Deleting message ID: $messageId");
+              appLogger.i("UI: Deleting unified message block ID: $messageId");
               await ref
                   .read(chatLogicProvider.notifier)
                   .deleteMessage(messageId);
@@ -321,6 +323,104 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  Widget _buildUnifiedAttachmentBubble(
+    Map att,
+    bool isSentByMe,
+    ThemeData theme,
+  ) {
+    final type = att['type'];
+    final url = att['url'];
+    final name = att['fileName'] ?? 'Attachment';
+
+    if (type == 'photo') {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16).copyWith(
+            bottomRight: isSentByMe ? Radius.zero : const Radius.circular(16),
+            bottomLeft: !isSentByMe ? Radius.zero : const Radius.circular(16),
+          ),
+          color: isSentByMe
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surfaceContainerHighest,
+        ),
+        padding: const EdgeInsets.all(4),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: StreamBuilder<FileResponse>(
+            stream: DefaultCacheManager().getFileStream(url),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const SizedBox(
+                  height: 150,
+                  width: 250,
+                  child: Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              }
+              if (snapshot.hasData && snapshot.data is FileInfo) {
+                return Image.file(
+                  (snapshot.data as FileInfo).file,
+                  width: 250,
+                  fit: BoxFit.contain,
+                );
+              }
+              return const SizedBox(
+                height: 150,
+                width: 250,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isSentByMe
+            ? theme.colorScheme.primaryContainer
+            : theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16).copyWith(
+          bottomRight: isSentByMe ? Radius.zero : const Radius.circular(16),
+          bottomLeft: !isSentByMe ? Radius.zero : const Radius.circular(16),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            type == 'audio' ? Icons.audio_file : Icons.insert_drive_file,
+            color: isSentByMe
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSurfaceVariant,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              name,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: isSentByMe
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatController = ref.watch(chatLogicProvider);
@@ -519,215 +619,106 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               theme: chatTheme,
               onAttachmentTap: _handleAttachmentTap,
               builders: Builders(
-                fileMessageBuilder:
+                customMessageBuilder:
                     (
                       context,
-                      core.FileMessage message,
+                      core.CustomMessage message,
                       int index, {
                       required bool isSentByMe,
                       core.MessageGroupStatus? groupStatus,
                     }) {
+                      final text = message.metadata?['text'] as String? ?? '';
+                      final atts =
+                          message.metadata?['attachments'] as List? ?? [];
+
                       return SelectionArea(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: isSentByMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
+                            if (atts.isNotEmpty)
+                              ...atts.map(
+                                (att) => _buildUnifiedAttachmentBubble(
+                                  att,
+                                  isSentByMe,
+                                  appTheme,
+                                ),
                               ),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isSentByMe
-                                    ? appTheme.colorScheme.primaryContainer
-                                    : appTheme
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(16)
-                                    .copyWith(
-                                      bottomRight: isSentByMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
-                                      bottomLeft: !isSentByMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
-                                    ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    message.mimeType?.startsWith('audio/') ==
-                                            true
-                                        ? Icons.audio_file
-                                        : Icons.insert_drive_file,
+                            if (text.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSentByMe
+                                      ? appTheme.colorScheme.primaryContainer
+                                      : appTheme
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(16)
+                                      .copyWith(
+                                        bottomRight: isSentByMe
+                                            ? Radius.zero
+                                            : const Radius.circular(16),
+                                        bottomLeft: !isSentByMe
+                                            ? Radius.zero
+                                            : const Radius.circular(16),
+                                      ),
+                                ),
+                                child: GptMarkdown(
+                                  text,
+                                  style: appTheme.textTheme.bodyLarge?.copyWith(
                                     color: isSentByMe
                                         ? appTheme
                                               .colorScheme
                                               .onPrimaryContainer
                                         : appTheme.colorScheme.onSurfaceVariant,
-                                    size: 28,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: Text(
-                                      message.name,
-                                      style: appTheme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            color: isSentByMe
-                                                ? appTheme
-                                                      .colorScheme
-                                                      .onPrimaryContainer
-                                                : appTheme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16,
-                                right: 16,
-                                top: 2,
-                                bottom: 4,
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 18,
+                                  useDollarSignsForLatex: true,
                                 ),
-                                visualDensity: VisualDensity.compact,
-                                tooltip: 'Delete message',
-                                onPressed: () =>
-                                    _confirmDeleteMessage(message.id),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                imageMessageBuilder:
-                    (
-                      context,
-                      core.ImageMessage message,
-                      int index, {
-                      required bool isSentByMe,
-                      core.MessageGroupStatus? groupStatus,
-                    }) {
-                      return SelectionArea(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isSentByMe
-                                    ? appTheme.colorScheme.primaryContainer
-                                    : appTheme
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(16)
-                                    .copyWith(
-                                      bottomRight: isSentByMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
-                                      bottomLeft: !isSentByMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
-                                    ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: StreamBuilder<FileResponse>(
-                                      stream: DefaultCacheManager()
-                                          .getFileStream(message.source),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.hasError) {
-                                          return const SizedBox(
-                                            height: 150,
-                                            width: 250,
-                                            child: Center(
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                size: 48,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        if (snapshot.hasData &&
-                                            snapshot.data is FileInfo) {
-                                          final fileInfo =
-                                              snapshot.data as FileInfo;
-                                          return Image.file(
-                                            fileInfo.file,
-                                            width: 250,
-                                            fit: BoxFit.contain,
-                                          );
-                                        }
-                                        return const SizedBox(
-                                          height: 150,
-                                          width: 250,
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  if (message.text != null &&
-                                      message.text!.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    GptMarkdown(
-                                      message.text!,
-                                      style: appTheme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            color: isSentByMe
-                                                ? appTheme
-                                                      .colorScheme
-                                                      .onPrimaryContainer
-                                                : appTheme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                          ),
-                                      useDollarSignsForLatex: true,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
                             Padding(
                               padding: const EdgeInsets.only(
                                 left: 16,
                                 right: 16,
                                 top: 2,
-                                bottom: 4,
+                                bottom: 8,
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  if (text.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.content_copy,
+                                        size: 18,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      tooltip: 'Copy message',
+                                      onPressed: () {
+                                        Clipboard.setData(
+                                          ClipboardData(text: text),
+                                        );
+                                        if (mounted) {
+                                          showInfoSnackBar(
+                                            context,
+                                            'Copied to clipboard',
+                                          );
+                                        }
+                                      },
+                                    ),
                                   IconButton(
                                     icon: const Icon(
                                       Icons.delete_outline,
                                       size: 18,
                                     ),
                                     visualDensity: VisualDensity.compact,
-                                    tooltip: 'Delete message',
-                                    onPressed: () {
-                                      _confirmDeleteMessage(message.id);
-                                    },
+                                    tooltip: 'Delete message group',
+                                    onPressed: () =>
+                                        _confirmDeleteMessage(message.id),
                                   ),
                                 ],
                               ),
@@ -746,7 +737,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     }) {
                       return SelectionArea(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: isSentByMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
                             Container(
                               margin: const EdgeInsets.symmetric(
@@ -785,7 +778,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 left: 16,
                                 right: 16,
                                 top: 2,
-                                bottom: 4,
+                                bottom: 8,
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,

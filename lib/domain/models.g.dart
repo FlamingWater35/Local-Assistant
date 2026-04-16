@@ -57,6 +57,55 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
           typeId == other.typeId;
 }
 
+class LocalAttachmentAdapter extends TypeAdapter<LocalAttachment> {
+  @override
+  final typeId = 3;
+
+  @override
+  LocalAttachment read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return LocalAttachment(
+      type: fields[0] as String,
+      url: fields[1] as String,
+      fileName: fields[2] as String,
+      mimeType: fields[3] as String,
+      fileSize: (fields[4] as num?)?.toInt(),
+      textContent: fields[5] as String?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, LocalAttachment obj) {
+    writer
+      ..writeByte(6)
+      ..writeByte(0)
+      ..write(obj.type)
+      ..writeByte(1)
+      ..write(obj.url)
+      ..writeByte(2)
+      ..write(obj.fileName)
+      ..writeByte(3)
+      ..write(obj.mimeType)
+      ..writeByte(4)
+      ..write(obj.fileSize)
+      ..writeByte(5)
+      ..write(obj.textContent);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalAttachmentAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class LocalChatMessageAdapter extends TypeAdapter<LocalChatMessage> {
   @override
   final typeId = 1;
@@ -77,13 +126,14 @@ class LocalChatMessageAdapter extends TypeAdapter<LocalChatMessage> {
       fileName: fields[6] as String?,
       fileSize: (fields[7] as num?)?.toInt(),
       mimeType: fields[8] as String?,
+      attachments: (fields[9] as List?)?.cast<LocalAttachment>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, LocalChatMessage obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -101,7 +151,9 @@ class LocalChatMessageAdapter extends TypeAdapter<LocalChatMessage> {
       ..writeByte(7)
       ..write(obj.fileSize)
       ..writeByte(8)
-      ..write(obj.mimeType);
+      ..write(obj.mimeType)
+      ..writeByte(9)
+      ..write(obj.attachments);
   }
 
   @override
