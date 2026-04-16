@@ -94,6 +94,10 @@ class LocalChatMessage extends HiveObject {
     required this.authorId,
     required this.createdAt,
     this.imageUrl,
+    this.fileUrl,
+    this.fileName,
+    this.fileSize,
+    this.mimeType,
   });
 
   @HiveField(2)
@@ -102,11 +106,23 @@ class LocalChatMessage extends HiveObject {
   @HiveField(3)
   final int createdAt;
 
+  @HiveField(6)
+  final String? fileName;
+
+  @HiveField(7)
+  final int? fileSize;
+
+  @HiveField(5)
+  final String? fileUrl;
+
   @HiveField(0)
   final String id;
 
   @HiveField(4)
   final String? imageUrl;
+
+  @HiveField(8)
+  final String? mimeType;
 
   @HiveField(1)
   final String text;
@@ -119,6 +135,17 @@ class LocalChatMessage extends HiveObject {
         createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
         source: imageUrl!,
         text: text.isEmpty ? null : text,
+      );
+    }
+    if (fileUrl != null) {
+      return core.FileMessage(
+        id: id,
+        authorId: authorId,
+        createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
+        name: fileName ?? 'Attachment',
+        size: fileSize ?? 0,
+        source: fileUrl!,
+        mimeType: mimeType,
       );
     }
     return core.TextMessage(

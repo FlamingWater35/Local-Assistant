@@ -127,6 +127,12 @@ class ChatLogic extends _$ChatLogic {
     String text, {
     Uint8List? imageBytes,
     String? imageUrl,
+    Uint8List? audioBytes,
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+    String? mimeType,
+    String? fileExtractedText,
   }) async {
     await _cancelActiveGeneration();
 
@@ -136,7 +142,9 @@ class ChatLogic extends _$ChatLogic {
       currentSessionId = _uuid.v4();
       final newTitle = text.isNotEmpty
           ? (text.length > 25 ? '${text.substring(0, 25)}...' : text)
-          : (imageBytes != null ? 'Image chat' : 'New chat');
+          : (imageBytes != null
+                ? 'Image chat'
+                : (fileUrl != null ? 'File chat' : 'New chat'));
 
       final newSession = ChatSession(
         id: currentSessionId!,
@@ -151,8 +159,28 @@ class ChatLogic extends _$ChatLogic {
     _activeGenerationSessionId = currentSessionId;
     ref.read(isGeneratingProvider.notifier).setGenerating(true);
 
-    final userMsg = _createLocalMessage(text, 'user', imageUrl: imageUrl);
-    _addMessageToStateAndDb(userMsg);
+    if (fileUrl != null) {
+      final fMsg = _createLocalMessage(
+        fileExtractedText ?? '',
+        'user',
+        fileUrl: fileUrl,
+        fileName: fileName,
+        fileSize: fileSize,
+        mimeType: mimeType,
+      );
+      _addMessageToStateAndDb(fMsg);
+
+      if (text.isNotEmpty) {
+        final tMsg = _createLocalMessage(text, 'user');
+        _addMessageToStateAndDb(tMsg);
+      }
+    } else if (imageUrl != null) {
+      final imgMsg = _createLocalMessage(text, 'user', imageUrl: imageUrl);
+      _addMessageToStateAndDb(imgMsg);
+    } else {
+      final tMsg = _createLocalMessage(text, 'user');
+      _addMessageToStateAndDb(tMsg);
+    }
 
     final aiMsgId = _uuid.v4();
     var aiText = '';
@@ -174,6 +202,9 @@ class ChatLogic extends _$ChatLogic {
             settings: settings,
             allSessions: allSessions,
             imageBytes: imageBytes,
+            audioBytes: audioBytes,
+            fileExtractedText: fileExtractedText,
+            fileName: fileName,
           );
 
       _generationSubscription = stream.listen(
@@ -253,6 +284,10 @@ class ChatLogic extends _$ChatLogic {
     String authorId, {
     String? id,
     String? imageUrl,
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+    String? mimeType,
   }) {
     return LocalChatMessage(
       id: id ?? _uuid.v4(),
@@ -260,6 +295,10 @@ class ChatLogic extends _$ChatLogic {
       authorId: authorId,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       imageUrl: imageUrl,
+      fileUrl: fileUrl,
+      fileName: fileName,
+      fileSize: fileSize,
+      mimeType: mimeType,
     );
   }
 
@@ -317,6 +356,29 @@ class ChatLogic extends _$ChatLogic {
                 m.createdAt?.millisecondsSinceEpoch ??
                 DateTime.now().millisecondsSinceEpoch,
             imageUrl: m.source,
+          );
+        } else if (m is core.FileMessage) {
+          return LocalChatMessage(
+            id: m.id,
+            text: session.messages
+                .firstWhere(
+                  (old) => old.id == m.id,
+                  orElse: () => LocalChatMessage(
+                    id: m.id,
+                    text: '',
+                    authorId: m.authorId,
+                    createdAt: 0,
+                  ),
+                )
+                .text,
+            authorId: m.authorId,
+            createdAt:
+                m.createdAt?.millisecondsSinceEpoch ??
+                DateTime.now().millisecondsSinceEpoch,
+            fileUrl: m.source,
+            fileName: m.name,
+            fileSize: m.size,
+            mimeType: m.mimeType,
           );
         } else {
           final tm = m as core.TextMessage;

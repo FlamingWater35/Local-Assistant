@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -90,61 +93,201 @@ class ChatScreen extends ConsumerWidget {
   }
 
   Future<void> _handleAttachmentTap(BuildContext context, WidgetRef ref) async {
-    final picker = ImagePicker();
-    final xFile = await picker.pickImage(source: ImageSource.gallery);
-    if (xFile == null) return;
-
-    final bytes = await xFile.readAsBytes();
-
-    if (!context.mounted) return;
-
-    final textController = TextEditingController();
-    final bool? send = await showDialog<bool>(
+    final choice = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Send Image'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.memory(bytes, height: 200, fit: BoxFit.contain),
-              const SizedBox(height: 16),
-              TextField(
-                controller: textController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Add a prompt/caption (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: null,
-              ),
-            ],
-          ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Photo'),
+              onTap: () => Navigator.pop(ctx, 'photo'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.audio_file),
+              title: const Text('Audio (.wav)'),
+              onTap: () => Navigator.pop(ctx, 'audio'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file),
+              title: const Text('Document (.txt, .md, .csv)'),
+              onTap: () => Navigator.pop(ctx, 'doc'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Send'),
-          ),
-        ],
       ),
     );
 
-    if (send == true) {
-      final url = 'http://local_image_${const Uuid().v4()}.jpg';
-      await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
+    if (choice == null || !context.mounted) return;
 
-      ref
-          .read(chatLogicProvider.notifier)
-          .sendMessage(
-            textController.text.trim(),
-            imageBytes: bytes,
-            imageUrl: url,
-          );
+    if (choice == 'photo') {
+      final picker = ImagePicker();
+      final xFile = await picker.pickImage(source: ImageSource.gallery);
+      if (xFile == null) return;
+
+      final bytes = await xFile.readAsBytes();
+      if (!context.mounted) return;
+
+      final textController = TextEditingController();
+      final bool? send = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Send Image'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.memory(bytes, height: 200, fit: BoxFit.contain),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: textController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Add a prompt/caption (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: null,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Send'),
+            ),
+          ],
+        ),
+      );
+
+      if (send == true) {
+        final url = 'http://local_image_${const Uuid().v4()}.jpg';
+        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
+
+        ref
+            .read(chatLogicProvider.notifier)
+            .sendMessage(
+              textController.text.trim(),
+              imageBytes: bytes,
+              imageUrl: url,
+            );
+      }
+    } else if (choice == 'audio') {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['wav'],
+      );
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final bytes = await file.readAsBytes();
+        if (!context.mounted) return;
+
+        final textController = TextEditingController();
+        final bool? send = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text('Send Audio: ${result.files.single.name}'),
+            content: TextField(
+              controller: textController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Add a prompt (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: null,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Send'),
+              ),
+            ],
+          ),
+        );
+
+        if (send == true) {
+          final url = 'http://local_audio_${const Uuid().v4()}.wav';
+          await DefaultCacheManager().putFile(url, bytes, fileExtension: 'wav');
+
+          ref
+              .read(chatLogicProvider.notifier)
+              .sendMessage(
+                textController.text.trim(),
+                audioBytes: bytes,
+                fileUrl: url,
+                fileName: result.files.single.name,
+                fileSize: result.files.single.size,
+                mimeType: 'audio/wav',
+              );
+        }
+      }
+    } else if (choice == 'doc') {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'md', 'csv', 'json', 'log'],
+      );
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        String textContent = await file.readAsString();
+
+        if (textContent.length > 20000) {
+          textContent =
+              "${textContent.substring(0, 20000)}\n\n...[TRUNCATED due to length constraints]";
+        }
+
+        if (!context.mounted) return;
+
+        final textController = TextEditingController();
+        final bool? send = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text('Send Document: ${result.files.single.name}'),
+            content: TextField(
+              controller: textController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'What should the AI do with this file?',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: null,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Send'),
+              ),
+            ],
+          ),
+        );
+
+        if (send == true) {
+          final url = 'http://local_doc_${const Uuid().v4()}.txt';
+
+          ref
+              .read(chatLogicProvider.notifier)
+              .sendMessage(
+                textController.text.trim(),
+                fileExtractedText: textContent,
+                fileUrl: url,
+                fileName: result.files.single.name,
+                fileSize: result.files.single.size,
+                mimeType: 'text/plain',
+              );
+        }
+      }
     }
   }
 
@@ -337,6 +480,86 @@ class ChatScreen extends ConsumerWidget {
           onAttachmentTap: () => _handleAttachmentTap(context, ref),
 
           builders: Builders(
+            fileMessageBuilder:
+                (
+                  context,
+                  core.FileMessage message,
+                  int index, {
+                  required bool isSentByMe,
+                  core.MessageGroupStatus? groupStatus,
+                }) {
+                  return SelectionArea(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isSentByMe
+                                ? appTheme.colorScheme.primaryContainer
+                                : appTheme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16).copyWith(
+                              bottomRight: isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                              bottomLeft: !isSentByMe
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                message.mimeType?.startsWith('audio/') == true
+                                    ? Icons.audio_file
+                                    : Icons.insert_drive_file,
+                                color: isSentByMe
+                                    ? appTheme.colorScheme.onPrimaryContainer
+                                    : appTheme.colorScheme.onSurfaceVariant,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Text(
+                                  message.name,
+                                  style: appTheme.textTheme.bodyLarge?.copyWith(
+                                    color: isSentByMe
+                                        ? appTheme
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                        : appTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 2,
+                            bottom: 4,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            visualDensity: VisualDensity.compact,
+                            tooltip: 'Delete message',
+                            onPressed: () =>
+                                _confirmDeleteMessage(context, ref, message.id),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
             imageMessageBuilder:
                 (
                   context,

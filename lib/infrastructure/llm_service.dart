@@ -63,6 +63,7 @@ class LlmService {
       _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: safeMaxTokens,
         supportImage: true,
+        supportAudio: true,
         maxNumImages: 1,
       );
 
@@ -71,6 +72,7 @@ class LlmService {
       _activeChat = await _activeModel!.createChat(
         systemInstruction: settings.systemPrompt,
         supportImage: true,
+        supportAudio: true,
       );
       _currentContextTokens = _estimateTokens(settings.systemPrompt);
       _isSessionActive = true;
@@ -121,6 +123,7 @@ class LlmService {
       _activeChat = await _activeModel!.createChat(
         systemInstruction: finalSystemPrompt,
         supportImage: true,
+        supportAudio: true,
       );
       int totalTokens = systemTokens;
 
@@ -134,15 +137,15 @@ class LlmService {
         bool isFirstMessage = true;
 
         for (final msg in sortedMessages.reversed) {
-          if (_isUnloading || !_isSessionActive) {
-            appLogger.i("loadSessionContext: Aborted mid-processing");
-            return;
-          }
+          if (_isUnloading || !_isSessionActive) return;
 
           if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
 
-          final msgTokens =
-              _estimateTokens(msg.text) + (msg.imageUrl != null ? 256 : 0);
+          int msgTokens = _estimateTokens(msg.text);
+          if (msg.imageUrl != null ||
+              (msg.fileUrl != null && msg.mimeType == 'audio/wav')) {
+            msgTokens += 256;
+          }
 
           if (!isFirstMessage && totalTokens + msgTokens > maxInputTokens) {
             appLogger.i(
@@ -182,16 +185,39 @@ class LlmService {
                 );
               }
             } else {
-              final fallbackText = msg.text.isEmpty
-                  ? "[Image missing]"
-                  : msg.text;
               await _activeChat!.addQueryChunk(
                 Message.text(
-                  text: fallbackText,
+                  text: msg.text.isEmpty ? "[Image missing]" : msg.text,
                   isUser: msg.authorId == 'user',
                 ),
               );
             }
+          } else if (msg.fileUrl != null && msg.mimeType == 'audio/wav') {
+            final fileInfo = await DefaultCacheManager().getFileFromCache(
+              msg.fileUrl!,
+            );
+            if (fileInfo != null) {
+              final bytes = await fileInfo.file.readAsBytes();
+              await _activeChat!.addQueryChunk(
+                Message.audioOnly(
+                  audioBytes: bytes,
+                  isUser: msg.authorId == 'user',
+                ),
+              );
+            } else {
+              await _activeChat!.addQueryChunk(
+                Message.text(
+                  text: "[Audio missing]",
+                  isUser: msg.authorId == 'user',
+                ),
+              );
+            }
+          } else if (msg.fileUrl != null) {
+            final docPrompt =
+                "Document '${msg.fileName}' contents:\n\n${msg.text}";
+            await _activeChat!.addQueryChunk(
+              Message.text(text: docPrompt, isUser: msg.authorId == 'user'),
+            );
           } else {
             await _activeChat!.addQueryChunk(
               Message.text(text: msg.text, isUser: msg.authorId == 'user'),
@@ -220,6 +246,9 @@ class LlmService {
     required AppSettings settings,
     required List<ChatSession> allSessions,
     Uint8List? imageBytes,
+    Uint8List? audioBytes,
+    String? fileExtractedText,
+    String? fileName,
   }) async* {
     if (_isUnloading || !_isSessionActive || _activeChat == null) {
       appLogger.w("generateResponseStream: Aborted - session not ready");
@@ -227,7 +256,10 @@ class LlmService {
     }
 
     int promptTokens = _estimateTokens(prompt);
-    if (imageBytes != null) promptTokens += 256;
+    if (imageBytes != null || audioBytes != null) promptTokens += 256;
+    if (fileExtractedText != null) {
+      promptTokens += _estimateTokens(fileExtractedText);
+    }
 
     if (_currentContextTokens + promptTokens > settings.maxTokens * 0.8) {
       appLogger.w(
@@ -236,7 +268,23 @@ class LlmService {
       await loadSessionContext(session, settings, allSessions);
     }
 
-    if (imageBytes != null) {
+    if (audioBytes != null) {
+      if (prompt.isEmpty) {
+        await _activeChat!.addQueryChunk(
+          Message.audioOnly(audioBytes: audioBytes, isUser: true),
+        );
+      } else {
+        await _activeChat!.addQueryChunk(
+          Message.withAudio(text: prompt, audioBytes: audioBytes, isUser: true),
+        );
+      }
+    } else if (fileExtractedText != null) {
+      String combined = "Document '$fileName' contents:\n\n$fileExtractedText";
+      if (prompt.isNotEmpty) combined += "\n\nUser prompt: $prompt";
+      await _activeChat!.addQueryChunk(
+        Message.text(text: combined, isUser: true),
+      );
+    } else if (imageBytes != null) {
       if (prompt.isEmpty) {
         await _activeChat!.addQueryChunk(
           Message.imageOnly(imageBytes: imageBytes, isUser: true),
@@ -288,10 +336,7 @@ class LlmService {
   }
 
   Future<void> unloadModel() async {
-    if (_isUnloading) {
-      appLogger.i("unloadModel: Already unloading, skipping");
-      return;
-    }
+    if (_isUnloading) return;
 
     _isUnloading = true;
     _isSessionActive = false;
