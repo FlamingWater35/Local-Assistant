@@ -145,11 +145,6 @@ class LocalChatMessage extends HiveObject {
     required this.text,
     required this.authorId,
     required this.createdAt,
-    this.imageUrl,
-    this.fileUrl,
-    this.fileName,
-    this.fileSize,
-    this.mimeType,
     this.attachments,
   });
 
@@ -162,23 +157,8 @@ class LocalChatMessage extends HiveObject {
   @HiveField(3)
   final int createdAt;
 
-  @HiveField(6)
-  final String? fileName;
-
-  @HiveField(7)
-  final int? fileSize;
-
-  @HiveField(5)
-  final String? fileUrl;
-
   @HiveField(0)
   final String id;
-
-  @HiveField(4)
-  final String? imageUrl;
-
-  @HiveField(8)
-  final String? mimeType;
 
   @HiveField(1)
   final String text;
@@ -200,17 +180,6 @@ class LocalChatMessage extends HiveObject {
               },
             )
             .toList();
-      } else if (imageUrl != null || fileUrl != null) {
-        metaAtts.add({
-          'type': imageUrl != null
-              ? 'photo'
-              : (mimeType == 'audio/wav' ? 'audio' : 'doc'),
-          'url': imageUrl ?? fileUrl,
-          'fileName': fileName ?? 'Attachment',
-          'mimeType':
-              mimeType ?? (imageUrl != null ? 'image/jpeg' : 'text/plain'),
-          'fileSize': fileSize,
-        });
       }
 
       return core.CustomMessage(

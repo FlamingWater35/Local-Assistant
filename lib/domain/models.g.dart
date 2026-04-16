@@ -121,11 +121,6 @@ class LocalChatMessageAdapter extends TypeAdapter<LocalChatMessage> {
       text: fields[1] as String,
       authorId: fields[2] as String,
       createdAt: (fields[3] as num).toInt(),
-      imageUrl: fields[4] as String?,
-      fileUrl: fields[5] as String?,
-      fileName: fields[6] as String?,
-      fileSize: (fields[7] as num?)?.toInt(),
-      mimeType: fields[8] as String?,
       attachments: (fields[9] as List?)?.cast<LocalAttachment>(),
     );
   }
@@ -133,7 +128,7 @@ class LocalChatMessageAdapter extends TypeAdapter<LocalChatMessage> {
   @override
   void write(BinaryWriter writer, LocalChatMessage obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -142,16 +137,6 @@ class LocalChatMessageAdapter extends TypeAdapter<LocalChatMessage> {
       ..write(obj.authorId)
       ..writeByte(3)
       ..write(obj.createdAt)
-      ..writeByte(4)
-      ..write(obj.imageUrl)
-      ..writeByte(5)
-      ..write(obj.fileUrl)
-      ..writeByte(6)
-      ..write(obj.fileName)
-      ..writeByte(7)
-      ..write(obj.fileSize)
-      ..writeByte(8)
-      ..write(obj.mimeType)
       ..writeByte(9)
       ..write(obj.attachments);
   }
