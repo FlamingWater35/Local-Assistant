@@ -3,6 +3,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
+import 'package:local_assistant/application/updater_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../application/model_manager_provider.dart';
@@ -370,6 +372,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 8),
+            const Divider(indent: 16, endIndent: 16),
+            const SizedBox(height: 8),
+
+            _buildSectionHeader(
+              context,
+              'App Update',
+              Icons.system_update_outlined,
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _UpdaterCard(),
+            ),
+
             const SizedBox(height: 100),
           ],
         ),
@@ -568,6 +584,110 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
             child: const Text('Start Download'),
           ),
       ],
+    );
+  }
+}
+
+class _UpdaterCard extends ConsumerWidget {
+  const _UpdaterCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final updateState = ref.watch(updaterControllerProvider);
+    final updaterNotifier = ref.read(updaterControllerProvider.notifier);
+    final theme = Theme.of(context);
+
+    return Card.outlined(
+      clipBehavior: Clip.antiAlias,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        child: switch (updateState) {
+          UpdateInitial() => ListTile(
+            leading: const Icon(Icons.update),
+            title: const Text('Check for updates'),
+            onTap: updaterNotifier.checkForUpdate,
+          ),
+          UpdateChecking() => const ListTile(
+            leading: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            title: Text('Checking for updates...'),
+          ),
+          UpdateNotAvailable() => ListTile(
+            leading: Icon(
+              Icons.check_circle_outline,
+              color: theme.colorScheme.primary,
+            ),
+            title: const Text('App is up to date'),
+            subtitle: const Text('You are using the latest version'),
+            onTap: updaterNotifier.checkForUpdate,
+          ),
+          UpdateAvailable(info: final info) => Column(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.download_for_offline_outlined,
+                  color: theme.colorScheme.secondary,
+                ),
+                title: Text('Update available: v${info.version}'),
+                subtitle: const Text('Tap to download and install'),
+                onTap: updaterNotifier.downloadUpdate,
+              ),
+              if (info.releaseNotes != null && info.releaseNotes!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ExpansionTile(
+                      shape: const Border(),
+                      title: const Text(
+                        'Release Notes',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      childrenPadding: const EdgeInsets.all(12.0),
+                      children: [GptMarkdown(info.releaseNotes!)],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          UpdateDownloading(progress: final progress) => ListTile(
+            title: const Text('Downloading update...'),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: progress,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  const SizedBox(height: 8),
+                  Text("${(progress * 100).toStringAsFixed(0)}% complete"),
+                ],
+              ),
+            ),
+          ),
+          UpdateError(message: final message) => ListTile(
+            leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
+            title: const Text('Update check failed'),
+            subtitle: Text(message),
+            onTap: updaterNotifier.checkForUpdate,
+          ),
+        },
+      ),
     );
   }
 }

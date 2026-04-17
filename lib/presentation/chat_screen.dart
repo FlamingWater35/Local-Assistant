@@ -11,6 +11,7 @@ import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:local_assistant/application/updater_provider.dart';
 import 'package:local_assistant/router/app_router.dart';
 import 'package:uuid/uuid.dart';
 
@@ -585,6 +586,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(updaterControllerProvider, (previous, next) {
+      if (next is UpdateAvailable && previous is! UpdateAvailable) {
+        showInfoSnackBar(
+          context,
+          'A new app update (v${next.info.version}) is available. Check Settings to install.',
+        );
+      }
+    });
+
     final chatController = ref.watch(chatLogicProvider);
     final history = ref.watch(chatHistoryProvider);
     final activeSessionId = ref

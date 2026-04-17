@@ -54,6 +54,14 @@ dependencies:
   # Routing
   auto_route: ^11.1.0
 
+  # Updater
+  dio: ^5.9.2
+  pub_semver: ^2.2.0
+  http: ^1.6.0
+  package_info_plus: ^9.0.1
+  open_filex: ^4.7.0
+  url_launcher: ^6.3.2
+
   # Utilities
   logger: ^2.7.0
   path_provider: ^2.1.5

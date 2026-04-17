@@ -17,7 +17,7 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return AppSettings(
-      selectedModel: fields[0] == null ? 'gemma-3n-2b' : fields[0] as String,
+      selectedModel: fields[0] == null ? 'gemma-4-e2b' : fields[0] as String,
       temperature: fields[1] == null ? 0.7 : (fields[1] as num).toDouble(),
       maxTokens: fields[2] == null ? 2048 : (fields[2] as num).toInt(),
       systemPrompt: fields[3] == null
