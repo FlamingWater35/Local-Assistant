@@ -44,17 +44,13 @@ jobs:
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
 
-      - run: flutter build apk --release --split-per-abi
+      - run: flutter build apk --release --target-platform android-arm64
 
       - name: Prepare APKs for Release
         run: |
           cd build/app/outputs/apk/release
-          shopt -s nullglob
-          for file in app-*-release.apk; do
-            arch=$(echo "$file" | sed -e 's/app-//' -e 's/-release.apk//')
-            new_name="${{ env.APP_NAME }}-v${{ steps.get_version.outputs.version }}-${arch}.apk"
-            mv "$file" "$new_name"
-          done
+          new_name="${{ env.APP_NAME }}-v${{ steps.get_version.outputs.version }}-arm64-v8a.apk"
+          mv app-release.apk "$new_name"
 
       - uses: actions/upload-artifact@v4
         with:
