@@ -32,6 +32,21 @@ A private, fully on-device AI assistant built with Flutter. **Local Assistant** 
 2. **HuggingFace Token**: Some models may require a HuggingFace read-access token to download (check a guide if unsure how to proceed).
 3. **Start Chatting**: Once the model is installed, inference is handled by your device's GPU/NPU.
 
+## 📸 Screenshots
+
+<table width="100%">
+  <tr>
+    <td align="center">
+      <p><b>Chat Interface</b></p>
+      <img src="assets\screenshots\ChatScreen-2026-04-18.png" alt="Main chatting interface" width="400">
+    </td>
+    <td align="center">
+      <p><b>Settings Interface</b></p>
+      <img src="assets\screenshots\SettingsScreen-2026-04-18.png" alt="Application settings menu" width="400">
+    </td>
+  </tr>
+</table>
+
 ## 🛠️ Tech Stack
 
 - **Framework**: [Flutter](https://flutter.dev)
