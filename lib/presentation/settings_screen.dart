@@ -5,6 +5,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:local_assistant/application/updater_provider.dart';
+import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../application/model_manager_provider.dart';
@@ -51,17 +52,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _confirmDeleteModel(AvailableModel model) {
+    final t = Translations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Model'),
-        content: Text(
-          'Are you sure you want to delete ${model.name}? You will have to download it again to use it.',
-        ),
+        title: Text(t.settings.deleteModelTitle),
+        content: Text(t.settings.deleteModelConfirm(name: model.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(t.common.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -73,10 +73,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   .read(modelDownloaderProvider.notifier)
                   .deleteModel(model);
               if (mounted) {
-                showSuccessSnackBar(context, 'Model deleted successfully');
+                showSuccessSnackBar(context, t.settings.modelDeleted);
               }
             },
-            child: const Text('Delete'),
+            child: Text(t.common.delete),
           ),
         ],
       ),
@@ -84,6 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _saveAndLoad() async {
+    final t = Translations.of(context);
     final isInstalled = await ref.read(
       isModelInstalledProvider(_draftSettings.selectedModel).future,
     );
@@ -91,7 +92,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!mounted) return;
 
     if (!isInstalled) {
-      showErrorSnackBar(context, 'Selected model is not downloaded!');
+      showErrorSnackBar(context, t.settings.modelNotDownloaded);
       return;
     }
 
@@ -104,12 +105,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (!mounted) return;
 
-      showSuccessSnackBar(context, 'Settings applied successfully');
+      showSuccessSnackBar(context, t.settings.settingsApplied);
       context.router.back();
     } catch (e) {
       appLogger.e("Settings: Error saving settings", error: e);
       if (!mounted) return;
-      showErrorSnackBar(context, 'Error: $e');
+      showErrorSnackBar(
+        context,
+        t.settings.errorWithDetails(details: e.toString()),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -142,18 +146,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(t.settings.title),
         forceMaterialTransparency: true,
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            _buildSectionHeader(context, 'AI Models', Icons.smart_toy_outlined),
+            _buildSectionHeader(
+              context,
+              t.settings.aiModels,
+              Icons.smart_toy_outlined,
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
@@ -189,7 +198,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       subtitle: isInstalledAsync.when(
                         data: (installed) => Text(
-                          installed ? "Ready to use" : "Not downloaded",
+                          installed
+                              ? t.settings.readyToUse
+                              : t.settings.notDownloaded,
                           style: TextStyle(
                             color: installed
                                 ? (isSelected
@@ -201,8 +212,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 : FontWeight.normal,
                           ),
                         ),
-                        loading: () => const Text("Checking status..."),
-                        error: (_, _) => const Text("Error checking status"),
+                        loading: () => Text(t.settings.checkingStatus),
+                        error: (_, _) => Text(t.settings.errorCheckingStatus),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -213,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 Icons.delete_outline,
                                 color: theme.colorScheme.error,
                               ),
-                              tooltip: 'Delete Model',
+                              tooltip: t.settings.deleteModelTitle,
                               onPressed: () => _confirmDeleteModel(model),
                             ),
                           isInstalledAsync.value == true
@@ -226,7 +237,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               : IconButton(
                                   icon: const Icon(Icons.download_rounded),
                                   color: theme.colorScheme.primary,
-                                  tooltip: 'Download Model',
+                                  tooltip: t.settings.downloadModelTooltip,
                                   onPressed: () => _showDownloadDialog(model),
                                 ),
                         ],
@@ -250,7 +261,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             _buildSectionHeader(
               context,
-              'Inference & Memory',
+              t.settings.inferenceAndMemory,
               Icons.memory_outlined,
             ),
 
@@ -259,10 +270,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 horizontal: 24,
                 vertical: 8,
               ),
-              title: const Text("Enable Memory Across Chats"),
-              subtitle: const Text(
-                "Allows the AI to silently reference facts from your other recent conversations.",
-              ),
+              title: Text(t.settings.enableMemoryTitle),
+              subtitle: Text(t.settings.enableMemorySubtitle),
               value: _draftSettings.enableGlobalMemory,
               onChanged: (val) => setState(
                 () => _draftSettings = _draftSettings.copyWith(
@@ -277,12 +286,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Total Context Window",
+                    t.settings.totalContextWindow,
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Hardware memory for Input + Output. Smart Truncation will automatically prune older messages when the limit is reached.",
+                    t.settings.contextWindowDescription,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -297,7 +306,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           min: 2048,
                           max: 8192,
                           divisions: 12,
-                          label: '${_draftSettings.maxTokens} Tokens',
+                          label:
+                              '${_draftSettings.maxTokens} ${t.settings.tokens}',
                           onChanged: (val) => setState(
                             () => _draftSettings = _draftSettings.copyWith(
                               maxTokens: val.toInt(),
@@ -310,7 +320,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   Center(
                     child: Text(
-                      '${_draftSettings.maxTokens} Tokens',
+                      '${_draftSettings.maxTokens} ${t.settings.tokens}',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: theme.colorScheme.primary,
                       ),
@@ -324,17 +334,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
 
-            _buildSectionHeader(context, 'Behavior', Icons.psychology_outlined),
+            _buildSectionHeader(
+              context,
+              t.settings.behavior,
+              Icons.psychology_outlined,
+            ),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Temperature", style: theme.textTheme.titleMedium),
+                  Text(
+                    t.settings.temperature,
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 4),
                   Text(
-                    "Controls creativity. Lower is more focused, higher is more random.",
+                    t.settings.temperatureDescription,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -378,7 +395,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             _buildSectionHeader(
               context,
-              'App Update',
+              t.settings.appUpdate,
               Icons.system_update_outlined,
             ),
             const Padding(
@@ -399,7 +416,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           : FloatingActionButton.extended(
               onPressed: _saveAndLoad,
               icon: const Icon(Icons.check),
-              label: const Text('Apply Changes'),
+              label: Text(t.settings.applyChanges),
             ),
     );
   }
@@ -436,10 +453,11 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
   }
 
   Future<void> _checkConnectivityAndStart() async {
+    final t = Translations.of(context);
     final connectivityResult = await (Connectivity().checkConnectivity());
 
     if (connectivityResult.contains(ConnectivityResult.none)) {
-      setState(() => _error = "No internet connection detected.");
+      setState(() => _error = t.download.noInternet);
       return;
     }
 
@@ -447,24 +465,22 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
       final proceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange),
-              SizedBox(width: 10),
-              Text('Large File Warning'),
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const SizedBox(width: 10),
+              Text(t.download.mobileDataWarningTitle),
             ],
           ),
-          content: const Text(
-            'You are connected via Mobile Data. This model is a large file (approx 1-2GB) and downloading it may consume significant data or incur additional charges. Proceed anyway?',
-          ),
+          content: Text(t.download.mobileDataWarning),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(t.common.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Proceed'),
+              child: Text(t.download.proceed),
             ),
           ],
         ),
@@ -477,10 +493,11 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
   }
 
   Future<void> _startDownload() async {
+    final t = Translations.of(context);
     appLogger.i("DownloadDialog: Starting download for ${widget.model.id}");
     if (widget.model.requiresAuth && _tokenController.text.trim().isEmpty) {
       appLogger.w("DownloadDialog: HF Token missing.");
-      setState(() => _error = "HuggingFace Token required.");
+      setState(() => _error = t.download.hfTokenRequired);
       return;
     }
 
@@ -511,13 +528,16 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        showSuccessSnackBar(context, 'Model downloaded successfully!');
+        showSuccessSnackBar(context, t.download.downloadSuccess);
       }
     } catch (e) {
       appLogger.e("DownloadDialog: Download failed", error: e);
       if (mounted) {
-        setState(() => _error = e.toString());
-        showErrorSnackBar(context, 'Download failed: $e');
+        setState(() => _error = t.download.downloadFailed(error: e.toString()));
+        showErrorSnackBar(
+          context,
+          t.download.downloadFailed(error: e.toString()),
+        );
       }
     } finally {
       WakelockPlus.disable();
@@ -526,36 +546,35 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final progress = _progress;
     return AlertDialog(
-      title: Text('Download ${widget.model.name}'),
+      title: Text(t.download.title(name: widget.model.name)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (widget.model.requiresAuth) ...[
-            const Text(
-              "This model requires HuggingFace access.",
-              style: TextStyle(fontSize: 12),
-            ),
+            Text(t.download.requiresAuth, style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 16),
             TextField(
               controller: _tokenController,
-              decoration: const InputDecoration(
-                labelText: 'HuggingFace Token',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t.download.hfToken,
+                border: const OutlineInputBorder(),
               ),
               obscureText: true,
-              enabled: _progress == null,
+              enabled: progress == null,
             ),
           ],
           const SizedBox(height: 20),
-          if (_progress != null) ...[
+          if (progress != null) ...[
             LinearProgressIndicator(
-              value: _progress! / 100,
+              value: progress / 100,
               borderRadius: BorderRadius.circular(8),
             ),
             const SizedBox(height: 12),
             Text(
-              'Downloading... $_progress%',
+              t.download.downloading(progress: progress),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -573,15 +592,15 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
         ],
       ),
       actions: [
-        if (_progress == null)
+        if (progress == null)
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(t.common.cancel),
           ),
-        if (_progress == null)
+        if (progress == null)
           FilledButton(
             onPressed: _checkConnectivityAndStart,
-            child: const Text('Start Download'),
+            child: Text(t.download.startDownload),
           ),
       ],
     );
@@ -593,6 +612,7 @@ class _UpdaterCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
     final updateState = ref.watch(updaterControllerProvider);
     final updaterNotifier = ref.read(updaterControllerProvider.notifier);
     final theme = Theme.of(context);
@@ -604,7 +624,7 @@ class _UpdaterCard extends ConsumerWidget {
         child: switch (updateState) {
           UpdateInitial() => ListTile(
             leading: const Icon(Icons.update),
-            title: const Text('Check for updates'),
+            title: Text(t.settings.checkForUpdates),
             onTap: updaterNotifier.checkForUpdate,
           ),
           UpdateChecking() => const ListTile(
@@ -620,8 +640,8 @@ class _UpdaterCard extends ConsumerWidget {
               Icons.check_circle_outline,
               color: theme.colorScheme.primary,
             ),
-            title: const Text('App is up to date'),
-            subtitle: const Text('You are using the latest version'),
+            title: Text(t.settings.appUpToDate),
+            subtitle: Text(t.settings.latestVersion),
             onTap: updaterNotifier.checkForUpdate,
           ),
           UpdateAvailable(info: final info) => Column(
@@ -631,8 +651,8 @@ class _UpdaterCard extends ConsumerWidget {
                   Icons.download_for_offline_outlined,
                   color: theme.colorScheme.secondary,
                 ),
-                title: Text('Update available: v${info.version}'),
-                subtitle: const Text('Tap to download and install'),
+                title: Text(t.settings.updateAvailable(version: info.version)),
+                subtitle: Text(t.settings.tapToDownload),
                 onTap: updaterNotifier.downloadUpdate,
               ),
               if (info.releaseNotes != null && info.releaseNotes!.isNotEmpty)
@@ -649,9 +669,9 @@ class _UpdaterCard extends ConsumerWidget {
                     ),
                     child: ExpansionTile(
                       shape: const Border(),
-                      title: const Text(
-                        'Release Notes',
-                        style: TextStyle(
+                      title: Text(
+                        t.settings.releaseNotes,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
@@ -664,7 +684,7 @@ class _UpdaterCard extends ConsumerWidget {
             ],
           ),
           UpdateDownloading(progress: final progress) => ListTile(
-            title: const Text('Downloading update...'),
+            title: Text(t.settings.downloadingUpdate),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
               child: Column(
@@ -675,14 +695,18 @@ class _UpdaterCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   const SizedBox(height: 8),
-                  Text("${(progress * 100).toStringAsFixed(0)}% complete"),
+                  Text(
+                    t.settings.percentComplete(
+                      percent: (progress * 100).toStringAsFixed(0),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           UpdateError(message: final message) => ListTile(
             leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
-            title: const Text('Update check failed'),
+            title: Text(t.settings.updateCheckFailed),
             subtitle: Text(message),
             onTap: updaterNotifier.checkForUpdate,
           ),

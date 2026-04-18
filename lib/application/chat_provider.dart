@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
+import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -134,7 +135,9 @@ class ChatLogic extends _$ChatLogic {
       currentSessionId = _uuid.v4();
       final newTitle = text.isNotEmpty
           ? (text.length > 25 ? '${text.substring(0, 25)}...' : text)
-          : (attachments.isNotEmpty ? 'Attachment session' : 'New chat');
+          : (attachments.isNotEmpty
+                ? t.chat.attachmentSession
+                : t.chat.newChat);
 
       final newSession = ChatSession(
         id: currentSessionId!,
@@ -209,16 +212,13 @@ class ChatLogic extends _$ChatLogic {
 
           if (errorStr.contains('CONTEXT_OVERFLOW')) {
             if (_activeGenerationSessionId == currentSessionId) {
-              _updateLocalMessage(
-                aiMsgId,
-                "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
-              );
+              _updateLocalMessage(aiMsgId, t.errors.contextOverflow);
             }
           } else {
             if (_activeGenerationSessionId == currentSessionId) {
               _updateLocalMessage(
                 aiMsgId,
-                "⚠️ Error: Model inference failed.\nDetails: $error",
+                t.errors.inferenceFailed(error: error),
               );
             }
           }
@@ -239,10 +239,7 @@ class ChatLogic extends _$ChatLogic {
       appLogger.e("Inference setup error", error: e);
 
       if (_activeGenerationSessionId == currentSessionId) {
-        _updateLocalMessage(
-          aiMsgId,
-          "⚠️ Error: Failed to start generation.\nDetails: $e",
-        );
+        _updateLocalMessage(aiMsgId, t.errors.generationFailed(error: e));
       }
       _flushPendingSaves();
     }

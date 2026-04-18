@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/core/api/flutter_gemma.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_assistant/i18n/generated/translations.g.dart';
 
 import 'application/settings_provider.dart';
 import 'core/logger.dart';
@@ -11,6 +13,7 @@ import 'router/app_router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterGemma.initialize();
+  LocaleSettings.useDeviceLocale();
 
   final hiveService = HiveService();
   await hiveService.init();
@@ -18,7 +21,7 @@ void main() async {
   runApp(
     ProviderScope(
       overrides: [hiveServiceProvider.overrideWithValue(hiveService)],
-      child: const GemmaChatApp(),
+      child: TranslationProvider(child: const GemmaChatApp()),
     ),
   );
 }
@@ -92,7 +95,10 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Local Assistant',
+      title: t.appTitle,
+      locale: TranslationProvider.of(context).flutterLocale,
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,

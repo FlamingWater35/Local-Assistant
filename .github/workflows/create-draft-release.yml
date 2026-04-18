@@ -42,7 +42,7 @@ jobs:
 
       - run: flutter clean
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart run build_runner build --delete-conflicting-outputs && dart run slang
 
       - run: flutter build apk --release --target-platform android-arm64
 

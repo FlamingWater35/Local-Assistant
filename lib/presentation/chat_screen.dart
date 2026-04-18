@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_assistant/application/updater_provider.dart';
+import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:local_assistant/router/app_router.dart';
 import 'package:uuid/uuid.dart';
 
@@ -39,18 +40,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _confirmDelete(String sessionId, String title) {
+    final t = Translations.of(context);
     appLogger.i("UI: Opened delete confirmation for chat: $title");
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Chat'),
-        content: Text(
-          'Are you sure you want to delete "$title"?\nThis cannot be undone.',
-        ),
+        title: Text(t.chat.deleteChatTitle),
+        content: Text(t.chat.deleteChatConfirm(title: title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(t.common.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -59,10 +59,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ref.read(chatLogicProvider.notifier).deleteSession(sessionId);
               Navigator.pop(ctx);
               if (mounted) {
-                showSuccessSnackBar(context, 'Chat deleted');
+                showSuccessSnackBar(context, t.chat.chatDeleted);
               }
             },
-            child: const Text('Delete'),
+            child: Text(t.common.delete),
           ),
         ],
       ),
@@ -70,17 +70,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _confirmDeleteMessage(String messageId) {
+    final t = Translations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Message'),
-        content: const Text(
-          'Are you sure you want to delete this entire message and its attachments?',
-        ),
+        title: Text(t.chat.deleteMessageTitle),
+        content: Text(t.chat.deleteMessageConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(t.common.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -91,10 +90,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   .deleteMessage(messageId);
               if (mounted && ctx.mounted) {
                 Navigator.pop(ctx);
-                showSuccessSnackBar(context, 'Message deleted');
+                showSuccessSnackBar(context, t.chat.messageDeleted);
               }
             },
-            child: const Text('Delete'),
+            child: Text(t.common.delete),
           ),
         ],
       ),
@@ -102,11 +101,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _handleAttachmentTap() async {
+    final t = Translations.of(context);
     if (_pendingAttachments.length >= 2) {
-      showErrorSnackBar(
-        context,
-        'Maximum of 2 attachments allowed per message.',
-      );
+      showErrorSnackBar(context, t.chat.maxAttachments);
       return;
     }
 
@@ -118,17 +115,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.image),
-              title: const Text('Photo'),
+              title: Text(t.attachments.photo),
               onTap: () => Navigator.pop(ctx, 'photo'),
             ),
             ListTile(
               leading: const Icon(Icons.audio_file),
-              title: const Text('Audio (.wav)'),
+              title: Text(t.attachments.audio),
               onTap: () => Navigator.pop(ctx, 'audio'),
             ),
             ListTile(
               leading: const Icon(Icons.insert_drive_file),
-              title: const Text('Document (.txt, .md, .csv)'),
+              title: Text(t.attachments.document),
               onTap: () => Navigator.pop(ctx, 'doc'),
             ),
           ],
@@ -251,6 +248,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _openExpandedComposer() {
+    final t = Translations.of(context);
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -258,7 +256,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       pageBuilder: (context, animation, secondaryAnimation) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Compose Prompt'),
+            title: Text(t.chat.composePrompt),
             leading: IconButton(
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.pop(context),
@@ -274,7 +272,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     padding: const EdgeInsets.only(right: 12.0),
                     child: FilledButton.icon(
                       icon: const Icon(Icons.arrow_upward, size: 18),
-                      label: const Text("Send"),
+                      label: Text(t.chat.send),
                       onPressed: canSend
                           ? () {
                               Navigator.pop(context);
@@ -296,8 +294,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               autofocus: true,
               textAlignVertical: TextAlignVertical.top,
               style: Theme.of(context).textTheme.bodyLarge,
-              decoration: const InputDecoration(
-                hintText: 'Write your detailed prompt here...',
+              decoration: InputDecoration(
+                hintText: t.chat.writePromptHint,
                 border: InputBorder.none,
               ),
             ),
@@ -413,6 +411,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildCustomComposer(BuildContext context, ThemeData theme) {
+    final t = Translations.of(context);
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
@@ -534,11 +533,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               maxLines: 2,
                               minLines: 1,
                               textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                hintText: 'Message Local Assistant...',
+                              decoration: InputDecoration(
+                                hintText: t.chat.messageHint,
                                 border: InputBorder.none,
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   vertical: 12,
                                 ),
                               ),
@@ -586,11 +585,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     ref.listen(updaterControllerProvider, (previous, next) {
       if (next is UpdateAvailable && previous is! UpdateAvailable) {
         showInfoSnackBar(
           context,
-          'A new app update (v${next.info.version}) is available. Check Settings to install.',
+          t.settings.updateAvailableSnackbar(version: next.info.version),
         );
       }
     });
@@ -615,7 +615,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          title: const Text('Local AI Assistant'),
+          title: Text(t.chat.title),
           centerTitle: true,
           actions: [
             if (isGenerating)
@@ -650,7 +650,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        "Assistant",
+                        t.chat.assistantName,
                         style: appTheme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: appTheme.colorScheme.primary,
@@ -672,7 +672,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       }
                     },
                     icon: const Icon(Icons.add),
-                    label: const Text('New Chat'),
+                    label: Text(t.chat.newChat),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -688,7 +688,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     vertical: 8,
                   ),
                   child: Text(
-                    "Recent History",
+                    t.chat.recentHistory,
                     style: appTheme.textTheme.labelMedium?.copyWith(
                       color: appTheme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
@@ -768,7 +768,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     leading: const Icon(Icons.settings_outlined),
-                    title: const Text('Settings & Models'),
+                    title: Text(t.chat.settingsAndModels),
                     onTap: () {
                       appLogger.i("UI: Navigating to Settings.");
                       if (mounted) {
@@ -872,7 +872,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       size: 18,
                                     ),
                                     visualDensity: VisualDensity.compact,
-                                    tooltip: 'Copy message',
+                                    tooltip: t.chat.copyMessage,
                                     onPressed: () {
                                       Clipboard.setData(
                                         ClipboardData(text: text),
@@ -880,7 +880,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       if (mounted) {
                                         showInfoSnackBar(
                                           context,
-                                          'Copied to clipboard',
+                                          t.chat.copiedToClipboard,
                                         );
                                       }
                                     },
@@ -891,7 +891,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     size: 18,
                                   ),
                                   visualDensity: VisualDensity.compact,
-                                  tooltip: 'Delete message group',
+                                  tooltip: t.chat.deleteMessageGroup,
                                   onPressed: () =>
                                       _confirmDeleteMessage(message.id),
                                 ),
@@ -971,7 +971,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     size: 18,
                                   ),
                                   visualDensity: VisualDensity.compact,
-                                  tooltip: 'Copy message',
+                                  tooltip: t.chat.copyMessage,
                                   onPressed: () {
                                     Clipboard.setData(
                                       ClipboardData(text: message.text),
@@ -979,7 +979,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     if (mounted) {
                                       showInfoSnackBar(
                                         context,
-                                        'Copied to clipboard',
+                                        t.chat.copiedToClipboard,
                                       );
                                     }
                                   },
@@ -990,7 +990,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     size: 18,
                                   ),
                                   visualDensity: VisualDensity.compact,
-                                  tooltip: 'Delete message',
+                                  tooltip: t.chat.deleteMessage,
                                   onPressed: () {
                                     _confirmDeleteMessage(message.id);
                                   },
@@ -1005,7 +1005,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
           ),
           resolveUser: (core.UserID id) async {
-            return core.User(id: id, name: id == 'user' ? 'Me' : 'Gemma AI');
+            return core.User(
+              id: id,
+              name: id == 'user' ? t.chat.userName : t.chat.aiName,
+            );
           },
           onMessageSend: _triggerSend,
         ),

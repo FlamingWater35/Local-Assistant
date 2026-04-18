@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/core/api/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:local_assistant/router/app_router.dart';
 
 import '../application/model_manager_provider.dart';
@@ -112,6 +113,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     if (_isChecking || _isInitializing) {
       return Scaffold(
         body: Center(
@@ -121,9 +123,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               const CircularProgressIndicator(),
               const SizedBox(height: 24),
               Text(
-                _isChecking
-                    ? "Checking system state..."
-                    : "Starting AI Model...",
+                _isChecking ? t.setup.checkingSystem : t.setup.startingModel,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
@@ -156,7 +156,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Welcome to\nLocal Assistant',
+                t.setup.welcomeTitle,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                   height: 1.1,
@@ -165,7 +165,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'To get started, please download an AI model. All inference runs locally and privately on your device hardware.',
+                t.setup.welcomeSubtitle,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   height: 1.4,
@@ -174,7 +174,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               const SizedBox(height: 32),
 
               Text(
-                'AVAILABLE MODELS',
+                t.setup.availableModels,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -221,7 +221,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           data: (installed) => Padding(
                             padding: const EdgeInsets.only(top: 4.0),
                             child: Text(
-                              installed ? "Downloaded" : "Tap to download",
+                              installed
+                                  ? t.setup.downloaded
+                                  : t.setup.tapToDownload,
                               style: TextStyle(
                                 color: installed
                                     ? Colors.green.shade600
@@ -229,8 +231,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               ),
                             ),
                           ),
-                          loading: () => const Text("Checking..."),
-                          error: (_, _) => const Text("Error"),
+                          loading: () => Text(t.setup.checking),
+                          error: (_, _) => Text(t.setup.error),
                         ),
                         trailing: isInstalledAsync.value == true
                             ? (isSelected
@@ -241,7 +243,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                   : const Icon(Icons.circle_outlined))
                             : FilledButton.icon(
                                 icon: const Icon(Icons.download, size: 18),
-                                label: const Text('Get'),
+                                label: Text(t.setup.get),
                                 onPressed: () => _showDownloadDialog(model),
                               ),
                         onTap: isInstalledAsync.value == true
@@ -268,9 +270,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'Start Chatting',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: Text(
+                    t.setup.startChatting,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
