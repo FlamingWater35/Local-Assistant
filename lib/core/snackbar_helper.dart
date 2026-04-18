@@ -43,11 +43,11 @@ void _showSnackBar(
       behavior: SnackBarBehavior.floating,
       margin: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
       dismissDirection: DismissDirection.horizontal,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       content: Row(
         children: [
-          Icon(icon, color: contentColor),
+          Icon(icon, color: contentColor, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -57,6 +57,20 @@ void _showSnackBar(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close, color: contentColor, size: 16),
             ),
           ),
         ],
