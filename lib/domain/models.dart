@@ -86,7 +86,7 @@ class AppSettings extends HiveObject {
     this.temperature = 0.7,
     this.maxTokens = 2048,
     this.systemPrompt =
-        'You are a helpful, creative, and professional AI assistant. Do not simulate the User or mistake your own previous responses for User input.',
+        'You are a helpful, creative, and professional AI assistant. Admit uncertainty instead of guessing. Do not mistake your own previous responses for User input.',
     this.hfToken = '',
     this.enableGlobalMemory = false,
     this.locale = '',
