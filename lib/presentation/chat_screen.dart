@@ -18,9 +18,11 @@ import 'package:local_assistant/presentation/chat_drawer.dart';
 import 'package:uuid/uuid.dart';
 
 import '../application/chat_provider.dart';
+import '../core/constants.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
+import '../infrastructure/llm_service.dart';
 
 @RoutePage()
 class ChatScreen extends ConsumerStatefulWidget {
@@ -73,7 +75,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _handleAttachmentTap() async {
     final t = Translations.of(context);
-    if (_pendingAttachments.length >= 2) {
+    if (_pendingAttachments.length >= AppConstants.maxAttachments) {
       showErrorSnackBar(context, t.chat.maxAttachments);
       return;
     }
@@ -233,24 +235,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _composerController,
-                builder: (context, value, child) {
-                  final canSend =
-                      value.text.trim().isNotEmpty ||
-                      _pendingAttachments.isNotEmpty;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.arrow_upward, size: 18),
-                      label: Text(t.chat.send),
-                      onPressed: canSend
-                          ? () {
-                              Navigator.pop(context);
-                              _triggerSend(_composerController.text);
-                            }
-                          : null,
-                    ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final isModelReady =
+                      ref.watch(modelStatusProvider) == ModelState.ready;
+                  return ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _composerController,
+                    builder: (context, value, child) {
+                      final canSend =
+                          isModelReady &&
+                          (value.text.trim().isNotEmpty ||
+                              _pendingAttachments.isNotEmpty);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.arrow_upward, size: 18),
+                          label: Text(t.chat.send),
+                          onPressed: canSend
+                              ? () {
+                                  Navigator.pop(context);
+                                  _triggerSend(_composerController.text);
+                                }
+                              : null,
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -528,20 +537,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: _composerController,
-                    builder: (context, value, child) {
-                      final canSend =
-                          value.text.trim().isNotEmpty ||
-                          _pendingAttachments.isNotEmpty;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 2.0),
-                        child: IconButton.filled(
-                          icon: const Icon(Icons.arrow_upward),
-                          onPressed: canSend
-                              ? () => _triggerSend(_composerController.text)
-                              : null,
-                        ),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isModelReady =
+                          ref.watch(modelStatusProvider) == ModelState.ready;
+                      return ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _composerController,
+                        builder: (context, value, child) {
+                          final canSend =
+                              isModelReady &&
+                              (value.text.trim().isNotEmpty ||
+                                  _pendingAttachments.isNotEmpty);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2.0),
+                            child: IconButton.filled(
+                              icon: const Icon(Icons.arrow_upward),
+                              onPressed: canSend
+                                  ? () => _triggerSend(_composerController.text)
+                                  : null,
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

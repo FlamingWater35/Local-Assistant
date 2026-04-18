@@ -132,6 +132,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _saveAndLoad() async {
     final t = Translations.of(context);
 
+    final previousSettings = ref.read(settingsControllerProvider);
+
     _draftSettings = _draftSettings.copyWith(
       systemPrompt: _systemPromptController.text,
     );
@@ -160,11 +162,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context.router.back();
     } catch (e) {
       appLogger.e("Settings: Error saving settings", error: e);
-      if (!mounted) return;
-      showErrorSnackBar(
-        context,
-        t.settings.errorWithDetails(details: e.toString()),
-      );
+      if (mounted) {
+        setState(() {
+          _draftSettings = previousSettings;
+          _systemPromptController.text = previousSettings.systemPrompt;
+        });
+        showErrorSnackBar(
+          context,
+          t.settings.errorWithDetails(details: e.toString()),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

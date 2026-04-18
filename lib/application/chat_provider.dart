@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -66,12 +67,38 @@ class ChatLogic extends _$ChatLogic {
     final settings = ref.read(settingsControllerProvider);
     final allSessions = ref.read(hiveServiceProvider).getAllSessions();
 
-    final llmService = ref.read(llmServiceProvider);
-    await Future.delayed(const Duration(milliseconds: 50));
-    await llmService.loadSessionContext(session, settings, allSessions);
+    final completer = Completer<void>();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!completer.isCompleted) completer.complete();
+    });
+    await completer.future;
 
-    state.dispose();
+    if (currentSessionId != sessionId) {
+      newController.dispose();
+      return;
+    }
+
+    final llmService = ref.read(llmServiceProvider);
+    final success = await llmService.loadSessionContext(
+      session,
+      settings,
+      allSessions,
+    );
+
+    if (currentSessionId != sessionId) {
+      newController.dispose();
+      return;
+    }
+
+    if (!success) {
+      appLogger.e("Context loading failed. Model may need re-initialization.");
+    }
+
+    final oldController = state;
     state = newController;
+    if (oldController != newController) {
+      oldController.dispose();
+    }
   }
 
   Future<void> deleteSession(String sessionId) async {
@@ -115,7 +142,14 @@ class ChatLogic extends _$ChatLogic {
     final allSessions = hiveService.getAllSessions();
     final llmService = ref.read(llmServiceProvider);
 
-    await Future.delayed(const Duration(milliseconds: 50));
+    final completer = Completer<void>();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!completer.isCompleted) completer.complete();
+    });
+    await completer.future;
+
+    if (currentSessionId != session.id) return;
+
     await llmService.loadSessionContext(updatedSession, settings, allSessions);
 
     appLogger.i(

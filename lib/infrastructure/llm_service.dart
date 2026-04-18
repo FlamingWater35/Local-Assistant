@@ -4,12 +4,27 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../core/constants.dart';
 import '../core/logger.dart';
 import '../domain/models.dart';
 
 part 'llm_service.g.dart';
 
+@Riverpod(keepAlive: true)
+class ModelStatus extends _$ModelStatus {
+  void setStatus(ModelState status) {
+    state = status;
+  }
+
+  @override
+  ModelState build() => ModelState.uninitialized;
+}
+
 class LlmService {
+  LlmService(this.ref);
+
+  final Ref ref;
+
   InferenceChat? _activeChat;
   InferenceModel? _activeModel;
   int _currentContextTokens = 0;
@@ -30,6 +45,7 @@ class LlmService {
 
     _isSessionActive = false;
     _isUnloading = false;
+    _setStatus(ModelState.loading);
 
     try {
       appLogger.i("⚙️ initModel: Starting model initialization...");
@@ -64,7 +80,7 @@ class LlmService {
         maxTokens: safeMaxTokens,
         supportImage: true,
         supportAudio: true,
-        maxNumImages: 2,
+        maxNumImages: AppConstants.maxAttachments,
       );
 
       if (_activeChat != null) await _activeChat!.close();
@@ -74,18 +90,22 @@ class LlmService {
         supportImage: true,
         supportAudio: true,
       );
-      _currentContextTokens = _estimateTokens(settings.systemPrompt);
+      _currentContextTokens = AppConstants.estimateTokens(
+        settings.systemPrompt,
+      );
       _currentImageCount = 0;
       _isSessionActive = true;
+      _setStatus(ModelState.ready);
       appLogger.i("✅ initModel: Model initialized successfully.");
     } catch (e) {
       appLogger.e("❌ initModel: Failed to initialize model.", error: e);
       _isSessionActive = false;
+      _setStatus(ModelState.error);
       rethrow;
     }
   }
 
-  Future<void> loadSessionContext(
+  Future<bool> loadSessionContext(
     ChatSession? session,
     AppSettings settings,
     List<ChatSession> allSessions, {
@@ -93,13 +113,15 @@ class LlmService {
   }) async {
     if (_isUnloading || !_isSessionActive || _activeModel == null) {
       appLogger.i("loadSessionContext: Skipped - session not active");
-      return;
+      return false;
     }
+
+    _setStatus(ModelState.loading);
 
     try {
       appLogger.i("🔄 loadSessionContext: Rebuilding chat context...");
       String finalSystemPrompt = settings.systemPrompt;
-      int systemTokens = _estimateTokens(finalSystemPrompt);
+      int systemTokens = AppConstants.estimateTokens(finalSystemPrompt);
 
       if (settings.enableGlobalMemory && allSessions.isNotEmpty) {
         final otherMessages =
@@ -116,7 +138,7 @@ class LlmService {
               .join("\n");
           finalSystemPrompt +=
               "\n\n[System Note: Context from the user's other recent conversations for cross-chat memory:]\n$memoryString\n[End cross-chat memory]";
-          systemTokens = _estimateTokens(finalSystemPrompt);
+          systemTokens = AppConstants.estimateTokens(finalSystemPrompt);
         }
       }
 
@@ -134,29 +156,25 @@ class LlmService {
         final sortedMessages = List<LocalChatMessage>.from(session.messages)
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-        final maxInputTokens = (settings.maxTokens * 0.8).toInt();
+        final maxInputTokens =
+            (settings.maxTokens * AppConstants.contextThresholdRatio).toInt();
         final messagesToInject = <LocalChatMessage>[];
 
         bool isFirstMessage = true;
 
         for (final msg in sortedMessages.reversed) {
-          if (_isUnloading || !_isSessionActive) return;
+          if (_isUnloading || !_isSessionActive) return false;
           if (msg.authorId == 'ai' && msg.text.isEmpty) continue;
 
           final atts = msg.attachments ?? [];
           final msgPhotos = atts.where((a) => a.type == 'photo').length;
 
-          if (imageCount + msgPhotos > 2) {
+          if (imageCount + msgPhotos > AppConstants.maxAttachments) {
             continue;
           }
 
-          int msgTokens = _estimateTokens(msg.text);
-          for (final att in atts) {
-            if (att.type == 'photo' || att.type == 'audio') msgTokens += 256;
-            if (att.type == 'doc' && att.textContent != null) {
-              msgTokens += _estimateTokens(att.textContent!);
-            }
-          }
+          int msgTokens = AppConstants.estimateTokens(msg.text);
+          msgTokens += AppConstants.estimateLocalAttachmentTokens(atts);
 
           if (!isFirstMessage && totalTokens + msgTokens > maxInputTokens) {
             appLogger.i(
@@ -172,7 +190,7 @@ class LlmService {
         }
 
         for (final msg in messagesToInject.reversed) {
-          if (_isUnloading) return;
+          if (_isUnloading) return false;
 
           if (msg.authorId == 'user') {
             String combinedText = "";
@@ -273,6 +291,8 @@ class LlmService {
       appLogger.i(
         "📂 loadSessionContext: Rebuilt context with $_currentContextTokens tokens & $_currentImageCount images.",
       );
+      _setStatus(ModelState.ready);
+      return true;
     } catch (e) {
       if (!e.toString().contains('CANCELLED')) {
         appLogger.e(
@@ -280,6 +300,9 @@ class LlmService {
           error: e,
         );
       }
+      _isSessionActive = false;
+      _setStatus(ModelState.error);
+      return false;
     }
   }
 
@@ -295,25 +318,21 @@ class LlmService {
       throw Exception("MODEL_NOT_READY");
     }
 
-    int promptTokens = _estimateTokens(prompt);
+    int promptTokens = AppConstants.estimateTokens(prompt);
     int incomingImages = attachments.where((a) => a.type == 'photo').length;
+    promptTokens += AppConstants.estimateAttachmentTokens(attachments);
 
-    for (var att in attachments) {
-      if (att.type == 'photo' || att.type == 'audio') promptTokens += 256;
-      if (att.type == 'doc' && att.textContent != null) {
-        promptTokens += _estimateTokens(att.textContent!);
-      }
-    }
-
-    if (_currentContextTokens + promptTokens > settings.maxTokens * 0.8 ||
-        _currentImageCount + incomingImages > 2) {
+    if (_currentContextTokens + promptTokens >
+            settings.maxTokens * AppConstants.contextThresholdRatio ||
+        _currentImageCount + incomingImages > AppConstants.maxAttachments) {
       appLogger.w("⚠️ Threshold exceeded. Forcing memory prune...");
-      await loadSessionContext(
+      final success = await loadSessionContext(
         session,
         settings,
         allSessions,
         reserveImages: incomingImages,
       );
+      if (!success) throw Exception("CONTEXT_OVERFLOW");
     }
 
     String combinedText = "";
@@ -379,6 +398,7 @@ class LlmService {
 
     _currentContextTokens += promptTokens;
     _currentImageCount += incomingImages;
+    int generatedTokens = 0;
 
     try {
       final stream = _activeChat!.generateChatResponseAsync();
@@ -391,13 +411,17 @@ class LlmService {
         if (response is TextResponse) {
           if (_isSessionActive && !_isUnloading) {
             try {
-              _currentContextTokens += _estimateTokens(response.token);
+              int tok = AppConstants.estimateTokens(response.token);
+              generatedTokens += tok;
+              _currentContextTokens += tok;
             } catch (_) {}
           }
           yield response.token;
         }
       }
     } catch (e) {
+      _currentContextTokens -= (promptTokens + generatedTokens);
+      _currentImageCount -= incomingImages;
       if (e.toString().contains('CANCELLED') ||
           e.toString().contains('Process cancelled') ||
           e.toString().contains('Session not created')) {
@@ -418,6 +442,7 @@ class LlmService {
 
     _isUnloading = true;
     _isSessionActive = false;
+    _setStatus(ModelState.unloading);
 
     try {
       appLogger.i("🔄 unloadModel: Closing active chat...");
@@ -452,6 +477,7 @@ class LlmService {
       appLogger.e("❌ unloadModel: Error during cleanup", error: e);
     } finally {
       _isUnloading = false;
+      _setStatus(ModelState.uninitialized);
       if (!_sessionLock.isCompleted) {
         _sessionLock.complete();
       }
@@ -462,15 +488,17 @@ class LlmService {
     if (_activeModel != null && _activeChat != null) {
       _isSessionActive = true;
       _isUnloading = false;
+      _setStatus(ModelState.ready);
       appLogger.i("Session marked ready for inference");
     }
   }
 
-  int _estimateTokens(String text) =>
-      text.isEmpty ? 0 : (text.length / 3.5).ceil();
+  void _setStatus(ModelState status) {
+    ref.read(modelStatusProvider.notifier).setStatus(status);
+  }
 }
 
 @Riverpod(keepAlive: true)
 LlmService llmService(Ref ref) {
-  return LlmService();
+  return LlmService(ref);
 }
