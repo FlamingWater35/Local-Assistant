@@ -14,7 +14,7 @@ import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_assistant/application/updater_provider.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
-import 'package:local_assistant/router/app_router.dart';
+import 'package:local_assistant/presentation/chat_drawer.dart';
 import 'package:uuid/uuid.dart';
 
 import '../application/chat_provider.dart';
@@ -38,36 +38,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _composerController.dispose();
     super.dispose();
-  }
-
-  void _confirmDelete(String sessionId, String title) {
-    final t = Translations.of(context);
-    appLogger.i("UI: Opened delete confirmation for chat: $title");
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.chat.deleteChatTitle),
-        content: Text(t.chat.deleteChatConfirm(title: title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(t.common.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              appLogger.i("UI: Deleting chat session ID: $sessionId");
-              ref.read(chatLogicProvider.notifier).deleteSession(sessionId);
-              Navigator.pop(ctx);
-              if (mounted) {
-                showSuccessSnackBar(context, t.chat.chatDeleted);
-              }
-            },
-            child: Text(t.common.delete),
-          ),
-        ],
-      ),
-    );
   }
 
   void _confirmDeleteMessage(String messageId) {
@@ -597,10 +567,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
 
     final chatController = ref.watch(chatLogicProvider);
-    final history = ref.watch(chatHistoryProvider);
-    final activeSessionId = ref
-        .watch(chatLogicProvider.notifier)
-        .currentSessionId;
     final isGenerating = ref.watch(isGeneratingProvider);
 
     final appTheme = Theme.of(context);
@@ -642,154 +608,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ],
           ],
         ),
-        drawer: Drawer(
-          child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        color: appTheme.colorScheme.primary,
-                        size: 32,
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        t.chat.assistantName,
-                        style: appTheme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: appTheme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      appLogger.i("UI: Starting new chat from drawer.");
-                      await ref
-                          .read(chatLogicProvider.notifier)
-                          .loadSession(null);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    },
-                    icon: const Icon(Icons.add),
-                    label: Text(t.chat.newChat),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    t.chat.recentHistory,
-                    style: appTheme.textTheme.labelMedium?.copyWith(
-                      color: appTheme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: history.length,
-                    itemBuilder: (context, index) {
-                      final session = history[index];
-                      final isActive = session.id == activeSessionId;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 4.0),
-                        child: ListTile(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          selected: isActive,
-                          selectedTileColor:
-                              appTheme.colorScheme.primaryContainer,
-                          leading: Icon(
-                            Icons.chat_bubble_outline,
-                            color: isActive
-                                ? appTheme.colorScheme.onPrimaryContainer
-                                : appTheme.colorScheme.onSurfaceVariant,
-                            size: 20,
-                          ),
-                          title: Text(
-                            session.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: isActive
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isActive
-                                  ? appTheme.colorScheme.onPrimaryContainer
-                                  : appTheme.colorScheme.onSurface,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 20),
-                            color: appTheme.colorScheme.error,
-                            onPressed: () =>
-                                _confirmDelete(session.id, session.title),
-                          ),
-                          onTap: () async {
-                            if (!isActive) {
-                              appLogger.i(
-                                "UI: Loading existing chat: ${session.title}",
-                              );
-                              await ref
-                                  .read(chatLogicProvider.notifier)
-                                  .loadSession(session.id);
-                            }
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    leading: const Icon(Icons.settings_outlined),
-                    title: Text(t.chat.settingsAndModels),
-                    onTap: () {
-                      appLogger.i("UI: Navigating to Settings.");
-                      if (mounted) {
-                        Navigator.pop(context);
-                        context.router.push(const SettingsRoute());
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        drawer: const ChatDrawer(),
         body: RepaintBoundary(
           child: Chat(
             key: ValueKey(chatController.hashCode),
