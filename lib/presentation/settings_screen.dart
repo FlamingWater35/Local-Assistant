@@ -5,6 +5,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:local_assistant/application/updater_provider.dart';
+import 'package:local_assistant/core/constants.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -206,11 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final t = Translations.of(context);
     final theme = Theme.of(context);
 
-    bool isSafe = true;
-    if (ramGb > 0) {
-      if (maxTokens > 4096 && ramGb < 7.5) isSafe = false;
-      if (maxTokens > 2048 && ramGb < 3.5) isSafe = false;
-    }
+    final bool isSafe = AppConstants.isMemorySafe(ramGb, maxTokens);
 
     final safeColor = theme.brightness == Brightness.dark
         ? Colors.green.shade400
@@ -512,8 +509,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         child: Slider(
                           value: _draftSettings.maxTokens.toDouble(),
                           min: 2048,
-                          max: 8192,
-                          divisions: 12,
+                          max: AppConstants.maxContextWindow.toDouble(),
+                          divisions: 14,
                           label:
                               '${_draftSettings.maxTokens} ${t.settings.tokens}',
                           onChanged: (val) => setState(
@@ -523,7 +520,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ),
                       ),
-                      Text("8192", style: theme.textTheme.labelMedium),
+                      Text(
+                        "${AppConstants.maxContextWindow}",
+                        style: theme.textTheme.labelMedium,
+                      ),
                     ],
                   ),
                   Center(
@@ -534,7 +534,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   ),
-
                   _buildRamIndicator(context, ramGb, _draftSettings.maxTokens),
                 ],
               ),
