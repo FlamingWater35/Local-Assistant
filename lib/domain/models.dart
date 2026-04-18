@@ -17,10 +17,10 @@ class AvailableModel {
 
   final String fileName;
   final String id;
+  final bool isRecommended;
   final String name;
   final bool requiresAuth;
   final String url;
-  final bool isRecommended;
 }
 
 const List<AvailableModel> kAvailableModels = [
@@ -85,7 +85,8 @@ class AppSettings extends HiveObject {
     this.selectedModel = 'gemma-4-e2b',
     this.temperature = 0.7,
     this.maxTokens = 2048,
-    this.systemPrompt = 'You are a helpful AI assistant.',
+    this.systemPrompt =
+        'You are a helpful, creative, and professional AI assistant. Do not simulate the User or mistake your own previous responses for User input.',
     this.hfToken = '',
     this.enableGlobalMemory = false,
     this.locale = '',

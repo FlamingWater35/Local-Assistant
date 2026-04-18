@@ -101,6 +101,10 @@ class UpdaterController extends _$UpdaterController {
   @override
   UpdateState build() {
     if (!kIsWeb && Platform.isAndroid) {
+      Future.microtask(
+        () => ref.read(updaterServiceProvider).cleanupOldUpdates(),
+      );
+
       Future.delayed(const Duration(seconds: 3), () {
         if (ref.mounted && state is UpdateInitial) {
           checkForUpdate();

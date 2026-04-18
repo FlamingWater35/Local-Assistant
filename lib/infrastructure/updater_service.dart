@@ -20,6 +20,25 @@ const _githubApiUrl =
 class UpdaterService {
   final Dio _dio = Dio();
 
+  Future<void> cleanupOldUpdates() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final directory = Directory(tempDir.path);
+
+      if (await directory.exists()) {
+        final List<FileSystemEntity> files = directory.listSync();
+        for (var file in files) {
+          if (file is File && file.path.endsWith('.apk')) {
+            appLogger.i('Cleaning up old update file: ${file.path}');
+            await file.delete();
+          }
+        }
+      }
+    } catch (e) {
+      appLogger.w('Failed to cleanup old updates: $e');
+    }
+  }
+
   Future<UpdateInfo?> checkForUpdate() async {
     if (kIsWeb || !Platform.isAndroid) return null;
 
