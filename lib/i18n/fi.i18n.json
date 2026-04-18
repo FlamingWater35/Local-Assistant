@@ -68,7 +68,13 @@
     "downloadingUpdate": "Ladataan päivitystä...",
     "percentComplete": "$percent% valmis",
     "updateCheckFailed": "Päivityksen tarkistus epäonnistui",
-    "downloadModelTooltip": "Lataa Malli"
+    "downloadModelTooltip": "Lataa Malli",
+    "ramIndicator": {
+      "unknown": "Laitteen RAM: Tuntematon",
+      "detected": "Laitteen RAM: $ram GB",
+      "safe": "✅ Turvallinen laitteesi muistille.",
+      "warning": "⚠️ Suuri riski muistin loppumisvirheisiin tällä laitteella."
+    }
   },
   "setup": {
     "checkingSystem": "Tarkistetaan järjestelmän tilaa...",

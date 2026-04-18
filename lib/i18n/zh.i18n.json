@@ -68,7 +68,13 @@
     "downloadingUpdate": "正在下载更新...",
     "percentComplete": "已完成 $percent%",
     "updateCheckFailed": "更新检查失败",
-    "downloadModelTooltip": "下载模型"
+    "downloadModelTooltip": "下载模型",
+    "ramIndicator": {
+      "unknown": "设备内存: 未知",
+      "detected": "设备内存: $ram GB",
+      "safe": "✅ 对您设备的内存是安全的。",
+      "warning": "⚠️ 在此设备上有很高的内存不足错误风险。"
+    }
   },
   "setup": {
     "checkingSystem": "正在检查系统状态...",

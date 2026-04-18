@@ -68,7 +68,13 @@
     "downloadingUpdate": "Downloading update...",
     "percentComplete": "$percent% complete",
     "updateCheckFailed": "Update check failed",
-    "downloadModelTooltip": "Download Model"
+    "downloadModelTooltip": "Download Model",
+    "ramIndicator": {
+      "unknown": "Device RAM: Unknown",
+      "detected": "Device RAM: $ram GB",
+      "safe": "✅ Safe for your device's memory.",
+      "warning": "⚠️ High risk of out-of-memory errors on this device."
+    }
   },
   "setup": {
     "checkingSystem": "Checking system state...",

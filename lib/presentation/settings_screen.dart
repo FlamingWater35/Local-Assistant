@@ -8,6 +8,7 @@ import 'package:local_assistant/application/updater_provider.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../application/device_info_provider.dart';
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
 import '../core/logger.dart';
@@ -144,10 +145,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Widget _buildRamIndicator(BuildContext context, double ramGb, int maxTokens) {
+    final t = Translations.of(context);
+    final theme = Theme.of(context);
+
+    bool isSafe = true;
+    if (ramGb > 0) {
+      if (maxTokens > 4096 && ramGb < 7.5) isSafe = false;
+      if (maxTokens > 2048 && ramGb < 3.5) isSafe = false;
+    }
+
+    final safeColor = theme.brightness == Brightness.dark
+        ? Colors.green.shade400
+        : Colors.green.shade700;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isSafe
+            ? Colors.green.withValues(alpha: 0.1)
+            : theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSafe ? safeColor : theme.colorScheme.error,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.memory,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ramGb > 0
+                    ? t.settings.ramIndicator.detected(
+                        ram: ramGb.toStringAsFixed(1),
+                      )
+                    : t.settings.ramIndicator.unknown,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            isSafe
+                ? t.settings.ramIndicator.safe
+                : t.settings.ramIndicator.warning,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isSafe ? safeColor : theme.colorScheme.error,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     final theme = Theme.of(context);
+
+    final ramAsync = ref.watch(deviceRamGbProvider);
+    final double ramGb = ramAsync.value ?? 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -374,6 +443,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   ),
+
+                  _buildRamIndicator(context, ramGb, _draftSettings.maxTokens),
                 ],
               ),
             ),

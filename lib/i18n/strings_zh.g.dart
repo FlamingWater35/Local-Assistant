@@ -136,6 +136,7 @@ class _TranslationsSettingsZh implements TranslationsSettingsEn {
 	@override String percentComplete({required Object percent}) => '已完成 ${percent}%';
 	@override String get updateCheckFailed => '更新检查失败';
 	@override String get downloadModelTooltip => '下载模型';
+	@override late final _TranslationsSettingsRamIndicatorZh ramIndicator = _TranslationsSettingsRamIndicatorZh._(_root);
 }
 
 // Path: setup
@@ -201,6 +202,19 @@ class _TranslationsCommonZh implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => '取消';
 	@override String get delete => '删除';
+}
+
+// Path: settings.ramIndicator
+class _TranslationsSettingsRamIndicatorZh implements TranslationsSettingsRamIndicatorEn {
+	_TranslationsSettingsRamIndicatorZh._(this._root);
+
+	final TranslationsZh _root; // ignore: unused_field
+
+	// Translations
+	@override String get unknown => '设备内存: 未知';
+	@override String detected({required Object ram}) => '设备内存: ${ram} GB';
+	@override String get safe => '✅ 对您设备的内存是安全的。';
+	@override String get warning => '⚠️ 在此设备上有很高的内存不足错误风险。';
 }
 
 /// The flat map containing all translations for locale <zh>.
@@ -276,6 +290,10 @@ extension on TranslationsZh {
 			'settings.percentComplete' => ({required Object percent}) => '已完成 ${percent}%',
 			'settings.updateCheckFailed' => '更新检查失败',
 			'settings.downloadModelTooltip' => '下载模型',
+			'settings.ramIndicator.unknown' => '设备内存: 未知',
+			'settings.ramIndicator.detected' => ({required Object ram}) => '设备内存: ${ram} GB',
+			'settings.ramIndicator.safe' => '✅ 对您设备的内存是安全的。',
+			'settings.ramIndicator.warning' => '⚠️ 在此设备上有很高的内存不足错误风险。',
 			'setup.checkingSystem' => '正在检查系统状态...',
 			'setup.startingModel' => '正在启动 AI 模型...',
 			'setup.welcomeTitle' => '欢迎使用\n本地助手',

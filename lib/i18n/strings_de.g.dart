@@ -136,6 +136,7 @@ class _TranslationsSettingsDe implements TranslationsSettingsEn {
 	@override String percentComplete({required Object percent}) => '${percent}% abgeschlossen';
 	@override String get updateCheckFailed => 'Fehler bei der Update-Suche';
 	@override String get downloadModelTooltip => 'Modell herunterladen';
+	@override late final _TranslationsSettingsRamIndicatorDe ramIndicator = _TranslationsSettingsRamIndicatorDe._(_root);
 }
 
 // Path: setup
@@ -201,6 +202,19 @@ class _TranslationsCommonDe implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Abbrechen';
 	@override String get delete => 'Löschen';
+}
+
+// Path: settings.ramIndicator
+class _TranslationsSettingsRamIndicatorDe implements TranslationsSettingsRamIndicatorEn {
+	_TranslationsSettingsRamIndicatorDe._(this._root);
+
+	final TranslationsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get unknown => 'Geräte-RAM: Unbekannt';
+	@override String detected({required Object ram}) => 'Geräte-RAM: ${ram} GB';
+	@override String get safe => '✅ Sicher für den Speicher Ihres Geräts.';
+	@override String get warning => '⚠️ Hohes Risiko von Speichermangel-Fehlern auf diesem Gerät.';
 }
 
 /// The flat map containing all translations for locale <de>.
@@ -276,6 +290,10 @@ extension on TranslationsDe {
 			'settings.percentComplete' => ({required Object percent}) => '${percent}% abgeschlossen',
 			'settings.updateCheckFailed' => 'Fehler bei der Update-Suche',
 			'settings.downloadModelTooltip' => 'Modell herunterladen',
+			'settings.ramIndicator.unknown' => 'Geräte-RAM: Unbekannt',
+			'settings.ramIndicator.detected' => ({required Object ram}) => 'Geräte-RAM: ${ram} GB',
+			'settings.ramIndicator.safe' => '✅ Sicher für den Speicher Ihres Geräts.',
+			'settings.ramIndicator.warning' => '⚠️ Hohes Risiko von Speichermangel-Fehlern auf diesem Gerät.',
 			'setup.checkingSystem' => 'Systemstatus wird überprüft...',
 			'setup.startingModel' => 'KI-Modell wird gestartet...',
 			'setup.welcomeTitle' => 'Willkommen beim\nLokalen Assistenten',

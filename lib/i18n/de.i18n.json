@@ -68,7 +68,13 @@
     "downloadingUpdate": "Update wird heruntergeladen...",
     "percentComplete": "$percent% abgeschlossen",
     "updateCheckFailed": "Fehler bei der Update-Suche",
-    "downloadModelTooltip": "Modell herunterladen"
+    "downloadModelTooltip": "Modell herunterladen",
+    "ramIndicator": {
+      "unknown": "Geräte-RAM: Unbekannt",
+      "detected": "Geräte-RAM: $ram GB",
+      "safe": "✅ Sicher für den Speicher Ihres Geräts.",
+      "warning": "⚠️ Hohes Risiko von Speichermangel-Fehlern auf diesem Gerät."
+    }
   },
   "setup": {
     "checkingSystem": "Systemstatus wird überprüft...",

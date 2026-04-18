@@ -115,7 +115,7 @@ class _TranslationsSettingsFi extends TranslationsSettingsEn {
 	@override String get deleteModelTitle => 'Poista Malli';
 	@override String deleteModelConfirm({required Object name}) => 'Oletko varma, että haluat poistaa mallin ${name}? Sinun on ladattava se uudelleen käyttääksesi sitä.';
 	@override String get modelDeleted => 'Malli poistettu onnistuneesti';
-	@override String get applyChanges => 'Tallenna muutokset';
+	@override String get applyChanges => 'Käytä Muutoksia';
 	@override String get settingsApplied => 'Asetukset otettu käyttöön';
 	@override String get modelNotDownloaded => 'Valittua mallia ei ole ladattu!';
 	@override String errorWithDetails({required Object details}) => 'Virhe: ${details}';
@@ -138,6 +138,7 @@ class _TranslationsSettingsFi extends TranslationsSettingsEn {
 	@override String percentComplete({required Object percent}) => '${percent}% valmis';
 	@override String get updateCheckFailed => 'Päivityksen tarkistus epäonnistui';
 	@override String get downloadModelTooltip => 'Lataa Malli';
+	@override late final _TranslationsSettingsRamIndicatorFi ramIndicator = _TranslationsSettingsRamIndicatorFi._(_root);
 }
 
 // Path: setup
@@ -205,6 +206,19 @@ class _TranslationsCommonFi extends TranslationsCommonEn {
 	@override String get delete => 'Poista';
 }
 
+// Path: settings.ramIndicator
+class _TranslationsSettingsRamIndicatorFi extends TranslationsSettingsRamIndicatorEn {
+	_TranslationsSettingsRamIndicatorFi._(TranslationsFi root) : this._root = root, super.internal(root);
+
+	final TranslationsFi _root; // ignore: unused_field
+
+	// Translations
+	@override String get unknown => 'Laitteen RAM: Tuntematon';
+	@override String detected({required Object ram}) => 'Laitteen RAM: ${ram} GB';
+	@override String get safe => '✅ Turvallinen laitteesi muistille.';
+	@override String get warning => '⚠️ Suuri riski muistin loppumisvirheisiin tällä laitteella.';
+}
+
 /// The flat map containing all translations for locale <fi>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -255,7 +269,7 @@ extension on TranslationsFi {
 			'settings.deleteModelTitle' => 'Poista Malli',
 			'settings.deleteModelConfirm' => ({required Object name}) => 'Oletko varma, että haluat poistaa mallin ${name}? Sinun on ladattava se uudelleen käyttääksesi sitä.',
 			'settings.modelDeleted' => 'Malli poistettu onnistuneesti',
-			'settings.applyChanges' => 'Tallenna muutokset',
+			'settings.applyChanges' => 'Käytä Muutoksia',
 			'settings.settingsApplied' => 'Asetukset otettu käyttöön',
 			'settings.modelNotDownloaded' => 'Valittua mallia ei ole ladattu!',
 			'settings.errorWithDetails' => ({required Object details}) => 'Virhe: ${details}',
@@ -278,6 +292,10 @@ extension on TranslationsFi {
 			'settings.percentComplete' => ({required Object percent}) => '${percent}% valmis',
 			'settings.updateCheckFailed' => 'Päivityksen tarkistus epäonnistui',
 			'settings.downloadModelTooltip' => 'Lataa Malli',
+			'settings.ramIndicator.unknown' => 'Laitteen RAM: Tuntematon',
+			'settings.ramIndicator.detected' => ({required Object ram}) => 'Laitteen RAM: ${ram} GB',
+			'settings.ramIndicator.safe' => '✅ Turvallinen laitteesi muistille.',
+			'settings.ramIndicator.warning' => '⚠️ Suuri riski muistin loppumisvirheisiin tällä laitteella.',
 			'setup.checkingSystem' => 'Tarkistetaan järjestelmän tilaa...',
 			'setup.startingModel' => 'Käynnistetään Tekoälymallia...',
 			'setup.welcomeTitle' => 'Tervetuloa\nPaikalliseen Avustajaan',

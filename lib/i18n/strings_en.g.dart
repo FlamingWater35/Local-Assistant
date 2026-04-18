@@ -270,6 +270,8 @@ class TranslationsSettingsEn {
 
 	/// en: 'Download Model'
 	String get downloadModelTooltip => 'Download Model';
+
+	late final TranslationsSettingsRamIndicatorEn ramIndicator = TranslationsSettingsRamIndicatorEn._(_root);
 }
 
 // Path: setup
@@ -395,6 +397,27 @@ class TranslationsCommonEn {
 	String get delete => 'Delete';
 }
 
+// Path: settings.ramIndicator
+class TranslationsSettingsRamIndicatorEn {
+	TranslationsSettingsRamIndicatorEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Device RAM: Unknown'
+	String get unknown => 'Device RAM: Unknown';
+
+	/// en: 'Device RAM: $ram GB'
+	String detected({required Object ram}) => 'Device RAM: ${ram} GB';
+
+	/// en: '✅ Safe for your device's memory.'
+	String get safe => '✅ Safe for your device\'s memory.';
+
+	/// en: '⚠️ High risk of out-of-memory errors on this device.'
+	String get warning => '⚠️ High risk of out-of-memory errors on this device.';
+}
+
 /// The flat map containing all translations for locale <en>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -468,6 +491,10 @@ extension on Translations {
 			'settings.percentComplete' => ({required Object percent}) => '${percent}% complete',
 			'settings.updateCheckFailed' => 'Update check failed',
 			'settings.downloadModelTooltip' => 'Download Model',
+			'settings.ramIndicator.unknown' => 'Device RAM: Unknown',
+			'settings.ramIndicator.detected' => ({required Object ram}) => 'Device RAM: ${ram} GB',
+			'settings.ramIndicator.safe' => '✅ Safe for your device\'s memory.',
+			'settings.ramIndicator.warning' => '⚠️ High risk of out-of-memory errors on this device.',
 			'setup.checkingSystem' => 'Checking system state...',
 			'setup.startingModel' => 'Starting AI Model...',
 			'setup.welcomeTitle' => 'Welcome to\nLocal Assistant',

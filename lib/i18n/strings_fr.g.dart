@@ -136,6 +136,7 @@ class _TranslationsSettingsFr implements TranslationsSettingsEn {
 	@override String percentComplete({required Object percent}) => '${percent}% terminé';
 	@override String get updateCheckFailed => 'Échec de la vérification';
 	@override String get downloadModelTooltip => 'Télécharger le modèle';
+	@override late final _TranslationsSettingsRamIndicatorFr ramIndicator = _TranslationsSettingsRamIndicatorFr._(_root);
 }
 
 // Path: setup
@@ -201,6 +202,19 @@ class _TranslationsCommonFr implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Annuler';
 	@override String get delete => 'Supprimer';
+}
+
+// Path: settings.ramIndicator
+class _TranslationsSettingsRamIndicatorFr implements TranslationsSettingsRamIndicatorEn {
+	_TranslationsSettingsRamIndicatorFr._(this._root);
+
+	final TranslationsFr _root; // ignore: unused_field
+
+	// Translations
+	@override String get unknown => 'RAM de l\'appareil: Inconnue';
+	@override String detected({required Object ram}) => 'RAM de l\'appareil: ${ram} Go';
+	@override String get safe => '✅ Sûr pour la mémoire de votre appareil.';
+	@override String get warning => '⚠️ Risque élevé d\'erreurs de manque de mémoire sur cet appareil.';
 }
 
 /// The flat map containing all translations for locale <fr>.
@@ -276,6 +290,10 @@ extension on TranslationsFr {
 			'settings.percentComplete' => ({required Object percent}) => '${percent}% terminé',
 			'settings.updateCheckFailed' => 'Échec de la vérification',
 			'settings.downloadModelTooltip' => 'Télécharger le modèle',
+			'settings.ramIndicator.unknown' => 'RAM de l\'appareil: Inconnue',
+			'settings.ramIndicator.detected' => ({required Object ram}) => 'RAM de l\'appareil: ${ram} Go',
+			'settings.ramIndicator.safe' => '✅ Sûr pour la mémoire de votre appareil.',
+			'settings.ramIndicator.warning' => '⚠️ Risque élevé d\'erreurs de manque de mémoire sur cet appareil.',
 			'setup.checkingSystem' => 'Vérification de l\'état du système...',
 			'setup.startingModel' => 'Démarrage du modèle IA...',
 			'setup.welcomeTitle' => 'Bienvenue sur\nAssistant Local',

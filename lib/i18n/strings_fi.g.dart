@@ -136,6 +136,7 @@ class _TranslationsSettingsFi implements TranslationsSettingsEn {
 	@override String percentComplete({required Object percent}) => '${percent}% valmis';
 	@override String get updateCheckFailed => 'Päivityksen tarkistus epäonnistui';
 	@override String get downloadModelTooltip => 'Lataa Malli';
+	@override late final _TranslationsSettingsRamIndicatorFi ramIndicator = _TranslationsSettingsRamIndicatorFi._(_root);
 }
 
 // Path: setup
@@ -201,6 +202,19 @@ class _TranslationsCommonFi implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Peruuta';
 	@override String get delete => 'Poista';
+}
+
+// Path: settings.ramIndicator
+class _TranslationsSettingsRamIndicatorFi implements TranslationsSettingsRamIndicatorEn {
+	_TranslationsSettingsRamIndicatorFi._(this._root);
+
+	final TranslationsFi _root; // ignore: unused_field
+
+	// Translations
+	@override String get unknown => 'Laitteen RAM: Tuntematon';
+	@override String detected({required Object ram}) => 'Laitteen RAM: ${ram} GB';
+	@override String get safe => '✅ Turvallinen laitteesi muistille.';
+	@override String get warning => '⚠️ Suuri riski muistin loppumisvirheisiin tällä laitteella.';
 }
 
 /// The flat map containing all translations for locale <fi>.
@@ -276,6 +290,10 @@ extension on TranslationsFi {
 			'settings.percentComplete' => ({required Object percent}) => '${percent}% valmis',
 			'settings.updateCheckFailed' => 'Päivityksen tarkistus epäonnistui',
 			'settings.downloadModelTooltip' => 'Lataa Malli',
+			'settings.ramIndicator.unknown' => 'Laitteen RAM: Tuntematon',
+			'settings.ramIndicator.detected' => ({required Object ram}) => 'Laitteen RAM: ${ram} GB',
+			'settings.ramIndicator.safe' => '✅ Turvallinen laitteesi muistille.',
+			'settings.ramIndicator.warning' => '⚠️ Suuri riski muistin loppumisvirheisiin tällä laitteella.',
 			'setup.checkingSystem' => 'Tarkistetaan järjestelmän tilaa...',
 			'setup.startingModel' => 'Käynnistetään Tekoälymallia...',
 			'setup.welcomeTitle' => 'Tervetuloa\nPaikalliseen Avustajaan',

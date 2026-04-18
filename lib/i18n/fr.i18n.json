@@ -68,7 +68,13 @@
     "downloadingUpdate": "Téléchargement de la mise à jour...",
     "percentComplete": "$percent% terminé",
     "updateCheckFailed": "Échec de la vérification",
-    "downloadModelTooltip": "Télécharger le modèle"
+    "downloadModelTooltip": "Télécharger le modèle",
+    "ramIndicator": {
+      "unknown": "RAM de l'appareil: Inconnue",
+      "detected": "RAM de l'appareil: $ram Go",
+      "safe": "✅ Sûr pour la mémoire de votre appareil.",
+      "warning": "⚠️ Risque élevé d'erreurs de manque de mémoire sur cet appareil."
+    }
   },
   "setup": {
     "checkingSystem": "Vérification de l'état du système...",
