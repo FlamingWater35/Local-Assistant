@@ -124,6 +124,9 @@ class _TranslationsSettingsFr implements TranslationsSettingsEn {
 	@override String get tokens => 'Jetons';
 	@override String get temperature => 'Température';
 	@override String get temperatureDescription => 'Contrôle la créativité. Plus c\'est bas, plus c\'est concentré, plus c\'est haut, plus c\'est aléatoire.';
+	@override String get systemInstructions => 'Instructions Système';
+	@override String get systemInstructionsDescription => 'Instructions personnalisées pour guider le comportement global et la personnalité de l\'IA.';
+	@override String get systemInstructionsHint => 'Vous êtes un assistant IA utile.';
 	@override String get checkForUpdates => 'Vérifier les mises à jour';
 	@override String get checkingForUpdates => 'Vérification des mises à jour...';
 	@override String get appUpToDate => 'L\'application est à jour';
@@ -202,6 +205,7 @@ class _TranslationsCommonFr implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Annuler';
 	@override String get delete => 'Supprimer';
+	@override String get recommended => 'Recommandé';
 }
 
 // Path: settings.ramIndicator
@@ -278,6 +282,9 @@ extension on TranslationsFr {
 			'settings.tokens' => 'Jetons',
 			'settings.temperature' => 'Température',
 			'settings.temperatureDescription' => 'Contrôle la créativité. Plus c\'est bas, plus c\'est concentré, plus c\'est haut, plus c\'est aléatoire.',
+			'settings.systemInstructions' => 'Instructions Système',
+			'settings.systemInstructionsDescription' => 'Instructions personnalisées pour guider le comportement global et la personnalité de l\'IA.',
+			'settings.systemInstructionsHint' => 'Vous êtes un assistant IA utile.',
 			'settings.checkForUpdates' => 'Vérifier les mises à jour',
 			'settings.checkingForUpdates' => 'Vérification des mises à jour...',
 			'settings.appUpToDate' => 'L\'application est à jour',
@@ -323,6 +330,7 @@ extension on TranslationsFr {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ Erreur: Échec du démarrage de la génération.\nDétails: ${error}',
 			'common.cancel' => 'Annuler',
 			'common.delete' => 'Supprimer',
+			'common.recommended' => 'Recommandé',
 			_ => null,
 		};
 	}

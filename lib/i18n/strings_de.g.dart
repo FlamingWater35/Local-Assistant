@@ -124,6 +124,9 @@ class _TranslationsSettingsDe implements TranslationsSettingsEn {
 	@override String get tokens => 'Token';
 	@override String get temperature => 'Temperatur';
 	@override String get temperatureDescription => 'Steuert die Kreativität. Niedriger ist fokussierter, höher ist zufälliger.';
+	@override String get systemInstructions => 'Systemanweisungen';
+	@override String get systemInstructionsDescription => 'Benutzerdefinierte Anweisungen zur Steuerung des allgemeinen Verhaltens und der Persona der KI.';
+	@override String get systemInstructionsHint => 'Du bist ein hilfreicher KI-Assistent.';
 	@override String get checkForUpdates => 'Auf Updates prüfen';
 	@override String get checkingForUpdates => 'Suche nach Updates...';
 	@override String get appUpToDate => 'App ist auf dem neuesten Stand';
@@ -202,6 +205,7 @@ class _TranslationsCommonDe implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Abbrechen';
 	@override String get delete => 'Löschen';
+	@override String get recommended => 'Empfohlen';
 }
 
 // Path: settings.ramIndicator
@@ -278,6 +282,9 @@ extension on TranslationsDe {
 			'settings.tokens' => 'Token',
 			'settings.temperature' => 'Temperatur',
 			'settings.temperatureDescription' => 'Steuert die Kreativität. Niedriger ist fokussierter, höher ist zufälliger.',
+			'settings.systemInstructions' => 'Systemanweisungen',
+			'settings.systemInstructionsDescription' => 'Benutzerdefinierte Anweisungen zur Steuerung des allgemeinen Verhaltens und der Persona der KI.',
+			'settings.systemInstructionsHint' => 'Du bist ein hilfreicher KI-Assistent.',
 			'settings.checkForUpdates' => 'Auf Updates prüfen',
 			'settings.checkingForUpdates' => 'Suche nach Updates...',
 			'settings.appUpToDate' => 'App ist auf dem neuesten Stand',
@@ -323,6 +330,7 @@ extension on TranslationsDe {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ Fehler: Generierung konnte nicht gestartet werden.\nDetails: ${error}',
 			'common.cancel' => 'Abbrechen',
 			'common.delete' => 'Löschen',
+			'common.recommended' => 'Empfohlen',
 			_ => null,
 		};
 	}

@@ -113,7 +113,7 @@ class _TranslationsSettingsFi implements TranslationsSettingsEn {
 	@override String get deleteModelTitle => 'Poista Malli';
 	@override String deleteModelConfirm({required Object name}) => 'Oletko varma, että haluat poistaa mallin ${name}? Sinun on ladattava se uudelleen käyttääksesi sitä.';
 	@override String get modelDeleted => 'Malli poistettu onnistuneesti';
-	@override String get applyChanges => 'Käytä Muutoksia';
+	@override String get applyChanges => 'Tallenna Muutokset';
 	@override String get settingsApplied => 'Asetukset otettu käyttöön';
 	@override String get modelNotDownloaded => 'Valittua mallia ei ole ladattu!';
 	@override String errorWithDetails({required Object details}) => 'Virhe: ${details}';
@@ -124,6 +124,9 @@ class _TranslationsSettingsFi implements TranslationsSettingsEn {
 	@override String get tokens => 'Merkkejä';
 	@override String get temperature => 'Lämpötila';
 	@override String get temperatureDescription => 'Hallitsee luovuutta. Matalampi on keskitetympi, korkeampi on satunnaisempi.';
+	@override String get systemInstructions => 'Järjestelmäohjeet';
+	@override String get systemInstructionsDescription => 'Mukautetut ohjeet tekoälyn yleisen käyttäytymisen ja persoonan ohjaamiseen.';
+	@override String get systemInstructionsHint => 'Olet avulias tekoälyavustaja.';
 	@override String get checkForUpdates => 'Tarkista päivitykset';
 	@override String get checkingForUpdates => 'Tarkistetaan päivityksiä...';
 	@override String get appUpToDate => 'Sovellus on ajan tasalla';
@@ -202,6 +205,7 @@ class _TranslationsCommonFi implements TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Peruuta';
 	@override String get delete => 'Poista';
+	@override String get recommended => 'Suositeltu';
 }
 
 // Path: settings.ramIndicator
@@ -267,7 +271,7 @@ extension on TranslationsFi {
 			'settings.deleteModelTitle' => 'Poista Malli',
 			'settings.deleteModelConfirm' => ({required Object name}) => 'Oletko varma, että haluat poistaa mallin ${name}? Sinun on ladattava se uudelleen käyttääksesi sitä.',
 			'settings.modelDeleted' => 'Malli poistettu onnistuneesti',
-			'settings.applyChanges' => 'Käytä Muutoksia',
+			'settings.applyChanges' => 'Tallenna Muutokset',
 			'settings.settingsApplied' => 'Asetukset otettu käyttöön',
 			'settings.modelNotDownloaded' => 'Valittua mallia ei ole ladattu!',
 			'settings.errorWithDetails' => ({required Object details}) => 'Virhe: ${details}',
@@ -278,6 +282,9 @@ extension on TranslationsFi {
 			'settings.tokens' => 'Merkkejä',
 			'settings.temperature' => 'Lämpötila',
 			'settings.temperatureDescription' => 'Hallitsee luovuutta. Matalampi on keskitetympi, korkeampi on satunnaisempi.',
+			'settings.systemInstructions' => 'Järjestelmäohjeet',
+			'settings.systemInstructionsDescription' => 'Mukautetut ohjeet tekoälyn yleisen käyttäytymisen ja persoonan ohjaamiseen.',
+			'settings.systemInstructionsHint' => 'Olet avulias tekoälyavustaja.',
 			'settings.checkForUpdates' => 'Tarkista päivitykset',
 			'settings.checkingForUpdates' => 'Tarkistetaan päivityksiä...',
 			'settings.appUpToDate' => 'Sovellus on ajan tasalla',
@@ -323,6 +330,7 @@ extension on TranslationsFi {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ Virhe: Luonnin aloittaminen epäonnistui.\nLisätietoja: ${error}',
 			'common.cancel' => 'Peruuta',
 			'common.delete' => 'Poista',
+			'common.recommended' => 'Suositeltu',
 			_ => null,
 		};
 	}
