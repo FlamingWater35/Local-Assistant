@@ -592,19 +592,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 onPressed: () =>
                     ref.read(chatLogicProvider.notifier).stopGeneration(),
               ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      appTheme.colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ],
         ),

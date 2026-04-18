@@ -129,6 +129,9 @@ class _TranslationsSettingsFi implements TranslationsSettingsEn {
 	@override String get systemInstructions => 'Järjestelmäohjeet';
 	@override String get systemInstructionsDescription => 'Mukautetut ohjeet tekoälyn yleisen käyttäytymisen ja persoonan ohjaamiseen.';
 	@override String get systemInstructionsHint => 'Olet avulias tekoälyavustaja.';
+	@override String get resetDefaults => 'Palauta oletukset';
+	@override String get resetConfirm => 'Haluatko varmasti palauttaa kaikki päättely- ja käyttäytymisasetukset? Ladatut mallit ja kieliasetukset säilyvät.';
+	@override String get resetSuccess => 'Asetukset palautettu oletusarvoihin';
 	@override String get checkForUpdates => 'Tarkista päivitykset';
 	@override String get checkingForUpdates => 'Tarkistetaan päivityksiä...';
 	@override String get appUpToDate => 'Sovellus on ajan tasalla';
@@ -289,6 +292,9 @@ extension on TranslationsFi {
 			'settings.systemInstructions' => 'Järjestelmäohjeet',
 			'settings.systemInstructionsDescription' => 'Mukautetut ohjeet tekoälyn yleisen käyttäytymisen ja persoonan ohjaamiseen.',
 			'settings.systemInstructionsHint' => 'Olet avulias tekoälyavustaja.',
+			'settings.resetDefaults' => 'Palauta oletukset',
+			'settings.resetConfirm' => 'Haluatko varmasti palauttaa kaikki päättely- ja käyttäytymisasetukset? Ladatut mallit ja kieliasetukset säilyvät.',
+			'settings.resetSuccess' => 'Asetukset palautettu oletusarvoihin',
 			'settings.checkForUpdates' => 'Tarkista päivitykset',
 			'settings.checkingForUpdates' => 'Tarkistetaan päivityksiä...',
 			'settings.appUpToDate' => 'Sovellus on ajan tasalla',

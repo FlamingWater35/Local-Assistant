@@ -129,6 +129,9 @@ class _TranslationsSettingsFr implements TranslationsSettingsEn {
 	@override String get systemInstructions => 'Instructions Système';
 	@override String get systemInstructionsDescription => 'Instructions personnalisées pour guider le comportement global et la personnalité de l\'IA.';
 	@override String get systemInstructionsHint => 'Vous êtes un assistant IA utile.';
+	@override String get resetDefaults => 'Réinitialiser par défaut';
+	@override String get resetConfirm => 'Êtes-vous sûr de vouloir réinitialiser tous les paramètres d\'inférence et de comportement ? Vos modèles téléchargés et votre préférence linguistique ne seront pas affectés.';
+	@override String get resetSuccess => 'Paramètres réinitialisés aux valeurs par défaut';
 	@override String get checkForUpdates => 'Vérifier les mises à jour';
 	@override String get checkingForUpdates => 'Vérification des mises à jour...';
 	@override String get appUpToDate => 'L\'application est à jour';
@@ -289,6 +292,9 @@ extension on TranslationsFr {
 			'settings.systemInstructions' => 'Instructions Système',
 			'settings.systemInstructionsDescription' => 'Instructions personnalisées pour guider le comportement global et la personnalité de l\'IA.',
 			'settings.systemInstructionsHint' => 'Vous êtes un assistant IA utile.',
+			'settings.resetDefaults' => 'Réinitialiser par défaut',
+			'settings.resetConfirm' => 'Êtes-vous sûr de vouloir réinitialiser tous les paramètres d\'inférence et de comportement ? Vos modèles téléchargés et votre préférence linguistique ne seront pas affectés.',
+			'settings.resetSuccess' => 'Paramètres réinitialisés aux valeurs par défaut',
 			'settings.checkForUpdates' => 'Vérifier les mises à jour',
 			'settings.checkingForUpdates' => 'Vérification des mises à jour...',
 			'settings.appUpToDate' => 'L\'application est à jour',

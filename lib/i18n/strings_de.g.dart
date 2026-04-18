@@ -129,6 +129,9 @@ class _TranslationsSettingsDe implements TranslationsSettingsEn {
 	@override String get systemInstructions => 'Systemanweisungen';
 	@override String get systemInstructionsDescription => 'Benutzerdefinierte Anweisungen zur Steuerung des allgemeinen Verhaltens und der Persona der KI.';
 	@override String get systemInstructionsHint => 'Du bist ein hilfreicher KI-Assistent.';
+	@override String get resetDefaults => 'Auf Standard zurücksetzen';
+	@override String get resetConfirm => 'Sind Sie sicher, dass Sie alle Inferenz- und Verhaltenseinstellungen zurücksetzen möchten? Ihre heruntergeladenen Modelle und die Spracheinstellung bleiben erhalten.';
+	@override String get resetSuccess => 'Einstellungen auf Standardwerte zurückgesetzt';
 	@override String get checkForUpdates => 'Auf Updates prüfen';
 	@override String get checkingForUpdates => 'Suche nach Updates...';
 	@override String get appUpToDate => 'App ist auf dem neuesten Stand';
@@ -289,6 +292,9 @@ extension on TranslationsDe {
 			'settings.systemInstructions' => 'Systemanweisungen',
 			'settings.systemInstructionsDescription' => 'Benutzerdefinierte Anweisungen zur Steuerung des allgemeinen Verhaltens und der Persona der KI.',
 			'settings.systemInstructionsHint' => 'Du bist ein hilfreicher KI-Assistent.',
+			'settings.resetDefaults' => 'Auf Standard zurücksetzen',
+			'settings.resetConfirm' => 'Sind Sie sicher, dass Sie alle Inferenz- und Verhaltenseinstellungen zurücksetzen möchten? Ihre heruntergeladenen Modelle und die Spracheinstellung bleiben erhalten.',
+			'settings.resetSuccess' => 'Einstellungen auf Standardwerte zurückgesetzt',
 			'settings.checkForUpdates' => 'Auf Updates prüfen',
 			'settings.checkingForUpdates' => 'Suche nach Updates...',
 			'settings.appUpToDate' => 'App ist auf dem neuesten Stand',

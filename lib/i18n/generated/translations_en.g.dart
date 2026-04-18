@@ -250,6 +250,15 @@ class TranslationsSettingsEn {
 	/// en: 'You are a helpful AI assistant.'
 	String get systemInstructionsHint => 'You are a helpful AI assistant.';
 
+	/// en: 'Reset to Defaults'
+	String get resetDefaults => 'Reset to Defaults';
+
+	/// en: 'Are you sure you want to reset all inference and behavior settings? Your downloaded models and language preference will not be affected.'
+	String get resetConfirm => 'Are you sure you want to reset all inference and behavior settings? Your downloaded models and language preference will not be affected.';
+
+	/// en: 'Settings reset to defaults'
+	String get resetSuccess => 'Settings reset to defaults';
+
 	/// en: 'Check for updates'
 	String get checkForUpdates => 'Check for updates';
 
@@ -502,6 +511,9 @@ extension on Translations {
 			'settings.systemInstructions' => 'System Instructions',
 			'settings.systemInstructionsDescription' => 'Custom instructions to guide the AI\'s overall behavior and persona.',
 			'settings.systemInstructionsHint' => 'You are a helpful AI assistant.',
+			'settings.resetDefaults' => 'Reset to Defaults',
+			'settings.resetConfirm' => 'Are you sure you want to reset all inference and behavior settings? Your downloaded models and language preference will not be affected.',
+			'settings.resetSuccess' => 'Settings reset to defaults',
 			'settings.checkForUpdates' => 'Check for updates',
 			'settings.checkingForUpdates' => 'Checking for updates...',
 			'settings.appUpToDate' => 'App is up to date',

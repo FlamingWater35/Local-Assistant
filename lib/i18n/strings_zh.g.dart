@@ -129,6 +129,9 @@ class _TranslationsSettingsZh implements TranslationsSettingsEn {
 	@override String get systemInstructions => '系统提示词';
 	@override String get systemInstructionsDescription => '自定义指示，用于引导 AI 的整体行为和角色扮演。';
 	@override String get systemInstructionsHint => '你是一个有用的 AI 助手。';
+	@override String get resetDefaults => '重置为默认值';
+	@override String get resetConfirm => '您确定要重置所有推理和行为设置吗？您下载的模型和语言偏好将不受影响。';
+	@override String get resetSuccess => '设置已重置为默认值';
 	@override String get checkForUpdates => '检查更新';
 	@override String get checkingForUpdates => '正在检查更新...';
 	@override String get appUpToDate => '应用已是最新版本';
@@ -289,6 +292,9 @@ extension on TranslationsZh {
 			'settings.systemInstructions' => '系统提示词',
 			'settings.systemInstructionsDescription' => '自定义指示，用于引导 AI 的整体行为和角色扮演。',
 			'settings.systemInstructionsHint' => '你是一个有用的 AI 助手。',
+			'settings.resetDefaults' => '重置为默认值',
+			'settings.resetConfirm' => '您确定要重置所有推理和行为设置吗？您下载的模型和语言偏好将不受影响。',
+			'settings.resetSuccess' => '设置已重置为默认值',
 			'settings.checkForUpdates' => '检查更新',
 			'settings.checkingForUpdates' => '正在检查更新...',
 			'settings.appUpToDate' => '应用已是最新版本',

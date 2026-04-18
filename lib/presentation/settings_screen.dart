@@ -94,6 +94,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  void _confirmReset() {
+    final t = Translations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.settings.resetDefaults),
+        content: Text(t.settings.resetConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t.common.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final defaultSettings = AppSettings();
+              setState(() {
+                _draftSettings = _draftSettings.copyWith(
+                  temperature: defaultSettings.temperature,
+                  maxTokens: defaultSettings.maxTokens,
+                  systemPrompt: defaultSettings.systemPrompt,
+                  hfToken: defaultSettings.hfToken,
+                  enableGlobalMemory: defaultSettings.enableGlobalMemory,
+                );
+                _systemPromptController.text = _draftSettings.systemPrompt;
+              });
+              showInfoSnackBar(context, t.settings.resetSuccess);
+            },
+            child: Text(t.settings.resetDefaults),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveAndLoad() async {
     final t = Translations.of(context);
 
@@ -237,6 +272,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         title: Text(t.settings.title),
         forceMaterialTransparency: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: t.settings.resetDefaults,
+            onPressed: _confirmReset,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: ListView(
