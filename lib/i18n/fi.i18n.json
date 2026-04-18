@@ -46,7 +46,7 @@
     "deleteModelTitle": "Poista Malli",
     "deleteModelConfirm": "Oletko varma, että haluat poistaa mallin $name? Sinun on ladattava se uudelleen käyttääksesi sitä.",
     "modelDeleted": "Malli poistettu onnistuneesti",
-    "applyChanges": "Käytä Muutoksia",
+    "applyChanges": "Tallenna Muutokset",
     "settingsApplied": "Asetukset otettu käyttöön",
     "modelNotDownloaded": "Valittua mallia ei ole ladattu!",
     "errorWithDetails": "Virhe: $details",
@@ -114,6 +114,7 @@
   },
   "common": {
     "cancel": "Peruuta",
-    "delete": "Poista"
+    "delete": "Poista",
+    "recommended": "Suositeltu"
   }
 }

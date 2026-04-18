@@ -209,13 +209,40 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           horizontal: 16,
                           vertical: 8,
                         ),
-                        title: Text(
-                          model.name,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w500,
-                          ),
+                        title: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          children: [
+                            Text(
+                              model.name,
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                            if (model.isRecommended)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.tertiaryContainer,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  t.common.recommended.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        theme.colorScheme.onTertiaryContainer,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         subtitle: isInstalledAsync.when(
                           data: (installed) => Padding(

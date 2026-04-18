@@ -404,6 +404,9 @@ class TranslationsCommonEn {
 
 	/// en: 'Delete'
 	String get delete => 'Delete';
+
+	/// en: 'Recommended'
+	String get recommended => 'Recommended';
 }
 
 // Path: settings.ramIndicator
@@ -536,6 +539,7 @@ extension on Translations {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ Error: Failed to start generation.\nDetails: ${error}',
 			'common.cancel' => 'Cancel',
 			'common.delete' => 'Delete',
+			'common.recommended' => 'Recommended',
 			_ => null,
 		};
 	}

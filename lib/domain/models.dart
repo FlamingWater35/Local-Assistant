@@ -12,6 +12,7 @@ class AvailableModel {
     required this.url,
     required this.fileName,
     required this.requiresAuth,
+    this.isRecommended = false,
   });
 
   final String fileName;
@@ -19,6 +20,7 @@ class AvailableModel {
   final String name;
   final bool requiresAuth;
   final String url;
+  final bool isRecommended;
 }
 
 const List<AvailableModel> kAvailableModels = [
@@ -37,6 +39,7 @@ const List<AvailableModel> kAvailableModels = [
         'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
     fileName: 'gemma-4-E2B-it.litertlm',
     requiresAuth: false,
+    isRecommended: true,
   ),
   AvailableModel(
     id: 'gemma-3n-e4b',

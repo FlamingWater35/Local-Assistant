@@ -207,6 +207,7 @@ class _TranslationsCommonZh extends TranslationsCommonEn {
 	// Translations
 	@override String get cancel => '取消';
 	@override String get delete => '删除';
+	@override String get recommended => '推荐';
 }
 
 // Path: settings.ramIndicator
@@ -331,6 +332,7 @@ extension on TranslationsZh {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ 错误：启动生成失败。\n详细信息: ${error}',
 			'common.cancel' => '取消',
 			'common.delete' => '删除',
+			'common.recommended' => '推荐',
 			_ => null,
 		};
 	}

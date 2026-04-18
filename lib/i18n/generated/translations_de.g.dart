@@ -207,6 +207,7 @@ class _TranslationsCommonDe extends TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Abbrechen';
 	@override String get delete => 'Löschen';
+	@override String get recommended => 'Empfohlen';
 }
 
 // Path: settings.ramIndicator
@@ -331,6 +332,7 @@ extension on TranslationsDe {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ Fehler: Generierung konnte nicht gestartet werden.\nDetails: ${error}',
 			'common.cancel' => 'Abbrechen',
 			'common.delete' => 'Löschen',
+			'common.recommended' => 'Empfohlen',
 			_ => null,
 		};
 	}

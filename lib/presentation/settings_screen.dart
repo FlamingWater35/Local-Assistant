@@ -317,16 +317,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         horizontal: 16,
                         vertical: 4,
                       ),
-                      title: Text(
-                        model.name,
-                        style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: isSelected
-                              ? theme.colorScheme.onPrimaryContainer
-                              : theme.colorScheme.onSurface,
-                        ),
+                      title: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        children: [
+                          Text(
+                            model.name,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? theme.colorScheme.onPrimaryContainer
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          if (model.isRecommended)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.tertiaryContainer,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                t.common.recommended.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onTertiaryContainer,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       subtitle: isInstalledAsync.when(
                         data: (installed) => Text(

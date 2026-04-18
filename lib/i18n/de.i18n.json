@@ -114,6 +114,7 @@
   },
   "common": {
     "cancel": "Abbrechen",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "recommended": "Empfohlen"
   }
 }

@@ -115,7 +115,7 @@ class _TranslationsSettingsFi extends TranslationsSettingsEn {
 	@override String get deleteModelTitle => 'Poista Malli';
 	@override String deleteModelConfirm({required Object name}) => 'Oletko varma, että haluat poistaa mallin ${name}? Sinun on ladattava se uudelleen käyttääksesi sitä.';
 	@override String get modelDeleted => 'Malli poistettu onnistuneesti';
-	@override String get applyChanges => 'Käytä Muutoksia';
+	@override String get applyChanges => 'Tallenna Muutokset';
 	@override String get settingsApplied => 'Asetukset otettu käyttöön';
 	@override String get modelNotDownloaded => 'Valittua mallia ei ole ladattu!';
 	@override String errorWithDetails({required Object details}) => 'Virhe: ${details}';
@@ -207,6 +207,7 @@ class _TranslationsCommonFi extends TranslationsCommonEn {
 	// Translations
 	@override String get cancel => 'Peruuta';
 	@override String get delete => 'Poista';
+	@override String get recommended => 'Suositeltu';
 }
 
 // Path: settings.ramIndicator
@@ -272,7 +273,7 @@ extension on TranslationsFi {
 			'settings.deleteModelTitle' => 'Poista Malli',
 			'settings.deleteModelConfirm' => ({required Object name}) => 'Oletko varma, että haluat poistaa mallin ${name}? Sinun on ladattava se uudelleen käyttääksesi sitä.',
 			'settings.modelDeleted' => 'Malli poistettu onnistuneesti',
-			'settings.applyChanges' => 'Käytä Muutoksia',
+			'settings.applyChanges' => 'Tallenna Muutokset',
 			'settings.settingsApplied' => 'Asetukset otettu käyttöön',
 			'settings.modelNotDownloaded' => 'Valittua mallia ei ole ladattu!',
 			'settings.errorWithDetails' => ({required Object details}) => 'Virhe: ${details}',
@@ -331,6 +332,7 @@ extension on TranslationsFi {
 			'errors.generationFailed' => ({required Object error}) => '⚠️ Virhe: Luonnin aloittaminen epäonnistui.\nLisätietoja: ${error}',
 			'common.cancel' => 'Peruuta',
 			'common.delete' => 'Poista',
+			'common.recommended' => 'Suositeltu',
 			_ => null,
 		};
 	}
