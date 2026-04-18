@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Keystore and key properties
+android/upload-keystore.jks
+android/key.properties
+
+# Generated code
+*.g.dart
+*.gr.dart
