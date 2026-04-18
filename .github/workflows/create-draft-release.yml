@@ -76,7 +76,7 @@ jobs:
           draft: true
           allowUpdates: true
           tag: "dev-build-${{ github.run_number }}"
-          name: "Release v${{ needs.build_android.outputs.app_version }}"
+          name: "Version ${{ needs.build_android.outputs.app_version }}"
           body: |
             Automated development build.
             Triggered by commit: `${{ github.sha }}`

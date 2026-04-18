@@ -13,8 +13,8 @@ A private, fully on-device AI assistant built with Flutter. **Local Assistant** 
 - **Fully Local**: No API keys or internet connection required for chatting.
 - **Multimodal Support**:
   - **Images**: Analyze photos and visual data.
-  - **Audio**: Process and discuss `.wav` audio files.
-  - **Documents**: Import and query text-based files (`.txt`, `.md`, `.csv`).
+  - **Audio**: Process `.wav` audio files.
+  - **Documents**: Import text-based files (`.txt`, `.md`, `.csv`).
 - **Smart Memory**: Optional "Global Memory" allows the AI to reference facts across different chat sessions.
 - **Material Design 3**: A modern, clean UI with dynamic color support and smooth animations.
 - **Auto-Updater**: Integrated update system to keep the app in top shape.
