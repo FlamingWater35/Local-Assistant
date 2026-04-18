@@ -53,6 +53,7 @@ class ChatDrawer extends ConsumerWidget {
     final appTheme = Theme.of(context);
 
     return Drawer(
+      backgroundColor: appTheme.colorScheme.surface,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -101,87 +102,106 @@ class ChatDrawer extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                t.chat.recentHistory,
-                style: appTheme.textTheme.labelMedium?.copyWith(
-                  color: appTheme.colorScheme.primary,
+                t.chat.recentHistory.toUpperCase(),
+                style: appTheme.textTheme.labelSmall?.copyWith(
+                  color: appTheme.colorScheme.outline,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.1,
                 ),
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: history.length,
-                itemBuilder: (context, index) {
-                  final session = history[index];
-                  final isActive = session.id == activeSessionId;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: ListTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      selected: isActive,
-                      selectedTileColor: appTheme.colorScheme.primaryContainer,
-                      leading: Icon(
-                        Icons.chat_bubble_outline,
-                        color: isActive
-                            ? appTheme.colorScheme.onPrimaryContainer
-                            : appTheme.colorScheme.onSurfaceVariant,
-                        size: 20,
-                      ),
-                      title: Text(
-                        session.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: isActive
-                              ? FontWeight.bold
-                              : FontWeight.w500,
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: ListView.builder(
+                  clipBehavior: Clip.hardEdge,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: history.length,
+                  itemBuilder: (context, index) {
+                    final session = history[index];
+                    final isActive = session.id == activeSessionId;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: ListTile(
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        selected: isActive,
+                        selectedTileColor:
+                            appTheme.colorScheme.secondaryContainer,
+                        leading: Icon(
+                          isActive
+                              ? Icons.chat_bubble
+                              : Icons.chat_bubble_outline,
                           color: isActive
-                              ? appTheme.colorScheme.onPrimaryContainer
-                              : appTheme.colorScheme.onSurface,
+                              ? appTheme.colorScheme.onSecondaryContainer
+                              : appTheme.colorScheme.onSurfaceVariant,
+                          size: 20,
                         ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        color: appTheme.colorScheme.error,
-                        onPressed: () => _confirmDelete(
-                          context,
-                          ref,
-                          session.id,
+                        title: Text(
                           session.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isActive
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isActive
+                                ? appTheme.colorScheme.onSecondaryContainer
+                                : appTheme.colorScheme.onSurface,
+                          ),
                         ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          color: appTheme.colorScheme.error.withValues(
+                            alpha: 0.8,
+                          ),
+                          onPressed: () => _confirmDelete(
+                            context,
+                            ref,
+                            session.id,
+                            session.title,
+                          ),
+                        ),
+                        onTap: () async {
+                          if (!isActive) {
+                            appLogger.i(
+                              "UI: Loading existing chat: ${session.title}",
+                            );
+                            await ref
+                                .read(chatLogicProvider.notifier)
+                                .loadSession(session.id);
+                          }
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
                       ),
-                      onTap: () async {
-                        if (!isActive) {
-                          appLogger.i(
-                            "UI: Loading existing chat: ${session.title}",
-                          );
-                          await ref
-                              .read(chatLogicProvider.notifier)
-                              .loadSession(session.id);
-                        }
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
+
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.all(12),
               child: ListTile(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 leading: const Icon(Icons.settings_outlined),
-                title: Text(t.chat.settingsAndModels),
+                title: Text(
+                  t.chat.settingsAndModels,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 onTap: () {
                   appLogger.i("UI: Navigating to Settings.");
                   Navigator.pop(context);
