@@ -77,6 +77,8 @@ class _TranslationsChatZh implements TranslationsChatEn {
 	@override String get writePromptHint => '在此写下您的详细提示词...';
 	@override String get messageHint => '发消息给本地助手...';
 	@override String get attachmentSession => '附件会话';
+	@override String get generating => '生成中...';
+	@override String get stop => '停止';
 }
 
 // Path: attachments
@@ -253,6 +255,8 @@ extension on TranslationsZh {
 			'chat.writePromptHint' => '在此写下您的详细提示词...',
 			'chat.messageHint' => '发消息给本地助手...',
 			'chat.attachmentSession' => '附件会话',
+			'chat.generating' => '生成中...',
+			'chat.stop' => '停止',
 			'attachments.photo' => '照片',
 			'attachments.audio' => '音频 (.wav)',
 			'attachments.document' => '文档 (.txt, .md, .csv)',

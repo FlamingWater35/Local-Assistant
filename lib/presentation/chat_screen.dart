@@ -619,7 +619,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           title: Text(t.chat.title),
           centerTitle: true,
           actions: [
-            if (isGenerating)
+            if (isGenerating) ...[
+              IconButton(
+                icon: const Icon(Icons.stop_circle_outlined, color: Colors.red),
+                tooltip: t.chat.stop,
+                onPressed: () =>
+                    ref.read(chatLogicProvider.notifier).stopGeneration(),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: SizedBox(
@@ -633,6 +639,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                 ),
               ),
+            ],
           ],
         ),
         drawer: Drawer(
@@ -813,100 +820,106 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       padding: EdgeInsets.only(
                         bottom: isNewestMessage ? 64.0 : 0,
                       ),
-                      child: SelectionArea(
-                        child: Column(
-                          crossAxisAlignment: isSentByMe
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            if (atts.isNotEmpty)
-                              ...atts.map(
-                                (att) => _buildUnifiedAttachmentBubble(
-                                  att,
-                                  isSentByMe,
-                                  appTheme,
-                                ),
+                      child: Column(
+                        crossAxisAlignment: isSentByMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          if (atts.isNotEmpty)
+                            ...atts.map(
+                              (att) => _buildUnifiedAttachmentBubble(
+                                att,
+                                isSentByMe,
+                                appTheme,
                               ),
-                            if (text.isNotEmpty)
-                              Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 4,
-                                ),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isSentByMe
-                                      ? appTheme.colorScheme.primaryContainer
-                                      : appTheme
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(16)
-                                      .copyWith(
-                                        bottomRight: isSentByMe
-                                            ? Radius.zero
-                                            : const Radius.circular(16),
-                                        bottomLeft: !isSentByMe
-                                            ? Radius.zero
-                                            : const Radius.circular(16),
-                                      ),
-                                ),
-                                child: ThrottledMarkdownWidget(
-                                  text: text,
-                                  isGenerating: isThisMessageGenerating,
-                                  style: appTheme.textTheme.bodyLarge?.copyWith(
+                            ),
+                          if (text.isNotEmpty || isThisMessageGenerating)
+                            IgnorePointer(
+                              ignoring: isThisMessageGenerating,
+                              child: SelectionArea(
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 4,
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
                                     color: isSentByMe
-                                        ? appTheme
+                                        ? appTheme.colorScheme.primaryContainer
+                                        : appTheme
                                               .colorScheme
-                                              .onPrimaryContainer
-                                        : appTheme.colorScheme.onSurfaceVariant,
+                                              .surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(16)
+                                        .copyWith(
+                                          bottomRight: isSentByMe
+                                              ? Radius.zero
+                                              : const Radius.circular(16),
+                                          bottomLeft: !isSentByMe
+                                              ? Radius.zero
+                                              : const Radius.circular(16),
+                                        ),
+                                  ),
+                                  child: ThrottledMarkdownWidget(
+                                    text: text,
+                                    isGenerating: isThisMessageGenerating,
+                                    style: appTheme.textTheme.bodyLarge
+                                        ?.copyWith(
+                                          color: isSentByMe
+                                              ? appTheme
+                                                    .colorScheme
+                                                    .onPrimaryContainer
+                                              : appTheme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        ),
                                   ),
                                 ),
                               ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16,
-                                right: 16,
-                                top: 2,
-                                bottom: 8,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (text.isNotEmpty)
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.content_copy,
-                                        size: 18,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      tooltip: t.chat.copyMessage,
-                                      onPressed: () {
-                                        Clipboard.setData(
-                                          ClipboardData(text: text),
-                                        );
-                                        if (mounted) {
-                                          showInfoSnackBar(
-                                            context,
-                                            t.chat.copiedToClipboard,
-                                          );
-                                        }
-                                      },
-                                    ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 2,
+                              bottom: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (text.isNotEmpty)
                                   IconButton(
                                     icon: const Icon(
-                                      Icons.delete_outline,
+                                      Icons.content_copy,
                                       size: 18,
                                     ),
                                     visualDensity: VisualDensity.compact,
-                                    tooltip: t.chat.deleteMessageGroup,
-                                    onPressed: () =>
-                                        _confirmDeleteMessage(message.id),
+                                    tooltip: t.chat.copyMessage,
+                                    onPressed: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: text),
+                                      );
+                                      if (mounted) {
+                                        showInfoSnackBar(
+                                          context,
+                                          t.chat.copiedToClipboard,
+                                        );
+                                      }
+                                    },
                                   ),
-                                ],
-                              ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: t.chat.deleteMessageGroup,
+                                  onPressed: () =>
+                                      _confirmDeleteMessage(message.id),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -927,89 +940,99 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       padding: EdgeInsets.only(
                         bottom: isNewestMessage ? 64.0 : 0,
                       ),
-                      child: SelectionArea(
-                        child: Column(
-                          crossAxisAlignment: isSentByMe
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isSentByMe
-                                    ? appTheme.colorScheme.primaryContainer
-                                    : appTheme
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(16)
-                                    .copyWith(
-                                      bottomRight: isSentByMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
-                                      bottomLeft: !isSentByMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
-                                    ),
-                              ),
-                              child: ThrottledMarkdownWidget(
-                                text: message.text,
-                                isGenerating: isThisMessageGenerating,
-                                style: appTheme.textTheme.bodyLarge?.copyWith(
-                                  color: isSentByMe
-                                      ? appTheme.colorScheme.onPrimaryContainer
-                                      : appTheme.colorScheme.onSurfaceVariant,
+                      child: Column(
+                        crossAxisAlignment: isSentByMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          if (message.text.isNotEmpty ||
+                              isThisMessageGenerating)
+                            IgnorePointer(
+                              ignoring: isThisMessageGenerating,
+                              child: SelectionArea(
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 4,
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isSentByMe
+                                        ? appTheme.colorScheme.primaryContainer
+                                        : appTheme
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(16)
+                                        .copyWith(
+                                          bottomRight: isSentByMe
+                                              ? Radius.zero
+                                              : const Radius.circular(16),
+                                          bottomLeft: !isSentByMe
+                                              ? Radius.zero
+                                              : const Radius.circular(16),
+                                        ),
+                                  ),
+                                  child: ThrottledMarkdownWidget(
+                                    text: message.text,
+                                    isGenerating: isThisMessageGenerating,
+                                    style: appTheme.textTheme.bodyLarge
+                                        ?.copyWith(
+                                          color: isSentByMe
+                                              ? appTheme
+                                                    .colorScheme
+                                                    .onPrimaryContainer
+                                              : appTheme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        ),
+                                  ),
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16,
-                                right: 16,
-                                top: 2,
-                                bottom: 8,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.content_copy,
-                                      size: 18,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                    tooltip: t.chat.copyMessage,
-                                    onPressed: () {
-                                      Clipboard.setData(
-                                        ClipboardData(text: message.text),
-                                      );
-                                      if (mounted) {
-                                        showInfoSnackBar(
-                                          context,
-                                          t.chat.copiedToClipboard,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      size: 18,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                    tooltip: t.chat.deleteMessage,
-                                    onPressed: () {
-                                      _confirmDeleteMessage(message.id);
-                                    },
-                                  ),
-                                ],
-                              ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 2,
+                              bottom: 8,
                             ),
-                          ],
-                        ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.content_copy,
+                                    size: 18,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: t.chat.copyMessage,
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                      ClipboardData(text: message.text),
+                                    );
+                                    if (mounted) {
+                                      showInfoSnackBar(
+                                        context,
+                                        t.chat.copiedToClipboard,
+                                      );
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: t.chat.deleteMessage,
+                                  onPressed: () {
+                                    _confirmDeleteMessage(message.id);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -1092,10 +1115,49 @@ class _ThrottledMarkdownWidgetState extends State<ThrottledMarkdownWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return GptMarkdown(
-      _displayedText,
-      style: widget.style,
-      useDollarSignsForLatex: true,
+    final t = Translations.of(context);
+
+    final bool showPlaceholder = widget.isGenerating && _displayedText.isEmpty;
+    final String textToRender = showPlaceholder
+        ? t.chat.generating
+        : _displayedText;
+
+    if (!widget.isGenerating) {
+      return GptMarkdown(
+        textToRender,
+        style: widget.style,
+        useDollarSignsForLatex: true,
+      );
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(
+          alignment: Alignment.topLeft,
+          children: <Widget>[...previousChildren, ?currentChild],
+        );
+      },
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        if (child.key == ValueKey(textToRender)) {
+          return FadeTransition(opacity: animation, child: child);
+        } else {
+          return child;
+        }
+      },
+      child: Container(
+        key: ValueKey(textToRender),
+        child: GptMarkdown(
+          textToRender,
+          style: showPlaceholder
+              ? widget.style?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: widget.style?.color?.withValues(alpha: 0.7),
+                )
+              : widget.style,
+          useDollarSignsForLatex: true,
+        ),
+      ),
     );
   }
 }

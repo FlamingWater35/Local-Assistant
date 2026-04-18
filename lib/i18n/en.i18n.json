@@ -23,7 +23,9 @@
     "send": "Send",
     "writePromptHint": "Write your detailed prompt here...",
     "messageHint": "Message Local Assistant...",
-    "attachmentSession": "Attachment session"
+    "attachmentSession": "Attachment session",
+    "generating": "Generating...",
+    "stop": "Stop"
   },
   "attachments": {
     "photo": "Photo",

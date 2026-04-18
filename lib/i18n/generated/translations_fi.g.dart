@@ -79,6 +79,8 @@ class _TranslationsChatFi extends TranslationsChatEn {
 	@override String get writePromptHint => 'Kirjoita yksityiskohtainen kehote tähän...';
 	@override String get messageHint => 'Viesti Paikalliselle Avustajalle...';
 	@override String get attachmentSession => 'Liiteistunto';
+	@override String get generating => 'Luodaan...';
+	@override String get stop => 'Pysäytä';
 }
 
 // Path: attachments
@@ -255,6 +257,8 @@ extension on TranslationsFi {
 			'chat.writePromptHint' => 'Kirjoita yksityiskohtainen kehote tähän...',
 			'chat.messageHint' => 'Viesti Paikalliselle Avustajalle...',
 			'chat.attachmentSession' => 'Liiteistunto',
+			'chat.generating' => 'Luodaan...',
+			'chat.stop' => 'Pysäytä',
 			'attachments.photo' => 'Kuva',
 			'attachments.audio' => 'Ääni (.wav)',
 			'attachments.document' => 'Asiakirja (.txt, .md, .csv)',

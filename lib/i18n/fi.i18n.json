@@ -23,7 +23,9 @@
     "send": "Lähetä",
     "writePromptHint": "Kirjoita yksityiskohtainen kehote tähän...",
     "messageHint": "Viesti Paikalliselle Avustajalle...",
-    "attachmentSession": "Liiteistunto"
+    "attachmentSession": "Liiteistunto",
+    "generating": "Luodaan...",
+    "stop": "Pysäytä"
   },
   "attachments": {
     "photo": "Kuva",

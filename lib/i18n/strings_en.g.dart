@@ -129,6 +129,12 @@ class TranslationsChatEn {
 
 	/// en: 'Attachment session'
 	String get attachmentSession => 'Attachment session';
+
+	/// en: 'Generating...'
+	String get generating => 'Generating...';
+
+	/// en: 'Stop'
+	String get stop => 'Stop';
 }
 
 // Path: attachments
@@ -462,6 +468,8 @@ extension on Translations {
 			'chat.writePromptHint' => 'Write your detailed prompt here...',
 			'chat.messageHint' => 'Message Local Assistant...',
 			'chat.attachmentSession' => 'Attachment session',
+			'chat.generating' => 'Generating...',
+			'chat.stop' => 'Stop',
 			'attachments.photo' => 'Photo',
 			'attachments.audio' => 'Audio (.wav)',
 			'attachments.document' => 'Document (.txt, .md, .csv)',

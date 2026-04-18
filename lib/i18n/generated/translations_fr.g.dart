@@ -79,6 +79,8 @@ class _TranslationsChatFr extends TranslationsChatEn {
 	@override String get writePromptHint => 'Écrivez votre message détaillé ici...';
 	@override String get messageHint => 'Message pour l\'Assistant Local...';
 	@override String get attachmentSession => 'Session de pièces jointes';
+	@override String get generating => 'Génération...';
+	@override String get stop => 'Arrêter';
 }
 
 // Path: attachments
@@ -255,6 +257,8 @@ extension on TranslationsFr {
 			'chat.writePromptHint' => 'Écrivez votre message détaillé ici...',
 			'chat.messageHint' => 'Message pour l\'Assistant Local...',
 			'chat.attachmentSession' => 'Session de pièces jointes',
+			'chat.generating' => 'Génération...',
+			'chat.stop' => 'Arrêter',
 			'attachments.photo' => 'Photo',
 			'attachments.audio' => 'Audio (.wav)',
 			'attachments.document' => 'Document (.txt, .md, .csv)',

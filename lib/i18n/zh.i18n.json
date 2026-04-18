@@ -23,7 +23,9 @@
     "send": "发送",
     "writePromptHint": "在此写下您的详细提示词...",
     "messageHint": "发消息给本地助手...",
-    "attachmentSession": "附件会话"
+    "attachmentSession": "附件会话",
+    "generating": "生成中...",
+    "stop": "停止"
   },
   "attachments": {
     "photo": "照片",

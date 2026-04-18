@@ -23,7 +23,9 @@
     "send": "Envoyer",
     "writePromptHint": "Écrivez votre message détaillé ici...",
     "messageHint": "Message pour l'Assistant Local...",
-    "attachmentSession": "Session de pièces jointes"
+    "attachmentSession": "Session de pièces jointes",
+    "generating": "Génération...",
+    "stop": "Arrêter"
   },
   "attachments": {
     "photo": "Photo",

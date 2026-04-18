@@ -123,6 +123,10 @@ class ChatLogic extends _$ChatLogic {
     );
   }
 
+  Future<void> stopGeneration() async {
+    await _cancelActiveGeneration();
+  }
+
   Future<void> sendMessage(
     String text, {
     List<ChatAttachment> attachments = const [],

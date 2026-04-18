@@ -23,7 +23,9 @@
     "send": "Senden",
     "writePromptHint": "Schreiben Sie hier Ihre ausführliche Eingabeaufforderung...",
     "messageHint": "Nachricht an Lokalen Assistenten...",
-    "attachmentSession": "Anhangs-Sitzung"
+    "attachmentSession": "Anhangs-Sitzung",
+    "generating": "Generiere...",
+    "stop": "Stopp"
   },
   "attachments": {
     "photo": "Foto",
