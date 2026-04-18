@@ -483,7 +483,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         child: Slider(
                           value: _draftSettings.temperature,
                           min: 0.0,
-                          max: 1.0,
+                          max: 1.2,
                           divisions: 20,
                           label: _draftSettings.temperature.toStringAsFixed(2),
                           onChanged: (val) => setState(
@@ -493,7 +493,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ),
                       ),
-                      Text("1.0", style: theme.textTheme.labelMedium),
+                      Text("1.2", style: theme.textTheme.labelMedium),
                     ],
                   ),
                   Center(
