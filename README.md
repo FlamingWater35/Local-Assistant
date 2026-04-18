@@ -1,6 +1,7 @@
 # Local Assistant
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.41-blue?logo=flutter)](https://flutter.dev)
+[![Latest release](https://img.shields.io/github/v/release/FlamingWater35/Local-Assistant)](https://github.com/FlamingWater35/Local-Assistant/releases)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/FlamingWater35/Local-Assistant/create-draft-release.yml?label=build)](https://github.com/FlamingWater35/Local-Assistant/actions/workflows/create-draft-release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Platform](https://img.shields.io/badge/platform-Android-purple)
