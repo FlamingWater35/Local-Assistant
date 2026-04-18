@@ -25,13 +25,14 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
           : fields[3] as String,
       hfToken: fields[4] == null ? '' : fields[4] as String,
       enableGlobalMemory: fields[5] == null ? false : fields[5] as bool,
+      locale: fields[6] == null ? '' : fields[6] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.selectedModel)
       ..writeByte(1)
@@ -43,7 +44,9 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(4)
       ..write(obj.hfToken)
       ..writeByte(5)
-      ..write(obj.enableGlobalMemory);
+      ..write(obj.enableGlobalMemory)
+      ..writeByte(6)
+      ..write(obj.locale);
   }
 
   @override

@@ -5,7 +5,7 @@
 // ignore_for_file: type=lint, unused_import
 // dart format off
 
-part of 'translations.g.dart';
+part of 'strings.g.dart';
 
 // Path: <root>
 typedef TranslationsEn = Translations; // ignore: unused_element
@@ -44,18 +44,18 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Local Assistant'
 	String get appTitle => 'Local Assistant';
 
-	late final TranslationsChatEn chat = TranslationsChatEn.internal(_root);
-	late final TranslationsAttachmentsEn attachments = TranslationsAttachmentsEn.internal(_root);
-	late final TranslationsSettingsEn settings = TranslationsSettingsEn.internal(_root);
-	late final TranslationsSetupEn setup = TranslationsSetupEn.internal(_root);
-	late final TranslationsDownloadEn download = TranslationsDownloadEn.internal(_root);
-	late final TranslationsErrorsEn errors = TranslationsErrorsEn.internal(_root);
-	late final TranslationsCommonEn common = TranslationsCommonEn.internal(_root);
+	late final TranslationsChatEn chat = TranslationsChatEn._(_root);
+	late final TranslationsAttachmentsEn attachments = TranslationsAttachmentsEn._(_root);
+	late final TranslationsSettingsEn settings = TranslationsSettingsEn._(_root);
+	late final TranslationsSetupEn setup = TranslationsSetupEn._(_root);
+	late final TranslationsDownloadEn download = TranslationsDownloadEn._(_root);
+	late final TranslationsErrorsEn errors = TranslationsErrorsEn._(_root);
+	late final TranslationsCommonEn common = TranslationsCommonEn._(_root);
 }
 
 // Path: chat
 class TranslationsChatEn {
-	TranslationsChatEn.internal(this._root);
+	TranslationsChatEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 
@@ -133,7 +133,7 @@ class TranslationsChatEn {
 
 // Path: attachments
 class TranslationsAttachmentsEn {
-	TranslationsAttachmentsEn.internal(this._root);
+	TranslationsAttachmentsEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 
@@ -151,7 +151,7 @@ class TranslationsAttachmentsEn {
 
 // Path: settings
 class TranslationsSettingsEn {
-	TranslationsSettingsEn.internal(this._root);
+	TranslationsSettingsEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 
@@ -274,7 +274,7 @@ class TranslationsSettingsEn {
 
 // Path: setup
 class TranslationsSetupEn {
-	TranslationsSetupEn.internal(this._root);
+	TranslationsSetupEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 
@@ -316,7 +316,7 @@ class TranslationsSetupEn {
 
 // Path: download
 class TranslationsDownloadEn {
-	TranslationsDownloadEn.internal(this._root);
+	TranslationsDownloadEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 
@@ -364,7 +364,7 @@ class TranslationsDownloadEn {
 
 // Path: errors
 class TranslationsErrorsEn {
-	TranslationsErrorsEn.internal(this._root);
+	TranslationsErrorsEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 
@@ -382,7 +382,7 @@ class TranslationsErrorsEn {
 
 // Path: common
 class TranslationsCommonEn {
-	TranslationsCommonEn.internal(this._root);
+	TranslationsCommonEn._(this._root);
 
 	final Translations _root; // ignore: unused_field
 

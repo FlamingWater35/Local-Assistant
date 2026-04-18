@@ -85,6 +85,7 @@ class AppSettings extends HiveObject {
     this.systemPrompt = 'You are a helpful AI assistant.',
     this.hfToken = '',
     this.enableGlobalMemory = false,
+    this.locale = '',
   });
 
   @HiveField(5, defaultValue: false)
@@ -92,6 +93,9 @@ class AppSettings extends HiveObject {
 
   @HiveField(4, defaultValue: '')
   final String hfToken;
+
+  @HiveField(6, defaultValue: '')
+  final String locale;
 
   @HiveField(2, defaultValue: 2048)
   final int maxTokens;
@@ -112,6 +116,7 @@ class AppSettings extends HiveObject {
     String? systemPrompt,
     String? hfToken,
     bool? enableGlobalMemory,
+    String? locale,
   }) {
     return AppSettings(
       selectedModel: selectedModel ?? this.selectedModel,
@@ -120,6 +125,7 @@ class AppSettings extends HiveObject {
       systemPrompt: systemPrompt ?? this.systemPrompt,
       hfToken: hfToken ?? this.hfToken,
       enableGlobalMemory: enableGlobalMemory ?? this.enableGlobalMemory,
+      locale: locale ?? this.locale,
     );
   }
 }

@@ -32,6 +32,9 @@
   },
   "settings": {
     "title": "Settings",
+    "general": "General",
+    "language": "Language",
+    "systemLanguage": "System Default",
     "aiModels": "AI Models",
     "inferenceAndMemory": "Inference & Memory",
     "behavior": "Behavior",

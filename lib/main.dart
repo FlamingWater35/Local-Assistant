@@ -13,10 +13,20 @@ import 'router/app_router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterGemma.initialize();
-  LocaleSettings.useDeviceLocale();
 
   final hiveService = HiveService();
   await hiveService.init();
+
+  final settings = hiveService.getSettings();
+  if (settings.locale.isEmpty) {
+    LocaleSettings.useDeviceLocale();
+  } else {
+    try {
+      LocaleSettings.setLocaleRaw(settings.locale);
+    } catch (_) {
+      LocaleSettings.useDeviceLocale();
+    }
+  }
 
   runApp(
     ProviderScope(

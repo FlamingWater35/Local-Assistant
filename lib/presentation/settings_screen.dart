@@ -160,6 +160,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             _buildSectionHeader(
               context,
+              t.settings.general,
+              Icons.tune_outlined,
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 0,
+              ),
+              leading: const Icon(Icons.language_outlined),
+              title: Text(t.settings.language),
+              trailing: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _draftSettings.locale,
+                  borderRadius: BorderRadius.circular(12),
+                  alignment: AlignmentDirectional.centerEnd,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Text(t.settings.systemLanguage),
+                    ),
+                    const DropdownMenuItem(value: 'en', child: Text('English')),
+                    const DropdownMenuItem(value: 'de', child: Text('Deutsch')),
+                    const DropdownMenuItem(
+                      value: 'fr',
+                      child: Text('Français'),
+                    ),
+                    const DropdownMenuItem(value: 'fi', child: Text('Suomi')),
+                    const DropdownMenuItem(value: 'zh', child: Text('中文')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(
+                        () => _draftSettings = _draftSettings.copyWith(
+                          locale: val,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+            const Divider(indent: 16, endIndent: 16),
+            const SizedBox(height: 8),
+
+            _buildSectionHeader(
+              context,
               t.settings.aiModels,
               Icons.smart_toy_outlined,
             ),

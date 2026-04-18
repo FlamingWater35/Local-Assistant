@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/models.dart';
+import '../i18n/generated/translations.g.dart';
 import '../infrastructure/hive_service.dart';
 import '../infrastructure/llm_service.dart';
 import 'chat_provider.dart';
@@ -13,6 +14,18 @@ class SettingsController extends _$SettingsController {
     AppSettings newSettings, {
     bool reloadModel = true,
   }) async {
+    if (state.locale != newSettings.locale) {
+      if (newSettings.locale.isEmpty) {
+        LocaleSettings.useDeviceLocale();
+      } else {
+        try {
+          LocaleSettings.setLocaleRaw(newSettings.locale);
+        } catch (_) {
+          LocaleSettings.useDeviceLocale();
+        }
+      }
+    }
+
     state = newSettings;
     await ref.read(hiveServiceProvider).saveSettings(newSettings);
 
