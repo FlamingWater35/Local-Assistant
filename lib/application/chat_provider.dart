@@ -175,6 +175,8 @@ class ChatLogic extends _$ChatLogic {
 
     WakelockPlus.enable();
 
+    DateTime lastUiUpdate = DateTime.now();
+
     try {
       final session = hiveService.getSession(currentSessionId!)!;
       final settings = ref.read(settingsControllerProvider);
@@ -194,7 +196,13 @@ class ChatLogic extends _$ChatLogic {
         (chunk) {
           if (_activeGenerationSessionId == currentSessionId) {
             aiText += chunk;
-            _updateLocalMessage(aiMsgId, aiText);
+
+            final now = DateTime.now();
+            if (now.difference(lastUiUpdate).inMilliseconds >= 50) {
+              _updateLocalMessage(aiMsgId, aiText);
+              lastUiUpdate = now;
+            }
+
             _debouncedSave();
           }
         },
@@ -226,6 +234,11 @@ class ChatLogic extends _$ChatLogic {
         },
         onDone: () {
           appLogger.i("Generation stream completed");
+
+          if (_activeGenerationSessionId == currentSessionId) {
+            _updateLocalMessage(aiMsgId, aiText);
+          }
+
           _generationSubscription = null;
           _activeGenerationSessionId = null;
           ref.read(isGeneratingProvider.notifier).setGenerating(false);
