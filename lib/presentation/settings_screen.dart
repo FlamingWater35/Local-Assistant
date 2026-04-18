@@ -26,6 +26,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late AppSettings _draftSettings;
   bool _isLoading = false;
+  late TextEditingController _systemPromptController;
+
+  @override
+  void dispose() {
+    _systemPromptController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -34,6 +41,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (_draftSettings.maxTokens < 2048) {
       _draftSettings = _draftSettings.copyWith(maxTokens: 2048);
     }
+    _systemPromptController = TextEditingController(
+      text: _draftSettings.systemPrompt,
+    );
   }
 
   void _showDownloadDialog(AvailableModel model) {
@@ -86,6 +96,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _saveAndLoad() async {
     final t = Translations.of(context);
+
+    _draftSettings = _draftSettings.copyWith(
+      systemPrompt: _systemPromptController.text,
+    );
+
     final isInstalled = await ref.read(
       isModelInstalledProvider(_draftSettings.selectedModel).future,
     );
@@ -458,6 +473,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               t.settings.behavior,
               Icons.psychology_outlined,
             ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.settings.systemInstructions,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t.settings.systemInstructionsDescription,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _systemPromptController,
+                    maxLines: 5,
+                    minLines: 2,
+                    decoration: InputDecoration(
+                      hintText: t.settings.systemInstructionsHint,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),

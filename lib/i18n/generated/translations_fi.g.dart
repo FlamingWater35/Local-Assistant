@@ -126,6 +126,9 @@ class _TranslationsSettingsFi extends TranslationsSettingsEn {
 	@override String get tokens => 'Merkkejä';
 	@override String get temperature => 'Lämpötila';
 	@override String get temperatureDescription => 'Hallitsee luovuutta. Matalampi on keskitetympi, korkeampi on satunnaisempi.';
+	@override String get systemInstructions => 'Järjestelmäohjeet';
+	@override String get systemInstructionsDescription => 'Mukautetut ohjeet tekoälyn yleisen käyttäytymisen ja persoonan ohjaamiseen.';
+	@override String get systemInstructionsHint => 'Olet avulias tekoälyavustaja.';
 	@override String get checkForUpdates => 'Tarkista päivitykset';
 	@override String get checkingForUpdates => 'Tarkistetaan päivityksiä...';
 	@override String get appUpToDate => 'Sovellus on ajan tasalla';
@@ -280,6 +283,9 @@ extension on TranslationsFi {
 			'settings.tokens' => 'Merkkejä',
 			'settings.temperature' => 'Lämpötila',
 			'settings.temperatureDescription' => 'Hallitsee luovuutta. Matalampi on keskitetympi, korkeampi on satunnaisempi.',
+			'settings.systemInstructions' => 'Järjestelmäohjeet',
+			'settings.systemInstructionsDescription' => 'Mukautetut ohjeet tekoälyn yleisen käyttäytymisen ja persoonan ohjaamiseen.',
+			'settings.systemInstructionsHint' => 'Olet avulias tekoälyavustaja.',
 			'settings.checkForUpdates' => 'Tarkista päivitykset',
 			'settings.checkingForUpdates' => 'Tarkistetaan päivityksiä...',
 			'settings.appUpToDate' => 'Sovellus on ajan tasalla',

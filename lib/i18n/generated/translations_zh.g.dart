@@ -126,6 +126,9 @@ class _TranslationsSettingsZh extends TranslationsSettingsEn {
 	@override String get tokens => 'Tokens';
 	@override String get temperature => '创造力 (Temperature)';
 	@override String get temperatureDescription => '控制创造力。越低越专注，越高越随机。';
+	@override String get systemInstructions => '系统提示词';
+	@override String get systemInstructionsDescription => '自定义指示，用于引导 AI 的整体行为和角色扮演。';
+	@override String get systemInstructionsHint => '你是一个有用的 AI 助手。';
 	@override String get checkForUpdates => '检查更新';
 	@override String get checkingForUpdates => '正在检查更新...';
 	@override String get appUpToDate => '应用已是最新版本';
@@ -280,6 +283,9 @@ extension on TranslationsZh {
 			'settings.tokens' => 'Tokens',
 			'settings.temperature' => '创造力 (Temperature)',
 			'settings.temperatureDescription' => '控制创造力。越低越专注，越高越随机。',
+			'settings.systemInstructions' => '系统提示词',
+			'settings.systemInstructionsDescription' => '自定义指示，用于引导 AI 的整体行为和角色扮演。',
+			'settings.systemInstructionsHint' => '你是一个有用的 AI 助手。',
 			'settings.checkForUpdates' => '检查更新',
 			'settings.checkingForUpdates' => '正在检查更新...',
 			'settings.appUpToDate' => '应用已是最新版本',

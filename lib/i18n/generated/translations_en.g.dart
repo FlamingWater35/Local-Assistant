@@ -235,6 +235,15 @@ class TranslationsSettingsEn {
 	/// en: 'Controls creativity. Lower is more focused, higher is more random.'
 	String get temperatureDescription => 'Controls creativity. Lower is more focused, higher is more random.';
 
+	/// en: 'System Instructions'
+	String get systemInstructions => 'System Instructions';
+
+	/// en: 'Custom instructions to guide the AI's overall behavior and persona.'
+	String get systemInstructionsDescription => 'Custom instructions to guide the AI\'s overall behavior and persona.';
+
+	/// en: 'You are a helpful AI assistant.'
+	String get systemInstructionsHint => 'You are a helpful AI assistant.';
+
 	/// en: 'Check for updates'
 	String get checkForUpdates => 'Check for updates';
 
@@ -479,6 +488,9 @@ extension on Translations {
 			'settings.tokens' => 'Tokens',
 			'settings.temperature' => 'Temperature',
 			'settings.temperatureDescription' => 'Controls creativity. Lower is more focused, higher is more random.',
+			'settings.systemInstructions' => 'System Instructions',
+			'settings.systemInstructionsDescription' => 'Custom instructions to guide the AI\'s overall behavior and persona.',
+			'settings.systemInstructionsHint' => 'You are a helpful AI assistant.',
 			'settings.checkForUpdates' => 'Check for updates',
 			'settings.checkingForUpdates' => 'Checking for updates...',
 			'settings.appUpToDate' => 'App is up to date',
