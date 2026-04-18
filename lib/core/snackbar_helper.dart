@@ -33,11 +33,12 @@ void _showSnackBar(
   required Color backgroundColor,
   required IconData icon,
 }) {
+  final messenger = ScaffoldMessenger.of(context);
   final contentColor = Colors.white;
 
-  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  messenger.hideCurrentSnackBar();
 
-  ScaffoldMessenger.of(context).showSnackBar(
+  messenger.showSnackBar(
     SnackBar(
       backgroundColor: backgroundColor,
       behavior: SnackBarBehavior.floating,
@@ -62,7 +63,7 @@ void _showSnackBar(
           const SizedBox(width: 8),
           InkWell(
             onTap: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              messenger.hideCurrentSnackBar();
             },
             child: Container(
               padding: const EdgeInsets.all(4),
