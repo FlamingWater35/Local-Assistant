@@ -484,7 +484,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           value: _draftSettings.temperature,
                           min: 0.0,
                           max: 1.2,
-                          divisions: 20,
+                          divisions: 24,
                           label: _draftSettings.temperature.toStringAsFixed(2),
                           onChanged: (val) => setState(
                             () => _draftSettings = _draftSettings.copyWith(
