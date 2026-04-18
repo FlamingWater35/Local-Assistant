@@ -944,41 +944,16 @@ class _ThrottledMarkdownWidgetState extends State<ThrottledMarkdownWidget> {
         ? t.chat.generating
         : _displayedText;
 
-    if (!widget.isGenerating) {
-      return GptMarkdown(
+    return RepaintBoundary(
+      child: GptMarkdown(
         textToRender,
-        style: widget.style,
+        style: showPlaceholder
+            ? widget.style?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: widget.style?.color?.withValues(alpha: 0.7),
+              )
+            : widget.style,
         useDollarSignsForLatex: true,
-      );
-    }
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-        return Stack(
-          alignment: Alignment.topLeft,
-          children: <Widget>[...previousChildren, ?currentChild],
-        );
-      },
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        if (child.key == ValueKey(textToRender)) {
-          return FadeTransition(opacity: animation, child: child);
-        } else {
-          return child;
-        }
-      },
-      child: Container(
-        key: ValueKey(textToRender),
-        child: GptMarkdown(
-          textToRender,
-          style: showPlaceholder
-              ? widget.style?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: widget.style?.color?.withValues(alpha: 0.7),
-                )
-              : widget.style,
-          useDollarSignsForLatex: true,
-        ),
       ),
     );
   }
