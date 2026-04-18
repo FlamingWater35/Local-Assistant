@@ -40,3 +40,25 @@ Future<double> deviceRamGb(Ref ref) async {
   }
   return 0.0;
 }
+
+@Riverpod(keepAlive: false)
+Future<int> freeStorageBytes(Ref ref) async {
+  if (kIsWeb) return -1;
+
+  try {
+    final plugin = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final info = await plugin.androidInfo;
+      return info.freeDiskSize;
+    } else if (Platform.isIOS) {
+      final info = await plugin.iosInfo;
+      return info.freeDiskSize;
+    }
+  } catch (e) {
+    appLogger.e(
+      "Failed to get free storage space via device_info_plus",
+      error: e,
+    );
+  }
+  return -1;
+}

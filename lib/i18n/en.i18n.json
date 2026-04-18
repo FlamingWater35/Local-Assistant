@@ -113,6 +113,7 @@
     "downloadFailed": "Download failed: $error"
   },
   "errors": {
+    "insufficientStorage": "Insufficient storage. At least 5 GB of free space is required to download and install the model safely.",
     "contextOverflow": "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
     "inferenceFailed": "⚠️ Error: Model inference failed.\nDetails: $error",
     "generationFailed": "⚠️ Error: Failed to start generation.\nDetails: $error"

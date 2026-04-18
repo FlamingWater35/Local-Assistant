@@ -697,6 +697,18 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
 
   Future<void> _checkConnectivityAndStart() async {
     final t = Translations.of(context);
+
+    final freeBytes = await ref.read(freeStorageBytesProvider.future);
+    const int fiveGbInBytes = 5 * 1024 * 1024 * 1024;
+
+    if (freeBytes != -1 && freeBytes < fiveGbInBytes) {
+      if (mounted) {
+        showErrorSnackBar(context, t.errors.insufficientStorage);
+        Navigator.pop(context);
+      }
+      return;
+    }
+
     final connectivityResult = await (Connectivity().checkConnectivity());
 
     if (connectivityResult.contains(ConnectivityResult.none)) {

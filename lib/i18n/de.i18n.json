@@ -113,6 +113,7 @@
     "downloadFailed": "Download fehlgeschlagen: $error"
   },
   "errors": {
+    "insufficientStorage": "Nicht genügend Speicherplatz. Es sind mindestens 5 GB freier Speicherplatz erforderlich, um das Modell sicher herunterzuladen und zu installieren.",
     "contextOverflow": "⚠️ Fehler: Die Eingabe überschreitet die strengen Hardware-Speichergrenzen. Das System hat versucht, den Speicher zu verkleinern, aber die Anfrage ist zu groß. Bitte erhöhen Sie das 'Gesamte Kontextfenster' in den Einstellungen oder starten Sie einen neuen Chat.",
     "inferenceFailed": "⚠️ Fehler: Modellinferenz fehlgeschlagen.\nDetails: $error",
     "generationFailed": "⚠️ Fehler: Generierung konnte nicht gestartet werden.\nDetails: $error"

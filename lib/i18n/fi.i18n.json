@@ -113,6 +113,7 @@
     "downloadFailed": "Lataus epäonnistui: $error"
   },
   "errors": {
+    "insufficientStorage": "Riittämätön tallennustila. Mallin turvallinen lataaminen ja asentaminen vaatii vähintään 5 Gt vapaata tilaa.",
     "contextOverflow": "⚠️ Virhe: Syöte ylitti laitteiston muistirajoitukset. Järjestelmä yritti karsia muistia, mutta kehote on edelleen liian suuri. Kasvata 'Kokonaiskontekstia' asetuksissa tai aloita uusi keskustelu.",
     "inferenceFailed": "⚠️ Virhe: Mallin päättely epäonnistui.\nLisätietoja: $error",
     "generationFailed": "⚠️ Virhe: Luonnin aloittaminen epäonnistui.\nLisätietoja: $error"

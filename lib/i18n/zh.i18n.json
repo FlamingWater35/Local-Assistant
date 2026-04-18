@@ -113,6 +113,7 @@
     "downloadFailed": "下载失败: $error"
   },
   "errors": {
+    "insufficientStorage": "存储空间不足。安全下载和安装模型至少需要 5 GB 的剩余空间。",
     "contextOverflow": "⚠️ 错误：输入超出了严格的硬件内存限制。系统尝试修剪内存，但提示词仍然过大。请在设置中增加“总上下文窗口”或开始新的对话。",
     "inferenceFailed": "⚠️ 错误：模型推理失败。\n详细信息: $error",
     "generationFailed": "⚠️ 错误：启动生成失败。\n详细信息: $error"

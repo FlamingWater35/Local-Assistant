@@ -113,6 +113,7 @@
     "downloadFailed": "Échec du téléchargement: $error"
   },
   "errors": {
+    "insufficientStorage": "Espace de stockage insuffisant. Au moins 5 Go d'espace libre sont requis pour télécharger et installer le modèle en toute sécurité.",
     "contextOverflow": "⚠️ Erreur: L'entrée a dépassé les limites strictes de la mémoire matérielle. Le système a tenté d'élaguer la mémoire mais le message est trop grand. Veuillez augmenter la 'Fenêtre de contexte totale' dans les paramètres ou démarrer un nouveau chat.",
     "inferenceFailed": "⚠️ Erreur: L'inférence du modèle a échoué.\nDétails: $error",
     "generationFailed": "⚠️ Erreur: Échec du démarrage de la génération.\nDétails: $error"
