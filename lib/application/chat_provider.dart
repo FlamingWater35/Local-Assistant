@@ -38,6 +38,7 @@ class IsGenerating extends _$IsGenerating {
 @Riverpod(keepAlive: true)
 class CurrentThinking extends _$CurrentThinking {
   void setThinking(String value) => state = value;
+
   void clear() => state = '';
 
   @override
@@ -295,8 +296,6 @@ class ChatLogic extends _$ChatLogic {
             _updateLocalMessage(aiMsgId, aiText);
           }
 
-          ref.read(currentThinkingProvider.notifier).clear();
-
           _generationSubscription = null;
           _activeGenerationSessionId = null;
           ref.read(isGeneratingProvider.notifier).setGenerating(false);
@@ -307,7 +306,6 @@ class ChatLogic extends _$ChatLogic {
     } catch (e) {
       WakelockPlus.disable();
       ref.read(isGeneratingProvider.notifier).setGenerating(false);
-      ref.read(currentThinkingProvider.notifier).clear();
       appLogger.e("Inference setup error", error: e);
 
       if (_activeGenerationSessionId == currentSessionId) {
@@ -325,7 +323,6 @@ class ChatLogic extends _$ChatLogic {
     }
     _activeGenerationSessionId = null;
     ref.read(isGeneratingProvider.notifier).setGenerating(false);
-    ref.read(currentThinkingProvider.notifier).clear();
     _flushPendingSaves();
   }
 

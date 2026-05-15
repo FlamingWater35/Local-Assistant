@@ -675,6 +675,7 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
     final t = Translations.of(context);
     final progress = _progress;
     final theme = Theme.of(context);
+    final hasError = _error != null;
 
     return AlertDialog(
       title: Text(t.download.title(name: widget.model.name)),
@@ -732,10 +733,16 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text(t.common.cancel),
         ),
-        FilledButton(
-          onPressed: _checkConnectivityAndStart,
-          child: Text(t.download.startDownload),
-        ),
+        if (hasError)
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t.common.cancel),
+          )
+        else
+          FilledButton(
+            onPressed: _checkConnectivityAndStart,
+            child: Text(t.download.startDownload),
+          ),
       ],
     );
   }
