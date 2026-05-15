@@ -313,39 +313,51 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
               ),
             ),
 
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 8,
-            ),
-            title: Text(t.settings.modelMenu.backend),
-            subtitle: Text(t.settings.modelMenu.backendDescription),
-            trailing: SegmentedButton<PreferredBackend>(
-              segments: const [
-                ButtonSegment<PreferredBackend>(
-                  value: PreferredBackend.cpu,
-                  label: Text('CPU'),
-                  icon: Icon(Icons.memory, size: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.settings.modelMenu.backend,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                ButtonSegment<PreferredBackend>(
-                  value: PreferredBackend.gpu,
-                  label: Text('GPU'),
-                  icon: Icon(Icons.graphic_eq, size: 16),
+                const SizedBox(height: 4),
+                Text(
+                  t.settings.modelMenu.backendDescription,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
-                ButtonSegment<PreferredBackend>(
-                  value: PreferredBackend.npu,
-                  label: Text('NPU'),
-                  icon: Icon(Icons.graphic_eq, size: 16),
+                const SizedBox(height: 12),
+                SegmentedButton<PreferredBackend>(
+                  segments: const [
+                    ButtonSegment<PreferredBackend>(
+                      value: PreferredBackend.cpu,
+                      label: Text('CPU'),
+                      icon: Icon(Icons.memory, size: 16),
+                    ),
+                    ButtonSegment<PreferredBackend>(
+                      value: PreferredBackend.gpu,
+                      label: Text('GPU'),
+                      icon: Icon(Icons.graphic_eq, size: 16),
+                    ),
+                    ButtonSegment<PreferredBackend>(
+                      value: PreferredBackend.npu,
+                      label: Text('NPU'),
+                      icon: Icon(Icons.graphic_eq, size: 16),
+                    ),
+                  ],
+                  selected: {_draftSettings.selectedBackend},
+                  onSelectionChanged: (Set<PreferredBackend> selection) {
+                    setState(() {
+                      _draftSettings = _draftSettings.copyWith(
+                        selectedBackend: selection.first,
+                      );
+                    });
+                  },
                 ),
               ],
-              selected: {_draftSettings.selectedBackend},
-              onSelectionChanged: (Set<PreferredBackend> selection) {
-                setState(() {
-                  _draftSettings = _draftSettings.copyWith(
-                    selectedBackend: selection.first,
-                  );
-                });
-              },
             ),
           ),
 
