@@ -25,7 +25,8 @@
     "messageHint": "Viesti Paikalliselle Avustajalle...",
     "attachmentSession": "Liiteistunto",
     "generating": "Luodaan...",
-    "stop": "Pysäytä"
+    "stop": "Pysäytä",
+    "thinking": "Ajattelee..."
   },
   "attachments": {
     "photo": "Kuva",
@@ -82,6 +83,19 @@
       "detected": "Laitteen RAM: $ram GB",
       "safe": "✅ Turvallinen laitteesi muistille.",
       "warning": "⚠️ Suuri riski muistin loppumisvirheisiin tällä laitteella."
+    },
+    "modelMenu": {
+      "title": "Malliasetukset",
+      "subtitle": "Valitse tekoälymalli ja määritä asetukset",
+      "selectModel": "Valitse malli",
+      "modelOptions": "Malliasetukset",
+      "supportsImages": "Kuvat",
+      "supportsAudio": "Ääni",
+      "supportsThinking": "Ajattelu",
+      "enableThinking": "Ota ajattelutila käyttöön",
+      "enableThinkingDescription": "Näytä mallin päättelyprosessi ennen vastausta",
+      "backend": "Päättelyn tausta",
+      "backendDescription": "Valitse laitteistokiihdytys (GPU suositeltu useimmille malleille)"
     }
   },
   "setup": {

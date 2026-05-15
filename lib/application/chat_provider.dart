@@ -36,6 +36,15 @@ class IsGenerating extends _$IsGenerating {
 }
 
 @Riverpod(keepAlive: true)
+class CurrentThinking extends _$CurrentThinking {
+  void setThinking(String value) => state = value;
+  void clear() => state = '';
+
+  @override
+  String build() => '';
+}
+
+@Riverpod(keepAlive: true)
 class ChatLogic extends _$ChatLogic {
   String? currentSessionId;
 
@@ -189,6 +198,7 @@ class ChatLogic extends _$ChatLogic {
 
     _activeGenerationSessionId = currentSessionId;
     ref.read(isGeneratingProvider.notifier).setGenerating(true);
+    ref.read(currentThinkingProvider.notifier).clear();
 
     final localAtts = attachments
         .map(
@@ -233,15 +243,23 @@ class ChatLogic extends _$ChatLogic {
       _generationSubscription = stream.listen(
         (chunk) {
           if (_activeGenerationSessionId == currentSessionId) {
-            aiText += chunk;
-
-            final now = DateTime.now();
-            if (now.difference(lastUiUpdate).inMilliseconds >= 50) {
-              _updateLocalMessage(aiMsgId, aiText);
-              lastUiUpdate = now;
+            if (chunk.isThinking && chunk.thinking != null) {
+              final currentThinking = ref.read(currentThinkingProvider);
+              ref
+                  .read(currentThinkingProvider.notifier)
+                  .setThinking(currentThinking + chunk.thinking!);
             }
+            if (chunk.isText && chunk.text != null) {
+              aiText += chunk.text!;
 
-            _debouncedSave();
+              final now = DateTime.now();
+              if (now.difference(lastUiUpdate).inMilliseconds >= 50) {
+                _updateLocalMessage(aiMsgId, aiText);
+                lastUiUpdate = now;
+              }
+
+              _debouncedSave();
+            }
           }
         },
         onError: (error) {
@@ -277,6 +295,8 @@ class ChatLogic extends _$ChatLogic {
             _updateLocalMessage(aiMsgId, aiText);
           }
 
+          ref.read(currentThinkingProvider.notifier).clear();
+
           _generationSubscription = null;
           _activeGenerationSessionId = null;
           ref.read(isGeneratingProvider.notifier).setGenerating(false);
@@ -287,6 +307,7 @@ class ChatLogic extends _$ChatLogic {
     } catch (e) {
       WakelockPlus.disable();
       ref.read(isGeneratingProvider.notifier).setGenerating(false);
+      ref.read(currentThinkingProvider.notifier).clear();
       appLogger.e("Inference setup error", error: e);
 
       if (_activeGenerationSessionId == currentSessionId) {
@@ -304,6 +325,7 @@ class ChatLogic extends _$ChatLogic {
     }
     _activeGenerationSessionId = null;
     ref.read(isGeneratingProvider.notifier).setGenerating(false);
+    ref.read(currentThinkingProvider.notifier).clear();
     _flushPendingSaves();
   }
 

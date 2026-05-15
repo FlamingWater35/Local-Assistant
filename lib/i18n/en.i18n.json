@@ -25,7 +25,8 @@
     "messageHint": "Message Local Assistant...",
     "attachmentSession": "Attachment session",
     "generating": "Generating...",
-    "stop": "Stop"
+    "stop": "Stop",
+    "thinking": "Thinking..."
   },
   "attachments": {
     "photo": "Photo",

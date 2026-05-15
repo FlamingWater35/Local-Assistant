@@ -34,6 +34,7 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _composerController = TextEditingController();
+  bool _isThinkingExpanded = false;
   final List<ChatAttachment> _pendingAttachments = [];
 
   @override
@@ -390,6 +391,79 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  Widget _buildThinkingWidget(
+    BuildContext context,
+    ThemeData theme,
+    String thinkingContent,
+    bool isExpanded,
+  ) {
+    final t = Translations.of(context);
+    if (thinkingContent.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isThinkingExpanded = !isExpanded),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.psychology,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  t.chat.thinking,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+          if (isExpanded) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                thinkingContent,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildCustomComposer(BuildContext context, ThemeData theme) {
     final t = Translations.of(context);
     return Align(
@@ -592,6 +666,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final chatController = ref.watch(chatLogicProvider);
     final isGenerating = ref.watch(isGeneratingProvider);
+    final thinkingContent = ref.watch(currentThinkingProvider);
 
     final appTheme = Theme.of(context);
     final chatTheme = ChatTheme.fromThemeData(appTheme);
@@ -642,6 +717,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,
                         children: [
+                          if (isThisMessageGenerating &&
+                              thinkingContent.isNotEmpty)
+                            _buildThinkingWidget(
+                              context,
+                              appTheme,
+                              thinkingContent,
+                              _isThinkingExpanded,
+                            ),
                           if (atts.isNotEmpty)
                             ...atts.map(
                               (att) => _buildUnifiedAttachmentBubble(
@@ -762,6 +845,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,
                         children: [
+                          if (isThisMessageGenerating &&
+                              thinkingContent.isNotEmpty)
+                            _buildThinkingWidget(
+                              context,
+                              appTheme,
+                              thinkingContent,
+                              _isThinkingExpanded,
+                            ),
                           if (message.text.isNotEmpty ||
                               isThisMessageGenerating)
                             IgnorePointer(

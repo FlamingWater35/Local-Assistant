@@ -25,7 +25,8 @@
     "messageHint": "Message pour l'Assistant Local...",
     "attachmentSession": "Session de pièces jointes",
     "generating": "Génération...",
-    "stop": "Arrêter"
+    "stop": "Arrêter",
+    "thinking": "Réflexion..."
   },
   "attachments": {
     "photo": "Photo",
@@ -82,6 +83,19 @@
       "detected": "RAM de l'appareil: $ram Go",
       "safe": "✅ Sûr pour la mémoire de votre appareil.",
       "warning": "⚠️ Risque élevé d'erreurs de manque de mémoire sur cet appareil."
+    },
+    "modelMenu": {
+      "title": "Paramètres du modèle",
+      "subtitle": "Sélectionner le modèle IA et configurer les options",
+      "selectModel": "Sélectionner le modèle",
+      "modelOptions": "Options du modèle",
+      "supportsImages": "Images",
+      "supportsAudio": "Audio",
+      "supportsThinking": "Réflexion",
+      "enableThinking": "Activer le mode réflexion",
+      "enableThinkingDescription": "Afficher le processus de raisonnement du modèle avant de répondre",
+      "backend": "Backend d'inférence",
+      "backendDescription": "Sélectionner l'accélération matérielle (GPU recommandé pour la plupart des modèles)"
     }
   },
   "setup": {

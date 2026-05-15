@@ -10,6 +10,17 @@ import '../domain/models.dart';
 
 part 'llm_service.g.dart';
 
+class GenerationChunk {
+  GenerationChunk({this.text, this.thinking});
+
+  final String? text;
+  final String? thinking;
+
+  bool get isText => text != null;
+
+  bool get isThinking => thinking != null;
+}
+
 @Riverpod(keepAlive: true)
 class ModelStatus extends _$ModelStatus {
   void setStatus(ModelState status) {
@@ -322,7 +333,7 @@ class LlmService {
     }
   }
 
-  Stream<String> generateResponseStream({
+  Stream<GenerationChunk> generateResponseStream({
     required String prompt,
     required ChatSession session,
     required AppSettings settings,
@@ -432,9 +443,9 @@ class LlmService {
               _currentContextTokens += tok;
             } catch (_) {}
           }
-          yield response.token;
+          yield GenerationChunk(text: response.token);
         } else if (response is ThinkingResponse && settings.enableThinking) {
-          continue;
+          yield GenerationChunk(thinking: response.content);
         } else if (response is FunctionCallResponse) {
           continue;
         }

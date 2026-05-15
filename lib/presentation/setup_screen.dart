@@ -111,6 +111,31 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
+  Widget _buildChip(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -244,22 +269,53 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               ),
                           ],
                         ),
-                        subtitle: isInstalledAsync.when(
-                          data: (installed) => Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              installed
-                                  ? t.setup.downloaded
-                                  : t.setup.tapToDownload,
-                              style: TextStyle(
-                                color: installed
-                                    ? Colors.green.shade600
-                                    : theme.colorScheme.onSurfaceVariant,
-                              ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                if (model.supportsImages)
+                                  _buildChip(
+                                    Icons.image,
+                                    t.settings.modelMenu.supportsImages,
+                                    theme.colorScheme.tertiary,
+                                  ),
+                                if (model.supportsAudio)
+                                  _buildChip(
+                                    Icons.audiotrack,
+                                    t.settings.modelMenu.supportsAudio,
+                                    theme.colorScheme.secondary,
+                                  ),
+                                if (model.supportsThinking)
+                                  _buildChip(
+                                    Icons.psychology,
+                                    t.settings.modelMenu.supportsThinking,
+                                    theme.colorScheme.primary,
+                                  ),
+                              ],
                             ),
-                          ),
-                          loading: () => Text(t.setup.checking),
-                          error: (_, _) => Text(t.setup.error),
+                            const SizedBox(height: 4),
+                            isInstalledAsync.when(
+                              data: (installed) => Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  installed
+                                      ? t.setup.downloaded
+                                      : t.setup.tapToDownload,
+                                  style: TextStyle(
+                                    color: installed
+                                        ? Colors.green.shade600
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              loading: () => Text(t.setup.checking),
+                              error: (_, _) => Text(t.setup.error),
+                            ),
+                          ],
                         ),
                         trailing: isInstalledAsync.value == true
                             ? (isSelected

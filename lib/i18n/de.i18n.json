@@ -25,7 +25,8 @@
     "messageHint": "Nachricht an Lokalen Assistenten...",
     "attachmentSession": "Anhangs-Sitzung",
     "generating": "Generiere...",
-    "stop": "Stopp"
+    "stop": "Stopp",
+    "thinking": "Denke nach..."
   },
   "attachments": {
     "photo": "Foto",
@@ -82,6 +83,19 @@
       "detected": "Geräte-RAM: $ram GB",
       "safe": "✅ Sicher für den Speicher Ihres Geräts.",
       "warning": "⚠️ Hohes Risiko von Speichermangel-Fehlern auf diesem Gerät."
+    },
+    "modelMenu": {
+      "title": "Modelleinstellungen",
+      "subtitle": "KI-Modell auswählen und Optionen konfigurieren",
+      "selectModel": "Modell auswählen",
+      "modelOptions": "Modelloptionen",
+      "supportsImages": "Bilder",
+      "supportsAudio": "Audio",
+      "supportsThinking": "Denken",
+      "enableThinking": "Denkmodus aktivieren",
+      "enableThinkingDescription": "Denkprozess des Modells vor der Antwort anzeigen",
+      "backend": "Inferenz-Backend",
+      "backendDescription": "Hardwarebeschleunigung auswählen (GPU für die meisten Modelle empfohlen)"
     }
   },
   "setup": {

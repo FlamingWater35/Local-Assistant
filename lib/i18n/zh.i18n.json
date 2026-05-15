@@ -25,7 +25,8 @@
     "messageHint": "发消息给本地助手...",
     "attachmentSession": "附件会话",
     "generating": "生成中...",
-    "stop": "停止"
+    "stop": "停止",
+    "thinking": "思考中..."
   },
   "attachments": {
     "photo": "照片",
@@ -82,6 +83,19 @@
       "detected": "设备内存: $ram GB",
       "safe": "✅ 对您设备的内存是安全的。",
       "warning": "⚠️ 在此设备上有很高的内存不足错误风险。"
+    },
+    "modelMenu": {
+      "title": "模型设置",
+      "subtitle": "选择 AI 模型并配置选项",
+      "selectModel": "选择模型",
+      "modelOptions": "模型选项",
+      "supportsImages": "图像",
+      "supportsAudio": "音频",
+      "supportsThinking": "思考",
+      "enableThinking": "启用思考模式",
+      "enableThinkingDescription": "在回答前显示模型的推理过程",
+      "backend": "推理后端",
+      "backendDescription": "选择硬件加速（大多数模型推荐 GPU）"
     }
   },
   "setup": {
