@@ -52,6 +52,8 @@ class ChatDrawer extends ConsumerWidget {
         .currentSessionId;
     final appTheme = Theme.of(context);
 
+    final recentHistory = history.take(20).toList();
+
     return Drawer(
       backgroundColor: appTheme.colorScheme.surface,
       child: SafeArea(
@@ -117,9 +119,9 @@ class ChatDrawer extends ConsumerWidget {
                 child: ListView.builder(
                   clipBehavior: Clip.hardEdge,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: history.length,
+                  itemCount: recentHistory.length,
                   itemBuilder: (context, index) {
-                    final session = history[index];
+                    final session = recentHistory[index];
                     final isActive = session.id == activeSessionId;
 
                     return Padding(
@@ -186,6 +188,28 @@ class ChatDrawer extends ConsumerWidget {
                 ),
               ),
             ),
+
+            if (history.length > 20)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.router.push(const ChatHistoryRoute());
+                  },
+                  icon: const Icon(Icons.history, size: 18),
+                  label: Text(t.chat.viewAllHistory),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
 
             const Divider(height: 1),
             Padding(

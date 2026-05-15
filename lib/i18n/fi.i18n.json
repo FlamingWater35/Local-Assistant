@@ -26,7 +26,12 @@
     "attachmentSession": "Liiteistunto",
     "generating": "Luodaan...",
     "stop": "Pysäytä",
-    "thinking": "Ajattelee..."
+    "thinking": "Ajattelee...",
+    "viewAllHistory": "Näytä kaikki historiat",
+    "chatHistory": "Keskusteluhistoria",
+    "searchHistory": "Hae historiasta...",
+    "noHistory": "Ei keskusteluhistoriaa",
+    "noResults": "Ei vastaavia keskusteluja"
   },
   "attachments": {
     "photo": "Kuva",

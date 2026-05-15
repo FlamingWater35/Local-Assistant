@@ -26,7 +26,12 @@
     "attachmentSession": "附件会话",
     "generating": "生成中...",
     "stop": "停止",
-    "thinking": "思考中..."
+    "thinking": "思考中...",
+    "viewAllHistory": "查看全部记录",
+    "chatHistory": "聊天记录",
+    "searchHistory": "搜索记录...",
+    "noHistory": "暂无聊天记录",
+    "noResults": "未找到匹配的聊天"
   },
   "attachments": {
     "photo": "照片",

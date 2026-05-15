@@ -26,7 +26,12 @@
     "attachmentSession": "Session de pièces jointes",
     "generating": "Génération...",
     "stop": "Arrêter",
-    "thinking": "Réflexion..."
+    "thinking": "Réflexion...",
+    "viewAllHistory": "Voir tout l'historique",
+    "chatHistory": "Historique des discussions",
+    "searchHistory": "Rechercher dans l'historique...",
+    "noHistory": "Aucun historique",
+    "noResults": "Aucune discussion correspondante"
   },
   "attachments": {
     "photo": "Photo",

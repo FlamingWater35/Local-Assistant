@@ -26,7 +26,12 @@
     "attachmentSession": "Anhangs-Sitzung",
     "generating": "Generiere...",
     "stop": "Stopp",
-    "thinking": "Denke nach..."
+    "thinking": "Denke nach...",
+    "viewAllHistory": "Alle Verläufe anzeigen",
+    "chatHistory": "Chat-Verlauf",
+    "searchHistory": "Verlauf durchsuchen...",
+    "noHistory": "Kein Chat-Verlauf",
+    "noResults": "Keine passenden Chats"
   },
   "attachments": {
     "photo": "Foto",

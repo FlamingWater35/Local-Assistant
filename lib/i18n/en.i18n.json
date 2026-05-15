@@ -26,7 +26,12 @@
     "attachmentSession": "Attachment session",
     "generating": "Generating...",
     "stop": "Stop",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "viewAllHistory": "View All History",
+    "chatHistory": "Chat History",
+    "searchHistory": "Search history...",
+    "noHistory": "No chat history",
+    "noResults": "No matching chats"
   },
   "attachments": {
     "photo": "Photo",
