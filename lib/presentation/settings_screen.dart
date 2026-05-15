@@ -4,17 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
-import 'package:local_assistant/application/updater_provider.dart';
-import 'package:local_assistant/core/constants.dart';
-import 'package:local_assistant/i18n/generated/translations.g.dart';
+import 'package:local_assistant/router/app_router.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../application/device_info_provider.dart';
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
+import '../application/updater_provider.dart';
+import '../core/constants.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
+import '../i18n/generated/translations.g.dart';
 
 @RoutePage()
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -47,54 +48,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showDownloadDialog(AvailableModel model) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => DownloadModelDialog(
-        model: model,
-        currentSettings: _draftSettings,
-        onDownloaded: () {
-          setState(() {
-            _draftSettings = _draftSettings.copyWith(selectedModel: model.id);
-          });
-        },
-      ),
-    ).then((_) => setState(() {}));
-  }
-
-  void _confirmDeleteModel(AvailableModel model) {
-    final t = Translations.of(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.settings.deleteModelTitle),
-        content: Text(t.settings.deleteModelConfirm(name: model.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(t.common.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await ref
-                  .read(modelDownloaderProvider.notifier)
-                  .deleteModel(model);
-              if (mounted) {
-                showSuccessSnackBar(context, t.settings.modelDeleted);
-              }
-            },
-            child: Text(t.common.delete),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _confirmReset() {
     final t = Translations.of(context);
     showDialog(
@@ -118,6 +71,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   systemPrompt: defaultSettings.systemPrompt,
                   hfToken: defaultSettings.hfToken,
                   enableGlobalMemory: defaultSettings.enableGlobalMemory,
+                  enableThinking: defaultSettings.enableThinking,
+                  selectedBackend: defaultSettings.selectedBackend,
                 );
                 _systemPromptController.text = _draftSettings.systemPrompt;
               });
@@ -342,121 +297,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               t.settings.aiModels,
               Icons.smart_toy_outlined,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: kAvailableModels.map((model) {
-                  final isInstalledAsync = ref.watch(
-                    isModelInstalledProvider(model.id),
-                  );
-                  final isSelected = _draftSettings.selectedModel == model.id;
-
-                  return Card.filled(
-                    elevation: isSelected ? 2 : 0,
-                    margin: const EdgeInsets.only(bottom: 8),
-                    color: isSelected
-                        ? theme.colorScheme.primaryContainer
-                        : theme.colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.5,
-                          ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      title: Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        children: [
-                          Text(
-                            model.name,
-                            style: TextStyle(
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: isSelected
-                                  ? theme.colorScheme.onPrimaryContainer
-                                  : theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          if (model.isRecommended)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.tertiaryContainer,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                t.common.recommended.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onTertiaryContainer,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      subtitle: isInstalledAsync.when(
-                        data: (installed) => Text(
-                          installed
-                              ? t.settings.readyToUse
-                              : t.settings.notDownloaded,
-                          style: TextStyle(
-                            color: installed
-                                ? (isSelected
-                                      ? theme.colorScheme.primary
-                                      : Colors.green.shade600)
-                                : theme.colorScheme.onSurfaceVariant,
-                            fontWeight: installed
-                                ? FontWeight.w500
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        loading: () => Text(t.settings.checkingStatus),
-                        error: (_, _) => Text(t.settings.errorCheckingStatus),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isInstalledAsync.value == true && !isSelected)
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                color: theme.colorScheme.error,
-                              ),
-                              tooltip: t.settings.deleteModelTitle,
-                              onPressed: () => _confirmDeleteModel(model),
-                            ),
-                          isInstalledAsync.value == true
-                              ? (isSelected
-                                    ? Icon(
-                                        Icons.check_circle,
-                                        color: theme.colorScheme.primary,
-                                      )
-                                    : const Icon(Icons.circle_outlined))
-                              : IconButton(
-                                  icon: const Icon(Icons.download_rounded),
-                                  color: theme.colorScheme.primary,
-                                  tooltip: t.settings.downloadModelTooltip,
-                                  onPressed: () => _showDownloadDialog(model),
-                                ),
-                        ],
-                      ),
-                      onTap: isInstalledAsync.value == true
-                          ? () => setState(
-                              () => _draftSettings = _draftSettings.copyWith(
-                                selectedModel: model.id,
-                              ),
-                            )
-                          : null,
-                    ),
-                  );
-                }).toList(),
+            Card.filled(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                leading: const Icon(Icons.model_training),
+                title: Text(t.settings.modelMenu.title),
+                subtitle: Text(t.settings.modelMenu.subtitle),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  context.router.push(const ModelMenuRoute());
+                },
               ),
             ),
 
@@ -688,6 +538,12 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
   late TextEditingController _tokenController;
 
   @override
+  void dispose() {
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _tokenController = TextEditingController(
@@ -749,9 +605,7 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
 
   Future<void> _startDownload() async {
     final t = Translations.of(context);
-    appLogger.i("DownloadDialog: Starting download for ${widget.model.id}");
     if (widget.model.requiresAuth && _tokenController.text.trim().isEmpty) {
-      appLogger.w("DownloadDialog: HF Token missing.");
       setState(() => _error = t.download.hfTokenRequired);
       return;
     }
@@ -764,29 +618,46 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
     WakelockPlus.enable();
 
     try {
-      await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
-          .fromNetwork(widget.model.url, token: _tokenController.text.trim())
-          .withProgress((p) {
-            if (mounted) setState(() => _progress = p);
+      final fileType = widget.model.fileName.endsWith('.litertlm')
+          ? ModelFileType.litertlm
+          : ModelFileType.task;
+
+      await FlutterGemma.installModel(
+            modelType: widget.model.modelType,
+            fileType: fileType,
+          )
+          .fromNetwork(
+            widget.model.url,
+            token: _tokenController.text.trim().isNotEmpty
+                ? _tokenController.text.trim()
+                : null,
+          )
+          .withProgress((progress) {
+            if (mounted) setState(() => _progress = progress);
           })
           .install();
 
-      appLogger.i("DownloadDialog: Download complete. Saving token.");
-      final settingsNotifier = ref.read(settingsControllerProvider.notifier);
-      await settingsNotifier.updateSettings(
-        widget.currentSettings.copyWith(hfToken: _tokenController.text.trim()),
-        reloadModel: false,
-      );
-
-      ref.invalidate(isModelInstalledProvider(widget.model.id));
-      widget.onDownloaded();
-
       if (mounted) {
-        Navigator.pop(context);
-        showSuccessSnackBar(context, t.download.downloadSuccess);
+        final container = ProviderScope.containerOf(context);
+        final settingsNotifier = container.read(
+          settingsControllerProvider.notifier,
+        );
+        await settingsNotifier.updateSettings(
+          widget.currentSettings.copyWith(
+            hfToken: _tokenController.text.trim(),
+          ),
+          reloadModel: false,
+        );
+
+        container.invalidate(isModelInstalledProvider(widget.model.id));
+        widget.onDownloaded();
+
+        if (mounted) {
+          Navigator.pop(context);
+          showSuccessSnackBar(context, t.download.downloadSuccess);
+        }
       }
     } catch (e) {
-      appLogger.e("DownloadDialog: Download failed", error: e);
       if (mounted) {
         setState(() => _error = t.download.downloadFailed(error: e.toString()));
         showErrorSnackBar(
@@ -803,60 +674,68 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     final progress = _progress;
+    final theme = Theme.of(context);
+
     return AlertDialog(
       title: Text(t.download.title(name: widget.model.name)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.model.requiresAuth) ...[
-            Text(t.download.requiresAuth, style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _tokenController,
-              decoration: InputDecoration(
-                labelText: t.download.hfToken,
-                border: const OutlineInputBorder(),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.model.requiresAuth) ...[
+              Text(
+                t.download.requiresAuth,
+                style: const TextStyle(fontSize: 12),
               ),
-              obscureText: true,
-              enabled: progress == null,
-            ),
-          ],
-          const SizedBox(height: 20),
-          if (progress != null) ...[
-            LinearProgressIndicator(
-              value: progress / 100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              t.download.downloading(progress: progress),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 13,
+              const SizedBox(height: 16),
+              TextField(
+                controller: _tokenController,
+                decoration: InputDecoration(
+                  labelText: t.download.hfToken,
+                  border: const OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+            ],
+            const SizedBox(height: 20),
+            if (progress != null) ...[
+              SizedBox(
+                height: 20,
+                child: LinearProgressIndicator(
+                  value: progress / 100,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-            ),
-        ],
+              const SizedBox(height: 12),
+              Text(
+                t.download.downloading(progress: progress),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  _error!,
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
       actions: [
-        if (progress == null)
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(t.common.cancel),
-          ),
-        if (progress == null)
-          FilledButton(
-            onPressed: _checkConnectivityAndStart,
-            child: Text(t.download.startDownload),
-          ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(t.common.cancel),
+        ),
+        FilledButton(
+          onPressed: _checkConnectivityAndStart,
+          child: Text(t.download.startDownload),
+        ),
       ],
     );
   }

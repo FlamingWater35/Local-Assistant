@@ -63,7 +63,14 @@ class LlmService {
 
       appLogger.i("⚙️ initModel: Mounting Gemma model: ${modelDef.name}");
 
-      await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+      final fileType = modelDef.fileName.endsWith('.litertlm')
+          ? ModelFileType.litertlm
+          : ModelFileType.task;
+
+      await FlutterGemma.installModel(
+            modelType: modelDef.modelType,
+            fileType: fileType,
+          )
           .fromNetwork(
             modelDef.url,
             token: settings.hfToken.isNotEmpty ? settings.hfToken : null,
@@ -76,10 +83,12 @@ class LlmService {
       appLogger.i(
         "⚙️ initModel: Allocating LiteRT KV Cache for $safeMaxTokens tokens.",
       );
+
       _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: safeMaxTokens,
-        supportImage: true,
-        supportAudio: true,
+        preferredBackend: settings.selectedBackend,
+        supportImage: modelDef.supportsImages,
+        supportAudio: modelDef.supportsAudio,
         maxNumImages: AppConstants.maxAttachments,
       );
 
@@ -87,8 +96,9 @@ class LlmService {
 
       _activeChat = await _activeModel!.createChat(
         systemInstruction: settings.systemPrompt,
-        supportImage: true,
-        supportAudio: true,
+        supportImage: modelDef.supportsImages,
+        supportAudio: modelDef.supportsAudio,
+        isThinking: settings.enableThinking && modelDef.supportsThinking,
       );
       _currentContextTokens = AppConstants.estimateTokens(
         settings.systemPrompt,
@@ -144,10 +154,16 @@ class LlmService {
 
       if (_activeChat != null) await _activeChat!.close();
 
+      final modelDef = kAvailableModels.firstWhere(
+        (m) => m.id == settings.selectedModel,
+        orElse: () => kAvailableModels.first,
+      );
+
       _activeChat = await _activeModel!.createChat(
         systemInstruction: finalSystemPrompt,
-        supportImage: true,
-        supportAudio: true,
+        supportImage: modelDef.supportsImages,
+        supportAudio: modelDef.supportsAudio,
+        isThinking: settings.enableThinking && modelDef.supportsThinking,
       );
       int totalTokens = systemTokens;
       int imageCount = reserveImages;
@@ -417,6 +433,10 @@ class LlmService {
             } catch (_) {}
           }
           yield response.token;
+        } else if (response is ThinkingResponse && settings.enableThinking) {
+          continue;
+        } else if (response is FunctionCallResponse) {
+          continue;
         }
       }
     } catch (e) {

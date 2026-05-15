@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:hive_ce/hive.dart';
 
 part 'models.g.dart';
@@ -13,6 +14,11 @@ class AvailableModel {
     required this.fileName,
     required this.requiresAuth,
     this.isRecommended = false,
+    this.supportsImages = false,
+    this.supportsAudio = false,
+    this.supportsThinking = false,
+    this.modelType = ModelType.gemmaIt,
+    this.preferredBackend = PreferredBackend.gpu,
   });
 
   final String fileName;
@@ -21,17 +27,15 @@ class AvailableModel {
   final String name;
   final bool requiresAuth;
   final String url;
+  final bool supportsImages;
+  final bool supportsAudio;
+  final bool supportsThinking;
+  final ModelType modelType;
+  final PreferredBackend preferredBackend;
 }
 
 const List<AvailableModel> kAvailableModels = [
-  AvailableModel(
-    id: 'gemma-3n-e2b',
-    name: 'Gemma 3n E2B (INT4)',
-    url:
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-    fileName: 'gemma-3n-E2B-it-int4.task',
-    requiresAuth: true,
-  ),
+  // Gemma 4 models
   AvailableModel(
     id: 'gemma-4-e2b',
     name: 'Gemma 4 E2B (INT4)',
@@ -40,14 +44,10 @@ const List<AvailableModel> kAvailableModels = [
     fileName: 'gemma-4-E2B-it.litertlm',
     requiresAuth: false,
     isRecommended: true,
-  ),
-  AvailableModel(
-    id: 'gemma-3n-e4b',
-    name: 'Gemma 3n E4B (INT4)',
-    url:
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    fileName: 'gemma-3n-E4B-it-int4.task',
-    requiresAuth: true,
+    supportsImages: true,
+    supportsAudio: true,
+    supportsThinking: true,
+    modelType: ModelType.gemma4,
   ),
   AvailableModel(
     id: 'gemma-4-e4b',
@@ -56,6 +56,58 @@ const List<AvailableModel> kAvailableModels = [
         'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
     fileName: 'gemma-4-E4B-it.litertlm',
     requiresAuth: false,
+    supportsImages: true,
+    supportsAudio: true,
+    supportsThinking: true,
+    modelType: ModelType.gemma4,
+  ),
+
+  // Gemma 3 Nano models
+  AvailableModel(
+    id: 'gemma-3n-e2b',
+    name: 'Gemma 3n E2B (INT4)',
+    url:
+        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+    fileName: 'gemma-3n-E2B-it-int4.task',
+    requiresAuth: true,
+    supportsImages: true,
+    supportsThinking: true,
+  ),
+  AvailableModel(
+    id: 'gemma-3n-e4b',
+    name: 'Gemma 3n E4B (INT4)',
+    url:
+        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+    fileName: 'gemma-3n-E4B-it-int4.task',
+    requiresAuth: true,
+    supportsImages: true,
+    supportsThinking: true,
+  ),
+
+  // DeepSeek R1 Distill Qwen 1.5B
+  AvailableModel(
+    id: 'deepseek-r1-distill-qwen-1.5b',
+    name: 'DeepSeek R1 Distill Qwen 1.5B',
+    url:
+        'https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/deepseek_q8_ekv1280.task',
+    fileName: 'deepseek_q8_ekv1280.task',
+    requiresAuth: false,
+    supportsThinking: true,
+    modelType: ModelType.deepSeek,
+    preferredBackend: PreferredBackend.cpu,
+  ),
+
+  // Qwen3 0.6B
+  AvailableModel(
+    id: 'qwen3-0.6b',
+    name: 'Qwen3 0.6B',
+    url:
+        'https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm',
+    fileName: 'Qwen3-0.6B.litertlm',
+    requiresAuth: false,
+    supportsThinking: true,
+    modelType: ModelType.qwen3,
+    preferredBackend: PreferredBackend.cpu,
   ),
 ];
 
@@ -90,6 +142,8 @@ class AppSettings extends HiveObject {
     this.hfToken = '',
     this.enableGlobalMemory = false,
     this.locale = '',
+    this.enableThinking = false,
+    this.selectedBackend = PreferredBackend.gpu,
   });
 
   @HiveField(5, defaultValue: false)
@@ -117,6 +171,12 @@ class AppSettings extends HiveObject {
   @HiveField(1, defaultValue: 0.7)
   final double temperature;
 
+  @HiveField(7, defaultValue: false)
+  final bool enableThinking;
+
+  @HiveField(8, defaultValue: PreferredBackend.gpu)
+  final PreferredBackend selectedBackend;
+
   AppSettings copyWith({
     String? selectedModel,
     double? temperature,
@@ -125,6 +185,8 @@ class AppSettings extends HiveObject {
     String? hfToken,
     bool? enableGlobalMemory,
     String? locale,
+    bool? enableThinking,
+    PreferredBackend? selectedBackend,
   }) {
     return AppSettings(
       selectedModel: selectedModel ?? this.selectedModel,
@@ -134,6 +196,8 @@ class AppSettings extends HiveObject {
       hfToken: hfToken ?? this.hfToken,
       enableGlobalMemory: enableGlobalMemory ?? this.enableGlobalMemory,
       locale: locale ?? this.locale,
+      enableThinking: enableThinking ?? this.enableThinking,
+      selectedBackend: selectedBackend ?? this.selectedBackend,
     );
   }
 }

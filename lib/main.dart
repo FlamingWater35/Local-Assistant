@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gemma/core/api/flutter_gemma.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_assistant/core/constants.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 
 import 'application/settings_provider.dart';
@@ -52,28 +53,37 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.paused:
-        appLogger.w("App paused: Freeing memory...");
-        unawaited(ref.read(llmServiceProvider).unloadModel());
+        // Not doing anything for now
+        // appLogger.w("App paused: Freeing memory...");
+        // unawaited(ref.read(llmServiceProvider).unloadModel());
         break;
 
       case AppLifecycleState.resumed:
         if (_isResuming) return;
         _isResuming = true;
 
-        appLogger.i("App resumed: Restoring model...");
+        appLogger.i("App resumed: Checking model state...");
         final settings = ref.read(settingsControllerProvider);
-        ref
-            .read(llmServiceProvider)
-            .initModel(settings)
-            .then((_) {
-              ref.read(llmServiceProvider).markSessionReady();
-            })
-            .catchError((e) {
-              appLogger.e("Failed to restore model after resume", error: e);
-            })
-            .whenComplete(() {
-              _isResuming = false;
-            });
+        final modelStatus = ref.read(modelStatusProvider);
+
+        if (modelStatus != ModelState.ready) {
+          appLogger.i("Model not ready, reinitializing...");
+          ref
+              .read(llmServiceProvider)
+              .initModel(settings)
+              .then((_) {
+                ref.read(llmServiceProvider).markSessionReady();
+              })
+              .catchError((e) {
+                appLogger.e("Failed to restore model after resume", error: e);
+              })
+              .whenComplete(() {
+                _isResuming = false;
+              });
+        } else {
+          appLogger.i("Model already ready, no action needed.");
+          _isResuming = false;
+        }
         break;
 
       case AppLifecycleState.inactive:

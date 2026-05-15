@@ -1,4 +1,5 @@
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:local_assistant/infrastructure/adapters/preferred_backend_adapter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../core/logger.dart';
@@ -16,6 +17,7 @@ class HiveService {
     Hive.registerAdapter(LocalChatMessageAdapter());
     Hive.registerAdapter(ChatSessionAdapter());
     Hive.registerAdapter(LocalAttachmentAdapter());
+    Hive.registerAdapter(PreferredBackendAdapter());
 
     _settingsBox = await Hive.openBox<AppSettings>('settingsBox');
     _sessionsBox = await Hive.openBox<ChatSession>('sessionsBox');

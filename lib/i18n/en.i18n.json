@@ -82,6 +82,19 @@
       "detected": "Device RAM: $ram GB",
       "safe": "✅ Safe for your device's memory.",
       "warning": "⚠️ High risk of out-of-memory errors on this device."
+    },
+    "modelMenu": {
+      "title": "Model Settings",
+      "subtitle": "Select AI model and configure options",
+      "selectModel": "Select Model",
+      "modelOptions": "Model Options",
+      "supportsImages": "Images",
+      "supportsAudio": "Audio",
+      "supportsThinking": "Thinking",
+      "enableThinking": "Enable Thinking Mode",
+      "enableThinkingDescription": "Show model's reasoning process before answering",
+      "backend": "Inference Backend",
+      "backendDescription": "Select hardware acceleration (GPU recommended for most models)"
     }
   },
   "setup": {

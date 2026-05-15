@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 
 import '../presentation/chat_screen.dart';
+import '../presentation/model_menu_screen.dart';
 import '../presentation/settings_screen.dart';
 import '../presentation/setup_screen.dart';
 
@@ -13,5 +14,6 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: SetupRoute.page, initial: true),
     AutoRoute(page: ChatRoute.page),
     AutoRoute(page: SettingsRoute.page),
+    AutoRoute(page: ModelMenuRoute.page),
   ];
 }

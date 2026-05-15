@@ -541,18 +541,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     builder: (context, ref, child) {
                       final isModelReady =
                           ref.watch(modelStatusProvider) == ModelState.ready;
+                      final isGenerating = ref.watch(isGeneratingProvider);
                       return ValueListenableBuilder<TextEditingValue>(
                         valueListenable: _composerController,
                         builder: (context, value, child) {
                           final canSend =
                               isModelReady &&
+                              !isGenerating &&
                               (value.text.trim().isNotEmpty ||
                                   _pendingAttachments.isNotEmpty);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 2.0),
                             child: IconButton.filled(
-                              icon: const Icon(Icons.arrow_upward),
-                              onPressed: canSend
+                              icon: Icon(
+                                isGenerating ? Icons.stop : Icons.arrow_upward,
+                              ),
+                              onPressed: isGenerating
+                                  ? () => ref
+                                        .read(chatLogicProvider.notifier)
+                                        .stopGeneration()
+                                  : canSend
                                   ? () => _triggerSend(_composerController.text)
                                   : null,
                             ),
@@ -597,20 +605,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        appBar: AppBar(
-          title: Text(t.chat.title),
-          centerTitle: true,
-          actions: [
-            if (isGenerating) ...[
-              IconButton(
-                icon: const Icon(Icons.stop_circle_outlined, color: Colors.red),
-                tooltip: t.chat.stop,
-                onPressed: () =>
-                    ref.read(chatLogicProvider.notifier).stopGeneration(),
-              ),
-            ],
-          ],
-        ),
+        appBar: AppBar(title: Text(t.chat.title), centerTitle: true),
         drawer: const ChatDrawer(),
         body: RepaintBoundary(
           child: Chat(

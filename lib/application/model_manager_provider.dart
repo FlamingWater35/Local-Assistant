@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../core/logger.dart';
@@ -23,7 +20,14 @@ class ModelDownloader extends _$ModelDownloader {
   Future<void> download(AvailableModel model, String token) async {
     state = const AsyncLoading();
     try {
-      await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+      final fileType = model.fileName.endsWith('.litertlm')
+          ? ModelFileType.litertlm
+          : ModelFileType.task;
+
+      await FlutterGemma.installModel(
+            modelType: model.modelType,
+            fileType: fileType,
+          )
           .fromNetwork(model.url, token: token.isNotEmpty ? token : null)
           .withProgress((progress) {
             state = AsyncData(progress);
@@ -42,37 +46,14 @@ class ModelDownloader extends _$ModelDownloader {
   Future<void> deleteModel(AvailableModel model) async {
     state = const AsyncLoading();
     try {
-      final dirs = <Directory>[];
-      try {
-        dirs.add(await getApplicationDocumentsDirectory());
-      } catch (_) {}
-      try {
-        dirs.add(await getApplicationSupportDirectory());
-      } catch (_) {}
-      if (Platform.isIOS || Platform.isMacOS) {
-        try {
-          dirs.add(await getLibraryDirectory());
-        } catch (_) {}
-      }
-
-      bool deleted = false;
-      for (final dir in dirs) {
-        final file = File('${dir.path}/${model.fileName}');
-        if (await file.exists()) {
-          await file.delete();
-          deleted = true;
-        }
-      }
-
-      if (!deleted) {
-        appLogger.w("Could not find file ${model.fileName} to delete.");
-      }
-
+      await FlutterGemma.uninstallModel(model.fileName);
       ref.invalidate(isModelInstalledProvider(model.id));
       state = const AsyncData(null);
+      appLogger.i("✅ Model ${model.name} uninstalled successfully.");
     } catch (e, st) {
-      appLogger.e("Failed to delete model", error: e);
+      appLogger.e("Failed to uninstall model", error: e);
       state = AsyncError(e, st);
+      rethrow;
     }
   }
 
