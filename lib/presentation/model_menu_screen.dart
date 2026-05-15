@@ -31,6 +31,8 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
     final t = Translations.of(context);
     setState(() => _isSaving = true);
 
+    await Future.delayed(const Duration(milliseconds: 50));
+
     try {
       await ref
           .read(settingsControllerProvider.notifier)

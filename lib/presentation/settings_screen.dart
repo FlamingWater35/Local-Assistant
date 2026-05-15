@@ -107,6 +107,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     setState(() => _isLoading = true);
 
+    await Future.delayed(const Duration(milliseconds: 50));
+
     try {
       await ref
           .read(settingsControllerProvider.notifier)
@@ -659,7 +661,10 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = t.download.downloadFailed(error: e.toString()));
+        setState(() {
+          _error = t.download.downloadFailed(error: e.toString());
+          _progress = null;
+        });
         showErrorSnackBar(
           context,
           t.download.downloadFailed(error: e.toString()),
@@ -704,13 +709,15 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
               SizedBox(
                 height: 20,
                 child: LinearProgressIndicator(
-                  value: progress / 100,
+                  value: progress == 100 ? null : progress / 100,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                t.download.downloading(progress: progress),
+                progress == 100
+                    ? "Processing..."
+                    : t.download.downloading(progress: progress),
                 style: theme.textTheme.bodyMedium,
               ),
             ],
@@ -729,20 +736,22 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(t.common.cancel),
-        ),
-        if (hasError)
-          FilledButton(
+        if (progress == null) ...[
+          TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(t.common.cancel),
-          )
-        else
-          FilledButton(
-            onPressed: _checkConnectivityAndStart,
-            child: Text(t.download.startDownload),
           ),
+          if (hasError)
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(t.common.cancel),
+            )
+          else
+            FilledButton(
+              onPressed: _checkConnectivityAndStart,
+              child: Text(t.download.startDownload),
+            ),
+        ],
       ],
     );
   }

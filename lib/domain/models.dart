@@ -24,14 +24,14 @@ class AvailableModel {
   final String fileName;
   final String id;
   final bool isRecommended;
-  final String name;
-  final bool requiresAuth;
-  final String url;
-  final bool supportsImages;
-  final bool supportsAudio;
-  final bool supportsThinking;
   final ModelType modelType;
+  final String name;
   final PreferredBackend preferredBackend;
+  final bool requiresAuth;
+  final bool supportsAudio;
+  final bool supportsImages;
+  final bool supportsThinking;
+  final String url;
 }
 
 const List<AvailableModel> kAvailableModels = [
@@ -149,6 +149,9 @@ class AppSettings extends HiveObject {
   @HiveField(5, defaultValue: false)
   final bool enableGlobalMemory;
 
+  @HiveField(7, defaultValue: false)
+  final bool enableThinking;
+
   @HiveField(4, defaultValue: '')
   final String hfToken;
 
@@ -157,6 +160,9 @@ class AppSettings extends HiveObject {
 
   @HiveField(2, defaultValue: 4096)
   final int maxTokens;
+
+  @HiveField(8, defaultValue: PreferredBackend.gpu)
+  final PreferredBackend selectedBackend;
 
   @HiveField(0, defaultValue: 'gemma-4-e2b')
   final String selectedModel;
@@ -170,12 +176,6 @@ class AppSettings extends HiveObject {
 
   @HiveField(1, defaultValue: 0.7)
   final double temperature;
-
-  @HiveField(7, defaultValue: false)
-  final bool enableThinking;
-
-  @HiveField(8, defaultValue: PreferredBackend.gpu)
-  final PreferredBackend selectedBackend;
 
   AppSettings copyWith({
     String? selectedModel,
@@ -258,7 +258,23 @@ class LocalChatMessage extends HiveObject {
   final String text;
 
   core.Message toChatCoreType() {
-    if (authorId == 'user') {
+    String parsedText = text;
+    String? parsedThinking;
+
+    const String thinkingStart = '<local_assistant_thinking>\n';
+    const String thinkingEnd = '\n</local_assistant_thinking>\n';
+
+    if (parsedText.startsWith(thinkingStart)) {
+      final endIdx = parsedText.indexOf(thinkingEnd);
+      if (endIdx != -1) {
+        parsedThinking = parsedText.substring(thinkingStart.length, endIdx);
+        parsedText = parsedText.substring(endIdx + thinkingEnd.length);
+      }
+    }
+
+    if (authorId == 'user' ||
+        parsedThinking != null ||
+        (attachments != null && attachments!.isNotEmpty)) {
       List<Map<String, dynamic>> metaAtts = [];
 
       if (attachments != null && attachments!.isNotEmpty) {
@@ -280,13 +296,17 @@ class LocalChatMessage extends HiveObject {
         id: id,
         authorId: authorId,
         createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
-        metadata: {'text': text, 'attachments': metaAtts},
+        metadata: {
+          'text': parsedText,
+          'attachments': metaAtts,
+          'thinking': parsedThinking,
+        },
       );
     }
 
     return core.TextMessage(
       id: id,
-      text: text,
+      text: parsedText,
       authorId: authorId,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true),
     );

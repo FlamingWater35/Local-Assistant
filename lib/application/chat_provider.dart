@@ -52,6 +52,7 @@ class ChatLogic extends _$ChatLogic {
   String? _activeGenerationSessionId;
   StreamSubscription? _generationSubscription;
   final Map<String, String> _pendingTextUpdates = {};
+  final Map<String, String> _pendingThinkingUpdates = {};
   Timer? _saveDebounceTimer;
   final _uuid = const Uuid();
 
@@ -252,15 +253,20 @@ class ChatLogic extends _$ChatLogic {
             }
             if (chunk.isText && chunk.text != null) {
               aiText += chunk.text!;
-
-              final now = DateTime.now();
-              if (now.difference(lastUiUpdate).inMilliseconds >= 50) {
-                _updateLocalMessage(aiMsgId, aiText);
-                lastUiUpdate = now;
-              }
-
-              _debouncedSave();
             }
+
+            final now = DateTime.now();
+            if (now.difference(lastUiUpdate).inMilliseconds >= 50) {
+              final currentThinking = ref.read(currentThinkingProvider);
+              _updateLocalMessage(
+                aiMsgId,
+                aiText,
+                currentThinking.isNotEmpty ? currentThinking : null,
+              );
+              lastUiUpdate = now;
+            }
+
+            _debouncedSave();
           }
         },
         onError: (error) {
@@ -277,13 +283,20 @@ class ChatLogic extends _$ChatLogic {
 
           if (errorStr.contains('CONTEXT_OVERFLOW')) {
             if (_activeGenerationSessionId == currentSessionId) {
-              _updateLocalMessage(aiMsgId, t.errors.contextOverflow);
+              final currentThinking = ref.read(currentThinkingProvider);
+              _updateLocalMessage(
+                aiMsgId,
+                t.errors.contextOverflow,
+                currentThinking.isNotEmpty ? currentThinking : null,
+              );
             }
           } else {
             if (_activeGenerationSessionId == currentSessionId) {
+              final currentThinking = ref.read(currentThinkingProvider);
               _updateLocalMessage(
                 aiMsgId,
                 t.errors.inferenceFailed(error: error),
+                currentThinking.isNotEmpty ? currentThinking : null,
               );
             }
           }
@@ -293,7 +306,12 @@ class ChatLogic extends _$ChatLogic {
           appLogger.i("Generation stream completed");
 
           if (_activeGenerationSessionId == currentSessionId) {
-            _updateLocalMessage(aiMsgId, aiText);
+            final currentThinking = ref.read(currentThinkingProvider);
+            _updateLocalMessage(
+              aiMsgId,
+              aiText,
+              currentThinking.isNotEmpty ? currentThinking : null,
+            );
           }
 
           _generationSubscription = null;
@@ -309,7 +327,12 @@ class ChatLogic extends _$ChatLogic {
       appLogger.e("Inference setup error", error: e);
 
       if (_activeGenerationSessionId == currentSessionId) {
-        _updateLocalMessage(aiMsgId, t.errors.generationFailed(error: e));
+        final currentThinking = ref.read(currentThinkingProvider);
+        _updateLocalMessage(
+          aiMsgId,
+          t.errors.generationFailed(error: e),
+          currentThinking.isNotEmpty ? currentThinking : null,
+        );
       }
       _flushPendingSaves();
     }
@@ -318,7 +341,7 @@ class ChatLogic extends _$ChatLogic {
   Future<void> _cancelActiveGeneration() async {
     if (_generationSubscription != null) {
       appLogger.i("Cancelling active generation stream...");
-      await _generationSubscription!.cancel();
+      _generationSubscription!.cancel();
       _generationSubscription = null;
     }
     _activeGenerationSessionId = null;
@@ -346,20 +369,51 @@ class ChatLogic extends _$ChatLogic {
     _debouncedSave();
   }
 
-  void _updateLocalMessage(String id, String newText) {
+  void _updateLocalMessage(String id, String newText, [String? newThinking]) {
     final index = state.messages.indexWhere((m) => m.id == id);
     if (index != -1) {
-      final oldCoreMsg = state.messages[index] as core.TextMessage;
-      final newCoreMsg = core.TextMessage(
-        id: oldCoreMsg.id,
-        authorId: oldCoreMsg.authorId,
-        createdAt: oldCoreMsg.createdAt,
-        text: newText,
-      );
+      final oldCoreMsg = state.messages[index];
+
+      core.Message newCoreMsg;
+      if (oldCoreMsg is core.CustomMessage) {
+        final meta = Map<String, dynamic>.from(oldCoreMsg.metadata ?? {});
+        meta['text'] = newText;
+        if (newThinking != null) meta['thinking'] = newThinking;
+
+        newCoreMsg = core.CustomMessage(
+          id: oldCoreMsg.id,
+          authorId: oldCoreMsg.authorId,
+          createdAt: oldCoreMsg.createdAt,
+          metadata: meta,
+        );
+      } else {
+        if (newThinking != null) {
+          newCoreMsg = core.CustomMessage(
+            id: oldCoreMsg.id,
+            authorId: oldCoreMsg.authorId,
+            createdAt: oldCoreMsg.createdAt,
+            metadata: {
+              'text': newText,
+              'attachments': [],
+              'thinking': newThinking,
+            },
+          );
+        } else {
+          newCoreMsg = core.TextMessage(
+            id: oldCoreMsg.id,
+            authorId: oldCoreMsg.authorId,
+            createdAt: oldCoreMsg.createdAt,
+            text: newText,
+          );
+        }
+      }
       state.updateMessage(oldCoreMsg, newCoreMsg);
     }
 
     _pendingTextUpdates[id] = newText;
+    if (newThinking != null) {
+      _pendingThinkingUpdates[id] = newThinking;
+    }
   }
 
   void _debouncedSave() {
@@ -372,23 +426,31 @@ class ChatLogic extends _$ChatLogic {
 
   void _flushPendingSaves() {
     _saveDebounceTimer?.cancel();
-    if (_pendingTextUpdates.isNotEmpty || currentSessionId != null) {
+    if (_pendingTextUpdates.isNotEmpty ||
+        _pendingThinkingUpdates.isNotEmpty ||
+        currentSessionId != null) {
       _saveSessionToHive();
     }
   }
 
   void _saveSessionToHive() {
     if (currentSessionId == null) return;
-    if (_pendingTextUpdates.isEmpty) return;
+    if (_pendingTextUpdates.isEmpty && _pendingThinkingUpdates.isEmpty) return;
 
     final hiveService = ref.read(hiveServiceProvider);
     final session = hiveService.getSession(currentSessionId!);
     if (session != null) {
       final currentLocalMessages = state.messages.map((m) {
         if (m is core.CustomMessage) {
+          final rawText = m.metadata?['text'] ?? '';
+          final thinking = m.metadata?['thinking'];
+          final combinedText = (thinking != null && thinking.isNotEmpty)
+              ? '<local_assistant_thinking>\n$thinking\n</local_assistant_thinking>\n$rawText'
+              : rawText;
+
           return LocalChatMessage(
             id: m.id,
-            text: m.metadata?['text'] ?? '',
+            text: combinedText,
             authorId: m.authorId,
             createdAt:
                 m.createdAt?.millisecondsSinceEpoch ??
@@ -427,6 +489,7 @@ class ChatLogic extends _$ChatLogic {
       ref.read(chatHistoryProvider.notifier).refresh();
 
       _pendingTextUpdates.clear();
+      _pendingThinkingUpdates.clear();
     }
   }
 

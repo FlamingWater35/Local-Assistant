@@ -34,7 +34,6 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _composerController = TextEditingController();
-  bool _isThinkingExpanded = false;
   final List<ChatAttachment> _pendingAttachments = [];
 
   @override
@@ -391,86 +390,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildThinkingWidget(
-    BuildContext context,
-    ThemeData theme,
-    String thinkingContent,
-    bool isExpanded,
-  ) {
-    final t = Translations.of(context);
-    if (thinkingContent.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _isThinkingExpanded = !isExpanded),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.psychology,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  t.chat.thinking,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-              ],
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            child: isExpanded
-                ? Column(
-                    children: [
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          thinkingContent,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCustomComposer(BuildContext context, ThemeData theme) {
     final t = Translations.of(context);
     return Align(
@@ -709,11 +628,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     final text = message.metadata?['text'] as String? ?? '';
                     final atts =
                         message.metadata?['attachments'] as List? ?? [];
+                    final thinking =
+                        message.metadata?['thinking'] as String? ?? '';
 
                     final isNewestMessage =
                         index == chatController.messages.length - 1;
                     final isThisMessageGenerating =
                         isGenerating && isNewestMessage && !isSentByMe;
+
+                    final displayThinking =
+                        (isThisMessageGenerating && thinkingContent.isNotEmpty)
+                        ? thinkingContent
+                        : thinking;
 
                     return Padding(
                       padding: EdgeInsets.only(
@@ -724,13 +650,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,
                         children: [
-                          if (isThisMessageGenerating &&
-                              thinkingContent.isNotEmpty)
-                            _buildThinkingWidget(
-                              context,
-                              appTheme,
-                              thinkingContent,
-                              _isThinkingExpanded,
+                          if (displayThinking.isNotEmpty)
+                            ThinkingWidget(
+                              thinkingContent: displayThinking,
+                              isGenerating: isThisMessageGenerating,
                             ),
                           if (atts.isNotEmpty)
                             ...atts.map(
@@ -854,11 +777,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         children: [
                           if (isThisMessageGenerating &&
                               thinkingContent.isNotEmpty)
-                            _buildThinkingWidget(
-                              context,
-                              appTheme,
-                              thinkingContent,
-                              _isThinkingExpanded,
+                            ThinkingWidget(
+                              thinkingContent: thinkingContent,
+                              isGenerating: isThisMessageGenerating,
                             ),
                           if (message.text.isNotEmpty ||
                               isThisMessageGenerating)
@@ -961,6 +882,102 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             onMessageSend: _triggerSend,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ThinkingWidget extends StatefulWidget {
+  const ThinkingWidget({
+    super.key,
+    required this.thinkingContent,
+    required this.isGenerating,
+  });
+
+  final bool isGenerating;
+  final String thinkingContent;
+
+  @override
+  State<ThinkingWidget> createState() => _ThinkingWidgetState();
+}
+
+class _ThinkingWidgetState extends State<ThinkingWidget> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final theme = Theme.of(context);
+
+    if (widget.thinkingContent.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.psychology,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  t.chat.thinking,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  _isExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: _isExpanded
+                ? Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ThrottledMarkdownWidget(
+                          text: widget.thinkingContent,
+                          isGenerating: widget.isGenerating,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }

@@ -237,7 +237,7 @@ class LlmService {
 
             if (mediaAtts.isEmpty) {
               if (combinedText.isNotEmpty) {
-                await _activeChat!.addQueryChunk(
+                await _activeChat!.addQuery(
                   Message.text(text: combinedText, isUser: true),
                 );
               }
@@ -256,47 +256,35 @@ class LlmService {
 
                 if (att.type == 'photo') {
                   if (bytes != null) {
-                    if (textPayload.isNotEmpty) {
-                      await _activeChat!.addQueryChunk(
-                        Message.withImage(
-                          text: textPayload,
-                          imageBytes: bytes,
-                          isUser: true,
-                        ),
-                      );
-                    } else {
-                      await _activeChat!.addQueryChunk(
-                        Message.imageOnly(imageBytes: bytes, isUser: true),
-                      );
-                    }
+                    await _activeChat!.addQuery(
+                      Message.withImage(
+                        text: textPayload,
+                        imageBytes: bytes,
+                        isUser: true,
+                      ),
+                    );
                   } else {
                     final fallback = textPayload.isNotEmpty
                         ? "[Image missing]\n\n$textPayload"
                         : "[Image missing]";
-                    await _activeChat!.addQueryChunk(
+                    await _activeChat!.addQuery(
                       Message.text(text: fallback, isUser: true),
                     );
                   }
                 } else if (att.type == 'audio') {
                   if (bytes != null) {
-                    if (textPayload.isNotEmpty) {
-                      await _activeChat!.addQueryChunk(
-                        Message.withAudio(
-                          text: textPayload,
-                          audioBytes: bytes,
-                          isUser: true,
-                        ),
-                      );
-                    } else {
-                      await _activeChat!.addQueryChunk(
-                        Message.audioOnly(audioBytes: bytes, isUser: true),
-                      );
-                    }
+                    await _activeChat!.addQuery(
+                      Message.withAudio(
+                        text: textPayload,
+                        audioBytes: bytes,
+                        isUser: true,
+                      ),
+                    );
                   } else {
                     final fallback = textPayload.isNotEmpty
                         ? "[Audio missing]\n\n$textPayload"
                         : "[Audio missing]";
-                    await _activeChat!.addQueryChunk(
+                    await _activeChat!.addQuery(
                       Message.text(text: fallback, isUser: true),
                     );
                   }
@@ -305,7 +293,7 @@ class LlmService {
             }
           } else {
             if (msg.text.isNotEmpty) {
-              await _activeChat!.addQueryChunk(
+              await _activeChat!.addQuery(
                 Message.text(text: msg.text, isUser: false),
               );
             }
@@ -381,7 +369,7 @@ class LlmService {
 
     if (mediaAttachments.isEmpty) {
       if (combinedText.isNotEmpty) {
-        await _activeChat!.addQueryChunk(
+        await _activeChat!.addQuery(
           Message.text(text: combinedText, isUser: true),
         );
       }
@@ -392,33 +380,21 @@ class LlmService {
         String textPayload = isLast ? combinedText : "";
 
         if (att.type == 'photo') {
-          if (textPayload.isNotEmpty) {
-            await _activeChat!.addQueryChunk(
-              Message.withImage(
-                text: textPayload,
-                imageBytes: att.bytes,
-                isUser: true,
-              ),
-            );
-          } else {
-            await _activeChat!.addQueryChunk(
-              Message.imageOnly(imageBytes: att.bytes, isUser: true),
-            );
-          }
+          await _activeChat!.addQuery(
+            Message.withImage(
+              text: textPayload,
+              imageBytes: att.bytes,
+              isUser: true,
+            ),
+          );
         } else if (att.type == 'audio') {
-          if (textPayload.isNotEmpty) {
-            await _activeChat!.addQueryChunk(
-              Message.withAudio(
-                text: textPayload,
-                audioBytes: att.bytes,
-                isUser: true,
-              ),
-            );
-          } else {
-            await _activeChat!.addQueryChunk(
-              Message.audioOnly(audioBytes: att.bytes, isUser: true),
-            );
-          }
+          await _activeChat!.addQuery(
+            Message.withAudio(
+              text: textPayload,
+              audioBytes: att.bytes,
+              isUser: true,
+            ),
+          );
         }
       }
     }
@@ -447,6 +423,8 @@ class LlmService {
         } else if (response is ThinkingResponse && settings.enableThinking) {
           yield GenerationChunk(thinking: response.content);
         } else if (response is FunctionCallResponse) {
+          continue;
+        } else if (response is ParallelFunctionCallResponse) {
           continue;
         }
       }
