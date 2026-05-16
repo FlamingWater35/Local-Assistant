@@ -81,6 +81,7 @@
     "resetConfirm": "您确定要重置所有推理和行为设置吗？您下载的模型和语言偏好将不受影响。",
     "resetSuccess": "设置已重置为默认值",
     "checkForUpdates": "检查更新",
+    "configInfoNote": "模型、上下文和行为设置会按配置单独保存",
     "checkingForUpdates": "正在检查更新...",
     "appUpToDate": "应用已是最新版本",
     "latestVersion": "您正在使用最新版本",

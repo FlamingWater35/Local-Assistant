@@ -742,6 +742,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     return Card.filled(
+      clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: isInstalled.value == true
           ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
@@ -867,7 +868,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Model, context, and behavior settings are saved per configuration',
+                      t.settings.configInfoNote,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.6,
@@ -1206,6 +1207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Icons.download_outlined,
             ),
             Card.filled(
+              clipBehavior: Clip.antiAlias,
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ListTile(
                 leading: const Icon(Icons.download_outlined),
@@ -1271,13 +1273,13 @@ class _UpdaterCard extends ConsumerWidget {
             title: Text(t.settings.checkForUpdates),
             onTap: updaterNotifier.checkForUpdate,
           ),
-          UpdateChecking() => const ListTile(
+          UpdateChecking() => ListTile(
             leading: SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            title: Text('Checking for updates...'),
+            title: Text(t.settings.checkingForUpdates),
           ),
           UpdateNotAvailable() => ListTile(
             leading: Icon(

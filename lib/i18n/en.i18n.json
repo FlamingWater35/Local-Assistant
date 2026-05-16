@@ -81,6 +81,7 @@
     "resetConfirm": "Are you sure you want to reset all inference and behavior settings? Your downloaded models and language preference will not be affected.",
     "resetSuccess": "Settings reset to defaults",
     "checkForUpdates": "Check for updates",
+    "configInfoNote": "Model, context, and behavior settings are saved per configuration",
     "checkingForUpdates": "Checking for updates...",
     "appUpToDate": "App is up to date",
     "latestVersion": "You are using the latest version",

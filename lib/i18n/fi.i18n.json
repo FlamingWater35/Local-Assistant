@@ -81,6 +81,7 @@
     "resetConfirm": "Haluatko varmasti palauttaa kaikki päättely- ja käyttäytymisasetukset? Ladatut mallit ja kieliasetukset säilyvät.",
     "resetSuccess": "Asetukset palautettu oletusarvoihin",
     "checkForUpdates": "Tarkista päivitykset",
+    "configInfoNote": "Malli-, konteksti- ja käytösasetukset tallennetaan konfiguraatiokohtaisesti",
     "checkingForUpdates": "Tarkistetaan päivityksiä...",
     "appUpToDate": "Sovellus on ajan tasalla",
     "latestVersion": "Käytät uusinta versiota",

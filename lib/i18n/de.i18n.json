@@ -81,6 +81,7 @@
     "resetConfirm": "Sind Sie sicher, dass Sie alle Inferenz- und Verhaltenseinstellungen zurücksetzen möchten? Ihre heruntergeladenen Modelle und die Spracheinstellung bleiben erhalten.",
     "resetSuccess": "Einstellungen auf Standardwerte zurückgesetzt",
     "checkForUpdates": "Auf Updates prüfen",
+    "configInfoNote": "Modell-, Kontext- und Verhaltenseinstellungen werden pro Konfiguration gespeichert",
     "checkingForUpdates": "Suche nach Updates...",
     "appUpToDate": "App ist auf dem neuesten Stand",
     "latestVersion": "Sie verwenden die neueste Version",

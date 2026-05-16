@@ -81,6 +81,7 @@
     "resetConfirm": "Êtes-vous sûr de vouloir réinitialiser tous les paramètres d'inférence et de comportement ? Vos modèles téléchargés et votre préférence linguistique ne seront pas affectés.",
     "resetSuccess": "Paramètres réinitialisés aux valeurs par défaut",
     "checkForUpdates": "Vérifier les mises à jour",
+    "configInfoNote": "Les paramètres de modèle, de contexte et de comportement sont enregistrés par configuration",
     "checkingForUpdates": "Vérification des mises à jour...",
     "appUpToDate": "L'application est à jour",
     "latestVersion": "Vous utilisez la dernière version",
