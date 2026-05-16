@@ -58,6 +58,12 @@
     "settingsApplied": "Settings applied successfully",
     "modelNotDownloaded": "Selected model is not downloaded!",
     "errorWithDetails": "Error: $details",
+    "storageManagement": "Storage Management",
+    "cleanUpStorage": "Clean Up Storage",
+    "cleanUpStorageSubtitle": "Remove incomplete or orphaned model files",
+    "noOrphanedFiles": "No orphaned files found.",
+    "freedUpStorage": "Freed up storage from $count orphaned files.",
+    "cleanupFailed": "Cleanup failed: $error",
     "enableMemoryTitle": "Enable Memory Across Chats",
     "enableMemorySubtitle": "Allows the AI to silently reference facts from your other recent conversations.",
     "totalContextWindow": "Total Context Window",
@@ -122,6 +128,7 @@
     "hfToken": "HuggingFace Token",
     "hfTokenRequired": "HuggingFace Token required.",
     "downloading": "Downloading... $progress%",
+    "processing": "Processing...",
     "startDownload": "Start Download",
     "noInternet": "No internet connection detected.",
     "mobileDataWarningTitle": "Large File Warning",
@@ -133,6 +140,7 @@
   },
   "errors": {
     "insufficientStorage": "Insufficient storage. At least 5 GB of free space is required to download and install the model safely.",
+    "invalidAudioFormat": "Invalid Audio Format. Required: Clean .wav file",
     "contextOverflow": "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
     "inferenceFailed": "⚠️ Error: Model inference failed.\nDetails: $error",
     "generationFailed": "⚠️ Error: Failed to start generation.\nDetails: $error"

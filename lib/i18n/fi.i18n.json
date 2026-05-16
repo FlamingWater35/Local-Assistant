@@ -58,6 +58,12 @@
     "settingsApplied": "Asetukset otettu käyttöön",
     "modelNotDownloaded": "Valittua mallia ei ole ladattu!",
     "errorWithDetails": "Virhe: $details",
+    "storageManagement": "Tallennustilan hallinta",
+    "cleanUpStorage": "Vapauta tallennustilaa",
+    "cleanUpStorageSubtitle": "Poista keskeneräiset tai orvot mallitiedostot",
+    "noOrphanedFiles": "Orpoja tiedostoja ei löytynyt.",
+    "freedUpStorage": "Vapautettiin tallennustilaa $count orvosta tiedostosta.",
+    "cleanupFailed": "Puhdistus epäonnistui: $error",
     "enableMemoryTitle": "Ota käyttöön muisti eri keskustelujen välillä",
     "enableMemorySubtitle": "Sallii tekoälyn hiljaisesti viitata asioihin muista viimeaikaisista keskusteluistasi.",
     "totalContextWindow": "Kokonaiskonteksti",
@@ -122,6 +128,7 @@
     "hfToken": "HuggingFace-tunnus",
     "hfTokenRequired": "HuggingFace-tunnus vaaditaan.",
     "downloading": "Ladataan... $progress%",
+    "processing": "Käsitellään...",
     "startDownload": "Aloita Lataus",
     "noInternet": "Internet-yhteyttä ei havaittu.",
     "mobileDataWarningTitle": "Varoitus isosta tiedostosta",
@@ -133,6 +140,7 @@
   },
   "errors": {
     "insufficientStorage": "Riittämätön tallennustila. Mallin turvallinen lataaminen ja asentaminen vaatii vähintään 5 Gt vapaata tilaa.",
+    "invalidAudioFormat": "Virheellinen äänimuoto. Vaaditaan: Puhdas .wav-tiedosto",
     "contextOverflow": "⚠️ Virhe: Syöte ylitti laitteiston muistirajoitukset. Järjestelmä yritti karsia muistia, mutta kehote on edelleen liian suuri. Kasvata 'Kokonaiskontekstia' asetuksissa tai aloita uusi keskustelu.",
     "inferenceFailed": "⚠️ Virhe: Mallin päättely epäonnistui.\nLisätietoja: $error",
     "generationFailed": "⚠️ Virhe: Luonnin aloittaminen epäonnistui.\nLisätietoja: $error"

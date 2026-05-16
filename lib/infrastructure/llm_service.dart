@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/constants.dart';
 import '../core/logger.dart';
@@ -57,6 +58,7 @@ class LlmService {
     _isSessionActive = false;
     _isUnloading = false;
     _setStatus(ModelState.loading);
+    WakelockPlus.enable();
 
     try {
       appLogger.i("⚙️ initModel: Starting model initialization...");
@@ -88,9 +90,10 @@ class LlmService {
           )
           .install();
 
-      final safeMaxTokens = settings.maxTokens < 2048
-          ? 2048
-          : settings.maxTokens;
+      final safeMaxTokens = settings.maxTokens.clamp(
+        512,
+        modelDef.maxContextSize,
+      );
       appLogger.i(
         "⚙️ initModel: Allocating LiteRT KV Cache for $safeMaxTokens tokens.",
       );
@@ -123,6 +126,73 @@ class LlmService {
       _isSessionActive = false;
       _setStatus(ModelState.error);
       rethrow;
+    } finally {
+      WakelockPlus.disable();
+    }
+  }
+
+  Future<String> processAttachmentsForRag(
+    String prompt,
+    List<ChatAttachment> attachments,
+  ) async {
+    final docAttachments = attachments
+        .where((a) => a.type == 'doc' && a.textContent != null)
+        .toList();
+    if (docAttachments.isEmpty) return prompt;
+
+    appLogger.i("RAG: Fetching & initializing Gecko 64 embedder...");
+    try {
+      await FlutterGemma.installEmbedder()
+          .modelFromNetwork(
+            'https://huggingface.co/litert-community/Gecko-110m-en/resolve/main/Gecko_64_quant.tflite',
+          )
+          .tokenizerFromNetwork(
+            'https://huggingface.co/litert-community/Gecko-110m-en/resolve/main/sentencepiece.model',
+          )
+          .install();
+
+      final embedder = await FlutterGemma.getActiveEmbedder(
+        preferredBackend: PreferredBackend.cpu,
+      );
+
+      appLogger.i("RAG: Initializing VectorStore...");
+      await FlutterGemmaPlugin.instance.initializeVectorStore('rag_temp.db');
+      await FlutterGemmaPlugin.instance.clearVectorStore();
+
+      int docId = 0;
+      for (var doc in docAttachments) {
+        final chunks = _chunkText(doc.textContent!, 500);
+        for (var chunk in chunks) {
+          final embedding = await embedder.generateEmbedding(chunk);
+          await FlutterGemmaPlugin.instance.addDocumentWithEmbedding(
+            id: 'chunk_${docId++}',
+            content: chunk,
+            embedding: embedding,
+          );
+        }
+      }
+
+      final query = prompt.trim().isEmpty
+          ? "Summarize the key points of the documents."
+          : prompt;
+      final results = await FlutterGemmaPlugin.instance.searchSimilar(
+        query: query,
+        topK: 4,
+        threshold: 0.0,
+      );
+
+      await embedder.close();
+
+      if (results.isEmpty) return prompt;
+
+      String contextText = results.map((r) => r.content).join('\n\n---\n\n');
+      appLogger.i(
+        "RAG: Augmented prompt with ${results.length} context chunks.",
+      );
+      return "Use the following retrieved document context to answer the user's query.\n\nContext:\n$contextText\n\nUser Query: $query";
+    } catch (e) {
+      appLogger.e("RAG: Failed during embedding or vector search.", error: e);
+      return prompt;
     }
   }
 
@@ -133,14 +203,11 @@ class LlmService {
     int reserveImages = 0,
   }) async {
     if (_isUnloading || !_isSessionActive || _activeModel == null) {
-      appLogger.i("loadSessionContext: Skipped - session not active");
       return false;
     }
-
     _setStatus(ModelState.loading);
 
     try {
-      appLogger.i("🔄 loadSessionContext: Rebuilding chat context...");
       String finalSystemPrompt = settings.systemPrompt;
       int systemTokens = AppConstants.estimateTokens(finalSystemPrompt);
 
@@ -204,9 +271,6 @@ class LlmService {
           msgTokens += AppConstants.estimateLocalAttachmentTokens(atts);
 
           if (!isFirstMessage && totalTokens + msgTokens > maxInputTokens) {
-            appLogger.i(
-              "✂️ Smart Truncation: Stopped adding older history at ${messagesToInject.length} messages (Context reached $totalTokens tokens).",
-            );
             break;
           }
 
@@ -227,9 +291,6 @@ class LlmService {
             for (final att in attsToProcess) {
               if (att.type == 'photo' || att.type == 'audio') {
                 mediaAtts.add(att);
-              } else if (att.type == 'doc' && att.textContent != null) {
-                combinedText +=
-                    "Document '${att.fileName}' contents:\n\n${att.textContent}\n\n";
               }
             }
             if (msg.text.isNotEmpty) combinedText += msg.text;
@@ -303,18 +364,9 @@ class LlmService {
 
       _currentContextTokens = totalTokens;
       _currentImageCount = imageCount - reserveImages;
-      appLogger.i(
-        "📂 loadSessionContext: Rebuilt context with $_currentContextTokens tokens & $_currentImageCount images.",
-      );
       _setStatus(ModelState.ready);
       return true;
     } catch (e) {
-      if (!e.toString().contains('CANCELLED')) {
-        appLogger.e(
-          "❌ loadSessionContext: Failed to restore LLM context",
-          error: e,
-        );
-      }
       _isSessionActive = false;
       _setStatus(ModelState.error);
       return false;
@@ -329,18 +381,18 @@ class LlmService {
     List<ChatAttachment> attachments = const [],
   }) async* {
     if (_isUnloading || !_isSessionActive || _activeChat == null) {
-      appLogger.w("generateResponseStream: Aborted - session not ready");
       throw Exception("MODEL_NOT_READY");
     }
 
-    int promptTokens = AppConstants.estimateTokens(prompt);
+    final augmentedPrompt = await processAttachmentsForRag(prompt, attachments);
+
+    int promptTokens = AppConstants.estimateTokens(augmentedPrompt);
     int incomingImages = attachments.where((a) => a.type == 'photo').length;
     promptTokens += AppConstants.estimateAttachmentTokens(attachments);
 
     if (_currentContextTokens + promptTokens >
             settings.maxTokens * AppConstants.contextThresholdRatio ||
         _currentImageCount + incomingImages > AppConstants.maxAttachments) {
-      appLogger.w("⚠️ Threshold exceeded. Forcing memory prune...");
       final success = await loadSessionContext(
         session,
         settings,
@@ -350,34 +402,21 @@ class LlmService {
       if (!success) throw Exception("CONTEXT_OVERFLOW");
     }
 
-    String combinedText = "";
-
-    for (var att in attachments) {
-      if (att.type == 'doc' && att.textContent != null) {
-        combinedText +=
-            "Document '${att.fileName}' contents:\n\n${att.textContent}\n\n";
-      }
-    }
-    if (prompt.isNotEmpty) {
-      combinedText += prompt;
-    }
-    combinedText = combinedText.trim();
-
     final photos = attachments.where((a) => a.type == 'photo').toList();
     final audios = attachments.where((a) => a.type == 'audio').toList();
     final mediaAttachments = [...audios, ...photos];
 
     if (mediaAttachments.isEmpty) {
-      if (combinedText.isNotEmpty) {
+      if (augmentedPrompt.isNotEmpty) {
         await _activeChat!.addQuery(
-          Message.text(text: combinedText, isUser: true),
+          Message.text(text: augmentedPrompt, isUser: true),
         );
       }
     } else {
       for (int i = 0; i < mediaAttachments.length; i++) {
         final att = mediaAttachments[i];
         bool isLast = (i == mediaAttachments.length - 1);
-        String textPayload = isLast ? combinedText : "";
+        String textPayload = isLast ? augmentedPrompt : "";
 
         if (att.type == 'photo') {
           await _activeChat!.addQuery(
@@ -407,7 +446,6 @@ class LlmService {
       final stream = _activeChat!.generateChatResponseAsync();
       await for (final response in stream) {
         if (_isUnloading || !_isSessionActive) {
-          appLogger.i("generateResponseStream: Stream cancelled by lifecycle");
           break;
         }
 
@@ -434,10 +472,8 @@ class LlmService {
       if (e.toString().contains('CANCELLED') ||
           e.toString().contains('Process cancelled') ||
           e.toString().contains('Session not created')) {
-        appLogger.i("generateResponseStream: Expected cancellation");
         return;
       }
-
       if (e.toString().contains('Failed to invoke') ||
           e.toString().contains('SizeOfDimension')) {
         throw Exception("CONTEXT_OVERFLOW");
@@ -454,36 +490,21 @@ class LlmService {
     _setStatus(ModelState.unloading);
 
     try {
-      appLogger.i("🔄 unloadModel: Closing active chat...");
-
       if (_activeChat != null) {
         try {
           await _activeChat!.close();
-        } catch (e) {
-          if (!e.toString().contains('CANCELLED')) {
-            appLogger.w("unloadModel: Close warning", error: e);
-          }
-        }
+        } catch (_) {}
         _activeChat = null;
       }
-
-      appLogger.i("🔄 unloadModel: Closing model...");
       if (_activeModel != null) {
         try {
           await _activeModel!.close();
-        } catch (e) {
-          if (!e.toString().contains('CANCELLED')) {
-            appLogger.w("unloadModel: Model close warning", error: e);
-          }
-        }
+        } catch (_) {}
         _activeModel = null;
       }
-
       _currentContextTokens = 0;
       _currentImageCount = 0;
-      appLogger.i("✅ unloadModel: Complete");
-    } catch (e) {
-      appLogger.e("❌ unloadModel: Error during cleanup", error: e);
+    } catch (_) {
     } finally {
       _isUnloading = false;
       _setStatus(ModelState.uninitialized);
@@ -498,8 +519,20 @@ class LlmService {
       _isSessionActive = true;
       _isUnloading = false;
       _setStatus(ModelState.ready);
-      appLogger.i("Session marked ready for inference");
     }
+  }
+
+  List<String> _chunkText(String text, int chunkSize) {
+    List<String> chunks = [];
+    for (int i = 0; i < text.length; i += chunkSize) {
+      chunks.add(
+        text.substring(
+          i,
+          i + chunkSize > text.length ? text.length : i + chunkSize,
+        ),
+      );
+    }
+    return chunks;
   }
 
   void _setStatus(ModelState status) {

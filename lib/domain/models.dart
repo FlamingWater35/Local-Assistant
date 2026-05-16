@@ -19,11 +19,13 @@ class AvailableModel {
     this.supportsThinking = false,
     this.modelType = ModelType.gemmaIt,
     this.preferredBackend = PreferredBackend.gpu,
+    this.maxContextSize = 4096,
   });
 
   final String fileName;
   final String id;
   final bool isRecommended;
+  final int maxContextSize;
   final ModelType modelType;
   final String name;
   final PreferredBackend preferredBackend;
@@ -48,6 +50,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsAudio: true,
     supportsThinking: true,
     modelType: ModelType.gemma4,
+    maxContextSize: 4096,
   ),
   AvailableModel(
     id: 'gemma-4-e4b',
@@ -60,6 +63,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsAudio: true,
     supportsThinking: true,
     modelType: ModelType.gemma4,
+    maxContextSize: 4096,
   ),
 
   // Gemma 3 Nano models
@@ -72,6 +76,7 @@ const List<AvailableModel> kAvailableModels = [
     requiresAuth: true,
     supportsImages: true,
     supportsThinking: true,
+    maxContextSize: 4096,
   ),
   AvailableModel(
     id: 'gemma-3n-e4b',
@@ -82,6 +87,7 @@ const List<AvailableModel> kAvailableModels = [
     requiresAuth: true,
     supportsImages: true,
     supportsThinking: true,
+    maxContextSize: 4096,
   ),
 
   // DeepSeek R1 Distill Qwen 1.5B
@@ -95,6 +101,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsThinking: true,
     modelType: ModelType.deepSeek,
     preferredBackend: PreferredBackend.cpu,
+    maxContextSize: 1280,
   ),
 
   // Qwen3 0.6B
@@ -108,6 +115,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsThinking: true,
     modelType: ModelType.qwen3,
     preferredBackend: PreferredBackend.cpu,
+    maxContextSize: 4096,
   ),
 ];
 

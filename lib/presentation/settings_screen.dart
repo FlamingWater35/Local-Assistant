@@ -40,9 +40,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     _draftSettings = ref.read(settingsControllerProvider);
-    if (_draftSettings.maxTokens < 2048) {
-      _draftSettings = _draftSettings.copyWith(maxTokens: 2048);
+
+    final selectedModelDef = kAvailableModels.firstWhere(
+      (m) => m.id == _draftSettings.selectedModel,
+      orElse: () => kAvailableModels.first,
+    );
+
+    int validMaxTokens = _draftSettings.maxTokens.clamp(
+      512,
+      selectedModelDef.maxContextSize,
+    );
+    if (_draftSettings.maxTokens != validMaxTokens) {
+      _draftSettings = _draftSettings.copyWith(maxTokens: validMaxTokens);
     }
+
     _systemPromptController = TextEditingController(
       text: _draftSettings.systemPrompt,
     );
@@ -229,6 +240,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final ramAsync = ref.watch(deviceRamGbProvider);
     final double ramGb = ramAsync.value ?? 0.0;
 
+    final selectedModelDef = kAvailableModels.firstWhere(
+      (m) => m.id == _draftSettings.selectedModel,
+      orElse: () => kAvailableModels.first,
+    );
+    final maxTokensForModel = selectedModelDef.maxContextSize.toDouble();
+    const double minTokens = 512.0;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(t.settings.title),
@@ -312,6 +330,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 8),
+            const Divider(indent: 16, endIndent: 16),
+            const SizedBox(height: 8),
+
+            _buildSectionHeader(
+              context,
+              t.settings.storageManagement,
+              Icons.storage_outlined,
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 4,
+              ),
+              leading: const Icon(Icons.cleaning_services),
+              title: Text(t.settings.cleanUpStorage),
+              subtitle: Text(t.settings.cleanUpStorageSubtitle),
+              onTap: () async {
+                try {
+                  final manager = FlutterGemmaPlugin.instance.modelManager;
+                  final orphanedFiles = await manager.getOrphanedFiles();
+                  if (orphanedFiles.isEmpty) {
+                    if (context.mounted) {
+                      showInfoSnackBar(context, t.settings.noOrphanedFiles);
+                    }
+                    return;
+                  }
+                  final count = await manager.cleanupStorage();
+                  if (context.mounted) {
+                    showSuccessSnackBar(
+                      context,
+                      t.settings.freedUpStorage(count: count),
+                    );
+                  }
+                } catch (e) {
+                  appLogger.e("Storage cleanup failed.", error: e);
+                  if (context.mounted) {
+                    showErrorSnackBar(
+                      context,
+                      t.settings.cleanupFailed(error: e.toString()),
+                    );
+                  }
+                }
+              },
+            ),
+
             const SizedBox(height: 16),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
@@ -356,13 +420,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text("2048", style: theme.textTheme.labelMedium),
+                      Text("512", style: theme.textTheme.labelMedium),
                       Expanded(
                         child: Slider(
-                          value: _draftSettings.maxTokens.toDouble(),
-                          min: 2048,
-                          max: AppConstants.maxContextWindow.toDouble(),
-                          divisions: 14,
+                          value: _draftSettings.maxTokens.toDouble().clamp(
+                            minTokens,
+                            maxTokensForModel,
+                          ),
+                          min: minTokens,
+                          max: maxTokensForModel,
+                          divisions:
+                              ((maxTokensForModel - minTokens) ~/ 256) > 0
+                              ? ((maxTokensForModel - minTokens) ~/ 256)
+                              : 1,
                           label:
                               '${_draftSettings.maxTokens} ${t.settings.tokens}',
                           onChanged: (val) => setState(
@@ -373,7 +443,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                       Text(
-                        "${AppConstants.maxContextWindow}",
+                        "${maxTokensForModel.toInt()}",
                         style: theme.textTheme.labelMedium,
                       ),
                     ],
@@ -716,7 +786,7 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
               const SizedBox(height: 12),
               Text(
                 progress == 100
-                    ? "Processing..."
+                    ? t.download.processing
                     : t.download.downloading(progress: progress),
                 style: theme.textTheme.bodyMedium,
               ),

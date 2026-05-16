@@ -18,6 +18,8 @@ import 'package:local_assistant/presentation/chat_drawer.dart';
 import 'package:uuid/uuid.dart';
 
 import '../application/chat_provider.dart';
+import '../application/stream_manager_provider.dart';
+import '../core/audio_converter.dart';
 import '../core/constants.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
@@ -57,7 +59,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              appLogger.i("UI: Deleting unified message block ID: $messageId");
               await ref
                   .read(chatLogicProvider.notifier)
                   .deleteMessage(messageId);
@@ -136,19 +137,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
-        final bytes = await file.readAsBytes();
+        final rawBytes = await file.readAsBytes();
+
+        Uint8List pcmData;
+        try {
+          final parsed = AudioConverter.parseWav(rawBytes);
+          pcmData = AudioConverter.toPCM16kHzMono(
+            parsed.pcmData,
+            sourceSampleRate: parsed.sampleRate,
+            sourceChannels: parsed.channels,
+          );
+        } catch (e) {
+          appLogger.e("Invalid WAV file", error: e);
+          if (mounted) showErrorSnackBar(context, t.errors.invalidAudioFormat);
+          return;
+        }
+
         final url = 'http://local_audio_${const Uuid().v4()}.wav';
-        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'wav');
+        await DefaultCacheManager().putFile(url, pcmData, fileExtension: 'wav');
 
         if (!mounted) return;
         setState(() {
           _pendingAttachments.add(
             ChatAttachment(
               type: 'audio',
-              bytes: bytes,
+              bytes: pcmData,
               url: url,
               fileName: result.files.single.name,
-              fileSize: result.files.single.size,
+              fileSize: pcmData.length,
               mimeType: 'audio/wav',
             ),
           );
@@ -166,10 +182,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         try {
           textContent = await file.readAsString();
         } catch (e) {
-          appLogger.w(
-            "File read error: User picked a non-text document",
-            error: e,
-          );
           if (mounted) {
             showErrorSnackBar(
               context,
@@ -177,11 +189,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           }
           return;
-        }
-
-        if (textContent.length > 20000) {
-          textContent =
-              "${textContent.substring(0, 20000)}\n\n...[TRUNCATED due to length constraints]";
         }
 
         final bytes = await file.readAsBytes();
@@ -209,7 +216,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _triggerSend(String text) {
     if (text.trim().isEmpty && _pendingAttachments.isEmpty) return;
 
-    appLogger.i("UI: Send triggered.");
     ref
         .read(chatLogicProvider.notifier)
         .sendMessage(text.trim(), attachments: List.from(_pendingAttachments));
@@ -591,8 +597,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
 
     final chatController = ref.watch(chatLogicProvider);
-    final isGenerating = ref.watch(isGeneratingProvider);
-    final thinkingContent = ref.watch(currentThinkingProvider);
 
     final appTheme = Theme.of(context);
     final chatTheme = ChatTheme.fromThemeData(appTheme);
@@ -625,6 +629,94 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     required bool isSentByMe,
                     core.MessageGroupStatus? groupStatus,
                   }) {
+                    final msgType = message.metadata?['type'] as String?;
+
+                    if (msgType == 'typing') {
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: appTheme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: appTheme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      );
+                    } else if (msgType == 'stream') {
+                      final streamId = message.metadata!['streamId'] as String;
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Consumer(
+                          builder: (context, ref, child) {
+                            final streamState = ref.watch(
+                              chatStreamManagerProvider.select(
+                                (s) => s[streamId],
+                              ),
+                            );
+                            final text = streamState?.text ?? '';
+                            final thinking = streamState?.thinking ?? '';
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 64.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (thinking.isNotEmpty)
+                                    ThinkingWidget(
+                                      thinkingContent: thinking,
+                                      isGenerating: true,
+                                    ),
+                                  if (text.isNotEmpty || thinking.isEmpty)
+                                    Container(
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 4,
+                                      ),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: appTheme
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(
+                                          16,
+                                        ).copyWith(bottomLeft: Radius.zero),
+                                      ),
+                                      child: ThrottledMarkdownWidget(
+                                        text: text.isEmpty
+                                            ? t.chat.generating
+                                            : text,
+                                        isGenerating: true,
+                                        style: appTheme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                              color: appTheme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }
+
                     final text = message.metadata?['text'] as String? ?? '';
                     final atts =
                         message.metadata?['attachments'] as List? ?? [];
@@ -633,13 +725,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
                     final isNewestMessage =
                         index == chatController.messages.length - 1;
-                    final isThisMessageGenerating =
-                        isGenerating && isNewestMessage && !isSentByMe;
-
-                    final displayThinking =
-                        (isThisMessageGenerating && thinkingContent.isNotEmpty)
-                        ? thinkingContent
-                        : thinking;
 
                     return Padding(
                       padding: EdgeInsets.only(
@@ -650,10 +735,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,
                         children: [
-                          if (displayThinking.isNotEmpty)
+                          if (thinking.isNotEmpty)
                             ThinkingWidget(
-                              thinkingContent: displayThinking,
-                              isGenerating: isThisMessageGenerating,
+                              thinkingContent: thinking,
+                              isGenerating: false,
                             ),
                           if (atts.isNotEmpty)
                             ...atts.map(
@@ -663,45 +748,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 appTheme,
                               ),
                             ),
-                          if (text.isNotEmpty || isThisMessageGenerating)
-                            IgnorePointer(
-                              ignoring: isThisMessageGenerating,
-                              child: SelectionArea(
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 4,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
+                          if (text.isNotEmpty)
+                            SelectionArea(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSentByMe
+                                      ? appTheme.colorScheme.primaryContainer
+                                      : appTheme
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(16)
+                                      .copyWith(
+                                        bottomRight: isSentByMe
+                                            ? Radius.zero
+                                            : const Radius.circular(16),
+                                        bottomLeft: !isSentByMe
+                                            ? Radius.zero
+                                            : const Radius.circular(16),
+                                      ),
+                                ),
+                                child: GptMarkdown(
+                                  text,
+                                  style: appTheme.textTheme.bodyLarge?.copyWith(
                                     color: isSentByMe
-                                        ? appTheme.colorScheme.primaryContainer
-                                        : appTheme
+                                        ? appTheme
                                               .colorScheme
-                                              .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(16)
-                                        .copyWith(
-                                          bottomRight: isSentByMe
-                                              ? Radius.zero
-                                              : const Radius.circular(16),
-                                          bottomLeft: !isSentByMe
-                                              ? Radius.zero
-                                              : const Radius.circular(16),
-                                        ),
-                                  ),
-                                  child: ThrottledMarkdownWidget(
-                                    text: text,
-                                    isGenerating: isThisMessageGenerating,
-                                    style: appTheme.textTheme.bodyLarge
-                                        ?.copyWith(
-                                          color: isSentByMe
-                                              ? appTheme
-                                                    .colorScheme
-                                                    .onPrimaryContainer
-                                              : appTheme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                        ),
+                                              .onPrimaryContainer
+                                        : appTheme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -763,8 +841,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   }) {
                     final isNewestMessage =
                         index == chatController.messages.length - 1;
-                    final isThisMessageGenerating =
-                        isGenerating && isNewestMessage && !isSentByMe;
 
                     return Padding(
                       padding: EdgeInsets.only(
@@ -775,52 +851,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,
                         children: [
-                          if (isThisMessageGenerating &&
-                              thinkingContent.isNotEmpty)
-                            ThinkingWidget(
-                              thinkingContent: thinkingContent,
-                              isGenerating: isThisMessageGenerating,
-                            ),
-                          if (message.text.isNotEmpty ||
-                              isThisMessageGenerating)
-                            IgnorePointer(
-                              ignoring: isThisMessageGenerating,
-                              child: SelectionArea(
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 4,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
+                          if (message.text.isNotEmpty)
+                            SelectionArea(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSentByMe
+                                      ? appTheme.colorScheme.primaryContainer
+                                      : appTheme
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(16)
+                                      .copyWith(
+                                        bottomRight: isSentByMe
+                                            ? Radius.zero
+                                            : const Radius.circular(16),
+                                        bottomLeft: !isSentByMe
+                                            ? Radius.zero
+                                            : const Radius.circular(16),
+                                      ),
+                                ),
+                                child: GptMarkdown(
+                                  message.text,
+                                  style: appTheme.textTheme.bodyLarge?.copyWith(
                                     color: isSentByMe
-                                        ? appTheme.colorScheme.primaryContainer
-                                        : appTheme
+                                        ? appTheme
                                               .colorScheme
-                                              .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(16)
-                                        .copyWith(
-                                          bottomRight: isSentByMe
-                                              ? Radius.zero
-                                              : const Radius.circular(16),
-                                          bottomLeft: !isSentByMe
-                                              ? Radius.zero
-                                              : const Radius.circular(16),
-                                        ),
-                                  ),
-                                  child: ThrottledMarkdownWidget(
-                                    text: message.text,
-                                    isGenerating: isThisMessageGenerating,
-                                    style: appTheme.textTheme.bodyLarge
-                                        ?.copyWith(
-                                          color: isSentByMe
-                                              ? appTheme
-                                                    .colorScheme
-                                                    .onPrimaryContainer
-                                              : appTheme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                        ),
+                                              .onPrimaryContainer
+                                        : appTheme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -942,6 +1004,18 @@ class _ThinkingWidgetState extends State<ThinkingWidget> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                if (widget.isGenerating)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 Icon(
                   _isExpanded ? Icons.expand_less : Icons.expand_more,

@@ -27,6 +27,17 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
     _draftSettings = ref.read(settingsControllerProvider);
   }
 
+  void _updateSelectedModel(AvailableModel model) {
+    setState(() {
+      _draftSettings = _draftSettings.copyWith(selectedModel: model.id);
+      if (_draftSettings.maxTokens > model.maxContextSize) {
+        _draftSettings = _draftSettings.copyWith(
+          maxTokens: model.maxContextSize,
+        );
+      }
+    });
+  }
+
   Future<void> _saveSettings() async {
     final t = Translations.of(context);
     setState(() => _isSaving = true);
@@ -111,9 +122,7 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
         model: model,
         currentSettings: _draftSettings,
         onDownloaded: () {
-          setState(() {
-            _draftSettings = _draftSettings.copyWith(selectedModel: model.id);
-          });
+          _updateSelectedModel(model);
           ref.invalidate(isModelInstalledProvider(model.id));
         },
       ),
@@ -266,11 +275,7 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
                                 Icons.check_circle_outline,
                                 color: theme.colorScheme.outline,
                               ),
-                              onPressed: () => setState(
-                                () => _draftSettings = _draftSettings.copyWith(
-                                  selectedModel: model.id,
-                                ),
-                              ),
+                              onPressed: () => _updateSelectedModel(model),
                             ))
                     : IconButton(
                         icon: const Icon(Icons.download_rounded),
@@ -279,11 +284,7 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
                         onPressed: () => _showDownloadDialog(model),
                       ),
                 onTap: isInstalledAsync.value == true
-                    ? () => setState(
-                        () => _draftSettings = _draftSettings.copyWith(
-                          selectedModel: model.id,
-                        ),
-                      )
+                    ? () => _updateSelectedModel(model)
                     : null,
               ),
             );

@@ -12,6 +12,7 @@ import '../domain/models.dart';
 import '../infrastructure/hive_service.dart';
 import '../infrastructure/llm_service.dart';
 import 'settings_provider.dart';
+import 'stream_manager_provider.dart';
 
 part 'chat_provider.g.dart';
 
@@ -51,9 +52,6 @@ class ChatLogic extends _$ChatLogic {
 
   String? _activeGenerationSessionId;
   StreamSubscription? _generationSubscription;
-  final Map<String, String> _pendingTextUpdates = {};
-  final Map<String, String> _pendingThinkingUpdates = {};
-  Timer? _saveDebounceTimer;
   final _uuid = const Uuid();
 
   Future<void> loadSession(String? sessionId) async {
@@ -162,10 +160,6 @@ class ChatLogic extends _$ChatLogic {
     if (currentSessionId != session.id) return;
 
     await llmService.loadSessionContext(updatedSession, settings, allSessions);
-
-    appLogger.i(
-      "Message deleted from memory: $messageId from session: $currentSessionId",
-    );
   }
 
   Future<void> stopGeneration() async {
@@ -200,7 +194,6 @@ class ChatLogic extends _$ChatLogic {
 
     _activeGenerationSessionId = currentSessionId;
     ref.read(isGeneratingProvider.notifier).setGenerating(true);
-    ref.read(currentThinkingProvider.notifier).clear();
 
     final localAtts = attachments
         .map(
@@ -216,16 +209,22 @@ class ChatLogic extends _$ChatLogic {
         .toList();
 
     final userMsg = _createLocalMessage(text, 'user', attachments: localAtts);
-    _addMessageToStateAndDb(userMsg);
+    state.insertMessage(userMsg.toChatCoreType());
+    _saveSessionToHive();
 
     final aiMsgId = _uuid.v4();
-    var aiText = '';
-    final aiMsg = _createLocalMessage(aiText, 'ai', id: aiMsgId);
-    _addMessageToStateAndDb(aiMsg);
+    final typingMsgId = _uuid.v4();
+
+    state.insertMessage(
+      core.CustomMessage(
+        id: typingMsgId,
+        authorId: 'ai',
+        createdAt: DateTime.now(),
+        metadata: {'type': 'typing'},
+      ),
+    );
 
     WakelockPlus.enable();
-
-    DateTime lastUiUpdate = DateTime.now();
 
     try {
       final session = hiveService.getSession(currentSessionId!)!;
@@ -242,111 +241,195 @@ class ChatLogic extends _$ChatLogic {
             attachments: attachments,
           );
 
+      bool isFirstChunk = true;
+
       _generationSubscription = stream.listen(
         (chunk) {
           if (_activeGenerationSessionId == currentSessionId) {
+            if (isFirstChunk) {
+              isFirstChunk = false;
+              try {
+                final typingMsg = state.messages.firstWhere(
+                  (m) => m.id == typingMsgId,
+                );
+                state.removeMessage(typingMsg);
+              } catch (_) {}
+              state.insertMessage(
+                core.CustomMessage(
+                  id: aiMsgId,
+                  authorId: 'ai',
+                  createdAt: DateTime.now(),
+                  metadata: {'type': 'stream', 'streamId': aiMsgId},
+                ),
+              );
+              ref.read(chatStreamManagerProvider.notifier).startStream(aiMsgId);
+            }
+
             if (chunk.isThinking && chunk.thinking != null) {
-              final currentThinking = ref.read(currentThinkingProvider);
               ref
-                  .read(currentThinkingProvider.notifier)
-                  .setThinking(currentThinking + chunk.thinking!);
+                  .read(chatStreamManagerProvider.notifier)
+                  .addChunk(aiMsgId, thinking: chunk.thinking!);
             }
             if (chunk.isText && chunk.text != null) {
-              aiText += chunk.text!;
+              ref
+                  .read(chatStreamManagerProvider.notifier)
+                  .addChunk(aiMsgId, text: chunk.text!);
             }
-
-            final now = DateTime.now();
-            if (now.difference(lastUiUpdate).inMilliseconds >= 50) {
-              final currentThinking = ref.read(currentThinkingProvider);
-              _updateLocalMessage(
-                aiMsgId,
-                aiText,
-                currentThinking.isNotEmpty ? currentThinking : null,
-              );
-              lastUiUpdate = now;
-            }
-
-            _debouncedSave();
           }
         },
         onError: (error) {
+          try {
+            WakelockPlus.disable();
+          } catch (_) {}
+
           final errorStr = error.toString();
           if (errorStr.contains('CANCELLED') ||
               errorStr.contains('Process cancelled') ||
               errorStr.contains('Session not created') ||
               errorStr.contains('MODEL_NOT_READY')) {
-            appLogger.i(
-              "Generation cancelled gracefully (expected): $errorStr",
-            );
             return;
           }
 
-          if (errorStr.contains('CONTEXT_OVERFLOW')) {
-            if (_activeGenerationSessionId == currentSessionId) {
-              final currentThinking = ref.read(currentThinkingProvider);
-              _updateLocalMessage(
-                aiMsgId,
-                t.errors.contextOverflow,
-                currentThinking.isNotEmpty ? currentThinking : null,
-              );
-            }
-          } else {
-            if (_activeGenerationSessionId == currentSessionId) {
-              final currentThinking = ref.read(currentThinkingProvider);
-              _updateLocalMessage(
-                aiMsgId,
-                t.errors.inferenceFailed(error: error),
-                currentThinking.isNotEmpty ? currentThinking : null,
-              );
-            }
-          }
-          appLogger.e("Inference error", error: error);
-        },
-        onDone: () {
-          appLogger.i("Generation stream completed");
-
           if (_activeGenerationSessionId == currentSessionId) {
-            final currentThinking = ref.read(currentThinkingProvider);
-            _updateLocalMessage(
-              aiMsgId,
-              aiText,
-              currentThinking.isNotEmpty ? currentThinking : null,
+            if (isFirstChunk) {
+              try {
+                final typingMsg = state.messages.firstWhere(
+                  (m) => m.id == typingMsgId,
+                );
+                state.removeMessage(typingMsg);
+              } catch (_) {}
+              isFirstChunk = false;
+            }
+
+            final errText =
+                errorStr.contains('CONTEXT_OVERFLOW') ||
+                    errorStr.contains('SizeOfDimension') ||
+                    errorStr.contains('Failed to invoke')
+                ? t.errors.contextOverflow
+                : t.errors.inferenceFailed(error: error);
+
+            final streamManager = ref.read(chatStreamManagerProvider.notifier);
+            final aiText = streamManager.getText(aiMsgId);
+            final aiThinking = streamManager.getThinking(aiMsgId);
+
+            final combinedContent = aiText.isNotEmpty
+                ? "$aiText\n\n$errText"
+                : errText;
+            String finalCombined = aiThinking.isNotEmpty
+                ? '<local_assistant_thinking>\n$aiThinking\n</local_assistant_thinking>\n$combinedContent'
+                : combinedContent;
+
+            final finalMsg = _createLocalMessage(
+              finalCombined,
+              'ai',
+              id: aiMsgId,
             );
+
+            try {
+              final streamMsg = state.messages.firstWhere(
+                (m) => m.id == aiMsgId,
+              );
+              state.updateMessage(streamMsg, finalMsg.toChatCoreType());
+            } catch (_) {
+              state.insertMessage(finalMsg.toChatCoreType());
+            }
+
+            Future.delayed(const Duration(milliseconds: 100), () {
+              streamManager.cleanup(aiMsgId);
+            });
           }
 
           _generationSubscription = null;
           _activeGenerationSessionId = null;
           ref.read(isGeneratingProvider.notifier).setGenerating(false);
-          _flushPendingSaves();
+          _saveSessionToHive();
         },
-        cancelOnError: false,
+        onDone: () {
+          try {
+            WakelockPlus.disable();
+          } catch (_) {}
+
+          if (_activeGenerationSessionId == currentSessionId) {
+            if (isFirstChunk) {
+              try {
+                final typingMsg = state.messages.firstWhere(
+                  (m) => m.id == typingMsgId,
+                );
+                state.removeMessage(typingMsg);
+              } catch (_) {}
+              isFirstChunk = false;
+            }
+
+            final streamManager = ref.read(chatStreamManagerProvider.notifier);
+            final aiText = streamManager.getText(aiMsgId);
+            final aiThinking = streamManager.getThinking(aiMsgId);
+
+            String finalCombined = aiThinking.isNotEmpty
+                ? '<local_assistant_thinking>\n$aiThinking\n</local_assistant_thinking>\n$aiText'
+                : aiText;
+            final finalMsg = _createLocalMessage(
+              finalCombined,
+              'ai',
+              id: aiMsgId,
+            );
+
+            try {
+              final streamMsg = state.messages.firstWhere(
+                (m) => m.id == aiMsgId,
+              );
+              state.updateMessage(streamMsg, finalMsg.toChatCoreType());
+            } catch (_) {
+              state.insertMessage(finalMsg.toChatCoreType());
+            }
+
+            Future.delayed(const Duration(milliseconds: 100), () {
+              streamManager.cleanup(aiMsgId);
+            });
+          }
+
+          _generationSubscription = null;
+          _activeGenerationSessionId = null;
+          ref.read(isGeneratingProvider.notifier).setGenerating(false);
+          _saveSessionToHive();
+        },
+        cancelOnError: true,
       );
     } catch (e) {
-      WakelockPlus.disable();
+      try {
+        WakelockPlus.disable();
+      } catch (_) {}
       ref.read(isGeneratingProvider.notifier).setGenerating(false);
-      appLogger.e("Inference setup error", error: e);
 
       if (_activeGenerationSessionId == currentSessionId) {
-        final currentThinking = ref.read(currentThinkingProvider);
-        _updateLocalMessage(
-          aiMsgId,
-          t.errors.generationFailed(error: e),
-          currentThinking.isNotEmpty ? currentThinking : null,
+        try {
+          final typingMsg = state.messages.firstWhere(
+            (m) => m.id == typingMsgId,
+          );
+          state.removeMessage(typingMsg);
+        } catch (_) {}
+        state.insertMessage(
+          core.TextMessage(
+            id: aiMsgId,
+            text: t.errors.generationFailed(error: e),
+            authorId: 'ai',
+            createdAt: DateTime.now(),
+          ),
         );
       }
-      _flushPendingSaves();
+      _saveSessionToHive();
     }
   }
 
   Future<void> _cancelActiveGeneration() async {
     if (_generationSubscription != null) {
-      appLogger.i("Cancelling active generation stream...");
       _generationSubscription!.cancel();
       _generationSubscription = null;
     }
     _activeGenerationSessionId = null;
     ref.read(isGeneratingProvider.notifier).setGenerating(false);
-    _flushPendingSaves();
+    try {
+      WakelockPlus.disable();
+    } catch (_) {}
   }
 
   LocalChatMessage _createLocalMessage(
@@ -364,78 +447,8 @@ class ChatLogic extends _$ChatLogic {
     );
   }
 
-  void _addMessageToStateAndDb(LocalChatMessage msg) {
-    state.insertMessage(msg.toChatCoreType());
-    _debouncedSave();
-  }
-
-  void _updateLocalMessage(String id, String newText, [String? newThinking]) {
-    final index = state.messages.indexWhere((m) => m.id == id);
-    if (index != -1) {
-      final oldCoreMsg = state.messages[index];
-
-      core.Message newCoreMsg;
-      if (oldCoreMsg is core.CustomMessage) {
-        final meta = Map<String, dynamic>.from(oldCoreMsg.metadata ?? {});
-        meta['text'] = newText;
-        if (newThinking != null) meta['thinking'] = newThinking;
-
-        newCoreMsg = core.CustomMessage(
-          id: oldCoreMsg.id,
-          authorId: oldCoreMsg.authorId,
-          createdAt: oldCoreMsg.createdAt,
-          metadata: meta,
-        );
-      } else {
-        if (newThinking != null) {
-          newCoreMsg = core.CustomMessage(
-            id: oldCoreMsg.id,
-            authorId: oldCoreMsg.authorId,
-            createdAt: oldCoreMsg.createdAt,
-            metadata: {
-              'text': newText,
-              'attachments': [],
-              'thinking': newThinking,
-            },
-          );
-        } else {
-          newCoreMsg = core.TextMessage(
-            id: oldCoreMsg.id,
-            authorId: oldCoreMsg.authorId,
-            createdAt: oldCoreMsg.createdAt,
-            text: newText,
-          );
-        }
-      }
-      state.updateMessage(oldCoreMsg, newCoreMsg);
-    }
-
-    _pendingTextUpdates[id] = newText;
-    if (newThinking != null) {
-      _pendingThinkingUpdates[id] = newThinking;
-    }
-  }
-
-  void _debouncedSave() {
-    _saveDebounceTimer?.cancel();
-    _saveDebounceTimer = Timer(
-      const Duration(milliseconds: 300),
-      _saveSessionToHive,
-    );
-  }
-
-  void _flushPendingSaves() {
-    _saveDebounceTimer?.cancel();
-    if (_pendingTextUpdates.isNotEmpty ||
-        _pendingThinkingUpdates.isNotEmpty ||
-        currentSessionId != null) {
-      _saveSessionToHive();
-    }
-  }
-
   void _saveSessionToHive() {
     if (currentSessionId == null) return;
-    if (_pendingTextUpdates.isEmpty && _pendingThinkingUpdates.isEmpty) return;
 
     final hiveService = ref.read(hiveServiceProvider);
     final session = hiveService.getSession(currentSessionId!);
@@ -487,9 +500,6 @@ class ChatLogic extends _$ChatLogic {
       );
       hiveService.saveSession(updatedSession);
       ref.read(chatHistoryProvider.notifier).refresh();
-
-      _pendingTextUpdates.clear();
-      _pendingThinkingUpdates.clear();
     }
   }
 
@@ -497,7 +507,6 @@ class ChatLogic extends _$ChatLogic {
   core.InMemoryChatController build() {
     final controller = core.InMemoryChatController();
     ref.onDispose(() async {
-      _saveDebounceTimer?.cancel();
       await _cancelActiveGeneration();
       controller.dispose();
     });

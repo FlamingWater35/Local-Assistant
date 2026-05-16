@@ -58,6 +58,12 @@
     "settingsApplied": "设置应用成功",
     "modelNotDownloaded": "所选模型尚未下载！",
     "errorWithDetails": "错误: $details",
+    "storageManagement": "存储管理",
+    "cleanUpStorage": "清理存储空间",
+    "cleanUpStorageSubtitle": "删除不完整或孤立的模型文件",
+    "noOrphanedFiles": "未找到孤立文件。",
+    "freedUpStorage": "已从 $count 个孤立文件中释放存储空间。",
+    "cleanupFailed": "清理失败：$error",
     "enableMemoryTitle": "启用跨对话记忆",
     "enableMemorySubtitle": "允许 AI 悄悄引用您其他近期对话中的事实。",
     "totalContextWindow": "总上下文窗口",
@@ -122,6 +128,7 @@
     "hfToken": "HuggingFace Token",
     "hfTokenRequired": "需要 HuggingFace Token。",
     "downloading": "正在下载... $progress%",
+    "processing": "处理中...",
     "startDownload": "开始下载",
     "noInternet": "未检测到互联网连接。",
     "mobileDataWarningTitle": "大文件警告",
@@ -133,6 +140,7 @@
   },
   "errors": {
     "insufficientStorage": "存储空间不足。安全下载和安装模型至少需要 5 GB 的剩余空间。",
+    "invalidAudioFormat": "无效的音频格式。需要：干净的 .wav 文件",
     "contextOverflow": "⚠️ 错误：输入超出了严格的硬件内存限制。系统尝试修剪内存，但提示词仍然过大。请在设置中增加“总上下文窗口”或开始新的对话。",
     "inferenceFailed": "⚠️ 错误：模型推理失败。\n详细信息: $error",
     "generationFailed": "⚠️ 错误：启动生成失败。\n详细信息: $error"

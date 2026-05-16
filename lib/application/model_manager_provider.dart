@@ -1,5 +1,6 @@
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/logger.dart';
 import '../domain/models.dart';
@@ -19,6 +20,7 @@ Future<bool> isModelInstalled(Ref ref, String modelId) async {
 class ModelDownloader extends _$ModelDownloader {
   Future<void> download(AvailableModel model, String token) async {
     state = const AsyncLoading();
+    WakelockPlus.enable();
     try {
       final fileType = model.fileName.endsWith('.litertlm')
           ? ModelFileType.litertlm
@@ -35,11 +37,12 @@ class ModelDownloader extends _$ModelDownloader {
           .install();
 
       state = const AsyncData(null);
-
       ref.invalidate(isModelInstalledProvider(model.id));
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
+    } finally {
+      WakelockPlus.disable();
     }
   }
 

@@ -58,6 +58,12 @@
     "settingsApplied": "Paramètres appliqués avec succès",
     "modelNotDownloaded": "Le modèle sélectionné n'est pas téléchargé !",
     "errorWithDetails": "Erreur: $details",
+    "storageManagement": "Gestion du stockage",
+    "cleanUpStorage": "Nettoyer le stockage",
+    "cleanUpStorageSubtitle": "Supprimer les fichiers de modèle incomplets ou orphelins",
+    "noOrphanedFiles": "Aucun fichier orphelin trouvé.",
+    "freedUpStorage": "Espace libéré de $count fichiers orphelins.",
+    "cleanupFailed": "Échec du nettoyage: $error",
     "enableMemoryTitle": "Activer la mémoire sur tous les chats",
     "enableMemorySubtitle": "Permet à l'IA de se référer silencieusement aux faits de vos autres conversations récentes.",
     "totalContextWindow": "Fenêtre de contexte totale",
@@ -122,6 +128,7 @@
     "hfToken": "Jeton HuggingFace",
     "hfTokenRequired": "Jeton HuggingFace requis.",
     "downloading": "Téléchargement... $progress%",
+    "processing": "Traitement en cours...",
     "startDownload": "Lancer le téléchargement",
     "noInternet": "Aucune connexion Internet détectée.",
     "mobileDataWarningTitle": "Avertissement fichier volumineux",
@@ -133,6 +140,7 @@
   },
   "errors": {
     "insufficientStorage": "Espace de stockage insuffisant. Au moins 5 Go d'espace libre sont requis pour télécharger et installer le modèle en toute sécurité.",
+    "invalidAudioFormat": "Format audio invalide. Requis: fichier .wav propre",
     "contextOverflow": "⚠️ Erreur: L'entrée a dépassé les limites strictes de la mémoire matérielle. Le système a tenté d'élaguer la mémoire mais le message est trop grand. Veuillez augmenter la 'Fenêtre de contexte totale' dans les paramètres ou démarrer un nouveau chat.",
     "inferenceFailed": "⚠️ Erreur: L'inférence du modèle a échoué.\nDétails: $error",
     "generationFailed": "⚠️ Erreur: Échec du démarrage de la génération.\nDétails: $error"
