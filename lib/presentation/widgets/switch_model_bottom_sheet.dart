@@ -74,7 +74,7 @@ class SwitchModelBottomSheet extends ConsumerWidget {
             title: Text(t.chat.manageModels),
             onTap: () {
               Navigator.pop(context);
-              context.router.push(const ModelMenuRoute());
+              context.router.push(const SettingsRoute());
             },
           ),
         ],

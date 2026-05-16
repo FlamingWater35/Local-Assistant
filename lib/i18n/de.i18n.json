@@ -110,6 +110,32 @@
       "enableThinkingDescription": "Denkprozess des Modells vor der Antwort anzeigen",
       "backend": "Inferenz-Backend",
       "backendDescription": "Hardwarebeschleunigung auswählen (GPU für die meisten Modelle empfohlen)"
+    },
+    "modelManagement": {
+      "title": "Modellverwaltung",
+      "subtitle": "KI-Modelle herunterladen, löschen und verwalten",
+      "installedModels": "Installierte Modelle",
+      "availableModels": "Verfügbare Modelle",
+      "download": "Herunterladen",
+      "noModelsInstalled": "Noch keine Modelle installiert. Laden Sie eines herunter!",
+      "allModelsDownloaded": "Alle verfügbaren Modelle sind installiert!",
+      "hfToken": "HuggingFace-Token",
+      "hfTokenHint": "Für einige eingeschränkte Modelle erforderlich (z.B. Gemma 3n). Einmal festlegen, für alle Downloads verwendet.",
+      "hfTokenSaved": "Token erfolgreich gespeichert",
+      "cannotDeleteActiveModel": "Das aktive Modell kann nicht gelöscht werden. Wechseln Sie zuerst zu einem anderen Modell."
+    },
+    "configurations": {
+      "title": "Einstellungskonfigurationen",
+      "add": "Hinzufügen",
+      "addTitle": "Neue Konfiguration",
+      "nameLabel": "Name",
+      "nameHint": "z.B., Kreativ, Präzise",
+      "copySettings": "Aktuelle Einstellungen kopieren",
+      "rename": "Umbenennen",
+      "renameTitle": "Konfiguration umbenennen",
+      "delete": "Löschen",
+      "deleteConfirm": "Möchten Sie die Konfiguration \"$name\" wirklich löschen? Die aktive Konfiguration wird auf die erste verfügbare umgeschaltet.",
+      "cannotDeleteLast": "Die letzte Konfiguration kann nicht gelöscht werden."
     }
   },
   "setup": {

@@ -110,6 +110,32 @@
       "enableThinkingDescription": "Näytä mallin päättelyprosessi ennen vastausta",
       "backend": "Päättelyn tausta",
       "backendDescription": "Valitse laitteistokiihdytys (GPU suositeltu useimmille malleille)"
+    },
+    "modelManagement": {
+      "title": "Mallien hallinta",
+      "subtitle": "Lataa, poista ja hallitse tekoälymalleja",
+      "installedModels": "Asennetut mallit",
+      "availableModels": "Saatavilla olevat mallit",
+      "download": "Lataa",
+      "noModelsInstalled": "Ei asennettuja malleja. Lataa ensimmäinen!",
+      "allModelsDownloaded": "Kaikki saatavilla olevat mallit on asennettu!",
+      "hfToken": "HuggingFace-tunnus",
+      "hfTokenHint": "Vaaditaan joihinkin rajoitettuihin malleihin (esim. Gemma 3n). Aseta kerran, käytetään kaikkiin latauksiin.",
+      "hfTokenSaved": "Tunnus tallennettu onnistuneesti",
+      "cannotDeleteActiveModel": "Aktiivista mallia ei voi poistaa. Vaihda ensin toiseen malliin."
+    },
+    "configurations": {
+      "title": "Asetuskonfiguraatiot",
+      "add": "Lisää",
+      "addTitle": "Uusi konfiguraatio",
+      "nameLabel": "Nimi",
+      "nameHint": "esim., Luova, Tarkka",
+      "copySettings": "Kopioi nykyiset asetukset",
+      "rename": "Nimeä uudelleen",
+      "renameTitle": "Nimeä konfiguraatio uudelleen",
+      "delete": "Poista",
+      "deleteConfirm": "Haluatko varmasti poistaa konfiguraation \"$name\"? Aktiivinen konfiguraatio vaihtuu ensimmäiseen saatavilla olevaan.",
+      "cannotDeleteLast": "Viimeistä konfiguraatiota ei voi poistaa."
     }
   },
   "setup": {

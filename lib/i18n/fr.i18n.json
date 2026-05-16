@@ -63,7 +63,7 @@
     "errorWithDetails": "Erreur: $details",
     "storageManagement": "Gestion du stockage",
     "cleanUpStorage": "Nettoyer le stockage",
-    "cleanUpStorageSubtitle": "Supprimer les fichiers de modèle incomplets ou orphelins",
+    "cleanUpStorageSubtitle": "Supprimer les fichiers de modèle incomplets or orphelins",
     "noOrphanedFiles": "Aucun fichier orphelin trouvé.",
     "freedUpStorage": "Espace libéré de $count fichiers orphelins.",
     "cleanupFailed": "Échec du nettoyage: $error",
@@ -110,6 +110,32 @@
       "enableThinkingDescription": "Afficher le processus de raisonnement du modèle avant de répondre",
       "backend": "Backend d'inférence",
       "backendDescription": "Sélectionner l'accélération matérielle (GPU recommandé pour la plupart des modèles)"
+    },
+    "modelManagement": {
+      "title": "Gestion des modèles",
+      "subtitle": "Télécharger, supprimer et gérer les modèles IA",
+      "installedModels": "Modèles installés",
+      "availableModels": "Modèles disponibles",
+      "download": "Télécharger",
+      "noModelsInstalled": "Aucun modèle installé. Téléchargez-en un !",
+      "allModelsDownloaded": "Tous les modèles disponibles sont installés !",
+      "hfToken": "Jeton HuggingFace",
+      "hfTokenHint": "Requis pour certains modèles restreints (ex. Gemma 3n). Défini une fois, utilisé pour tous les téléchargements.",
+      "hfTokenSaved": "Jeton enregistré avec succès",
+      "cannotDeleteActiveModel": "Impossible de supprimer le modèle actif. Veuillez d'abord changer de modèle."
+    },
+    "configurations": {
+      "title": "Configurations de paramètres",
+      "add": "Ajouter",
+      "addTitle": "Nouvelle configuration",
+      "nameLabel": "Nom",
+      "nameHint": "ex., Créatif, Précis",
+      "copySettings": "Copier les paramètres actuels",
+      "rename": "Renommer",
+      "renameTitle": "Renommer la configuration",
+      "delete": "Supprimer",
+      "deleteConfirm": "Voulez-vous vraiment supprimer la configuration \"$name\" ? La configuration active passera à la première disponible.",
+      "cannotDeleteLast": "Impossible de supprimer la dernière configuration."
     }
   },
   "setup": {

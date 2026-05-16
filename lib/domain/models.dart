@@ -37,7 +37,6 @@ class AvailableModel {
 }
 
 const List<AvailableModel> kAvailableModels = [
-  // Gemma 4 models
   AvailableModel(
     id: 'gemma-4-e2b',
     name: 'Gemma 4 E2B',
@@ -66,7 +65,6 @@ const List<AvailableModel> kAvailableModels = [
     maxContextSize: 8192,
   ),
 
-  // Gemma 3 Nano models
   AvailableModel(
     id: 'gemma-3n-e2b',
     name: 'Gemma 3n E2B',
@@ -90,7 +88,6 @@ const List<AvailableModel> kAvailableModels = [
     maxContextSize: 4096,
   ),
 
-  // DeepSeek R1 Distill Qwen 1.5B
   AvailableModel(
     id: 'deepseek-r1-distill-qwen-1.5b',
     name: 'DeepSeek R1 Distill Qwen 1.5B',
@@ -104,7 +101,6 @@ const List<AvailableModel> kAvailableModels = [
     maxContextSize: 1280,
   ),
 
-  // Qwen3 0.6B
   AvailableModel(
     id: 'qwen3-0.6b',
     name: 'Qwen3 0.6B',
@@ -137,6 +133,116 @@ class ChatAttachment {
   final String? textContent;
   final String type;
   final String url;
+}
+
+class SettingConfiguration {
+  const SettingConfiguration({
+    required this.id,
+    required this.name,
+    this.selectedModel = 'gemma-4-e2b',
+    this.temperature = 0.7,
+    this.maxTokens = 4096,
+    this.systemPrompt =
+        'You are a helpful, creative, and professional AI assistant. Admit uncertainty instead of guessing. Do not mistake your own previous responses for User input.',
+    this.enableThinking = false,
+    this.selectedBackend = PreferredBackend.gpu,
+    this.enableGlobalMemory = false,
+  });
+
+  factory SettingConfiguration.fromJson(Map<String, dynamic> json) {
+    return SettingConfiguration(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? 'Default',
+      selectedModel: json['selectedModel'] as String? ?? 'gemma-4-e2b',
+      temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
+      maxTokens: json['maxTokens'] as int? ?? 4096,
+      systemPrompt:
+          json['systemPrompt'] as String? ??
+          'You are a helpful, creative, and professional AI assistant. Admit uncertainty instead of guessing. Do not mistake your own previous responses for User input.',
+      enableThinking: json['enableThinking'] as bool? ?? false,
+      selectedBackend:
+          PreferredBackend.values[json['selectedBackend'] as int? ?? 1],
+      enableGlobalMemory: json['enableGlobalMemory'] as bool? ?? false,
+    );
+  }
+
+  final bool enableGlobalMemory;
+  final bool enableThinking;
+  final String id;
+  final int maxTokens;
+  final String name;
+  final PreferredBackend selectedBackend;
+  final String selectedModel;
+  final String systemPrompt;
+  final double temperature;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'selectedModel': selectedModel,
+      'temperature': temperature,
+      'maxTokens': maxTokens,
+      'systemPrompt': systemPrompt,
+      'enableThinking': enableThinking,
+      'selectedBackend': selectedBackend.index,
+      'enableGlobalMemory': enableGlobalMemory,
+    };
+  }
+
+  SettingConfiguration copyWith({
+    String? id,
+    String? name,
+    String? selectedModel,
+    double? temperature,
+    int? maxTokens,
+    String? systemPrompt,
+    bool? enableThinking,
+    PreferredBackend? selectedBackend,
+    bool? enableGlobalMemory,
+  }) {
+    return SettingConfiguration(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      selectedModel: selectedModel ?? this.selectedModel,
+      temperature: temperature ?? this.temperature,
+      maxTokens: maxTokens ?? this.maxTokens,
+      systemPrompt: systemPrompt ?? this.systemPrompt,
+      enableThinking: enableThinking ?? this.enableThinking,
+      selectedBackend: selectedBackend ?? this.selectedBackend,
+      enableGlobalMemory: enableGlobalMemory ?? this.enableGlobalMemory,
+    );
+  }
+
+  AppSettings applyToSettings(AppSettings base) {
+    return base.copyWith(
+      selectedModel: selectedModel,
+      temperature: temperature,
+      maxTokens: maxTokens,
+      systemPrompt: systemPrompt,
+      enableThinking: enableThinking,
+      selectedBackend: selectedBackend,
+      enableGlobalMemory: enableGlobalMemory,
+    );
+  }
+
+  static SettingConfiguration fromSettings(
+    AppSettings settings, {
+    required String id,
+    required String name,
+  }) {
+    return SettingConfiguration(
+      id: id,
+      name: name,
+      selectedModel: settings.selectedModel,
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
+      systemPrompt: settings.systemPrompt,
+      enableThinking: settings.enableThinking,
+      selectedBackend: settings.selectedBackend,
+      enableGlobalMemory: settings.enableGlobalMemory,
+    );
+  }
 }
 
 @HiveType(typeId: 0)

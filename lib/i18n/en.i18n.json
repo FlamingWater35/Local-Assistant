@@ -110,6 +110,32 @@
       "enableThinkingDescription": "Show model's reasoning process before answering",
       "backend": "Inference Backend",
       "backendDescription": "Select hardware acceleration (GPU recommended for most models)"
+    },
+    "modelManagement": {
+      "title": "Model Management",
+      "subtitle": "Download, delete, and manage AI models",
+      "installedModels": "Installed Models",
+      "availableModels": "Available Models",
+      "download": "Download",
+      "noModelsInstalled": "No models installed yet. Download one to get started!",
+      "allModelsDownloaded": "All available models are installed!",
+      "hfToken": "HuggingFace Token",
+      "hfTokenHint": "Required for some gated models (e.g. Gemma 3n). Set once, used for all downloads.",
+      "hfTokenSaved": "Token saved successfully",
+      "cannotDeleteActiveModel": "Cannot delete the active model. Switch to a different model first."
+    },
+    "configurations": {
+      "title": "Setting Configurations",
+      "add": "Add",
+      "addTitle": "New Configuration",
+      "nameLabel": "Name",
+      "nameHint": "e.g., Creative, Precise",
+      "copySettings": "Copy current settings",
+      "rename": "Rename",
+      "renameTitle": "Rename Configuration",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete the \"$name\" configuration? The active configuration will switch to the first available one.",
+      "cannotDeleteLast": "Cannot delete the last configuration."
     }
   },
   "setup": {

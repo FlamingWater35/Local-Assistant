@@ -10,7 +10,7 @@ import '../application/settings_provider.dart';
 import '../core/logger.dart';
 import '../domain/models.dart';
 import '../infrastructure/llm_service.dart';
-import 'settings_screen.dart';
+import '../presentation/model_management_screen.dart';
 
 @RoutePage()
 class SetupScreen extends ConsumerStatefulWidget {

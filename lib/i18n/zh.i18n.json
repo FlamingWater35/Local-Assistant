@@ -110,6 +110,32 @@
       "enableThinkingDescription": "在回答前显示模型的推理过程",
       "backend": "推理后端",
       "backendDescription": "选择硬件加速（大多数模型推荐 GPU）"
+    },
+    "modelManagement": {
+      "title": "模型管理",
+      "subtitle": "下载、删除和管理 AI 模型",
+      "installedModels": "已安装模型",
+      "availableModels": "可用模型",
+      "download": "下载",
+      "noModelsInstalled": "尚未安装模型。请先下载一个！",
+      "allModelsDownloaded": "所有可用模型已安装！",
+      "hfToken": "HuggingFace Token",
+      "hfTokenHint": "某些受限模型需要（如 Gemma 3n）。设置一次，所有下载通用。",
+      "hfTokenSaved": "Token 保存成功",
+      "cannotDeleteActiveModel": "无法删除当前使用的模型。请先切换到其他模型。"
+    },
+    "configurations": {
+      "title": "设置配置",
+      "add": "添加",
+      "addTitle": "新建配置",
+      "nameLabel": "名称",
+      "nameHint": "例如，创意、精确",
+      "copySettings": "复制当前设置",
+      "rename": "重命名",
+      "renameTitle": "重命名配置",
+      "delete": "删除",
+      "deleteConfirm": "您确定要删除“$name”配置吗？活动配置将切换到第一个可用配置。",
+      "cannotDeleteLast": "无法删除最后一个配置。"
     }
   },
   "setup": {

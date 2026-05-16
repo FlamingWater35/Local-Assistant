@@ -8,7 +8,6 @@ import 'package:local_assistant/core/logger.dart';
 import 'package:local_assistant/core/snackbar_helper.dart';
 import 'package:local_assistant/domain/models.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
-import 'package:local_assistant/presentation/settings_screen.dart';
 
 @RoutePage()
 class ModelMenuScreen extends ConsumerStatefulWidget {
@@ -50,36 +49,6 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
 
     showSuccessSnackBar(context, t.settings.settingsApplied);
     Navigator.pop(context);
-  }
-
-  void _confirmDeleteModel(AvailableModel model) {
-    final t = Translations.of(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.settings.deleteModelTitle),
-        content: Text(t.settings.deleteModelConfirm(name: model.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(t.common.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await ref
-                  .read(modelDownloaderProvider.notifier)
-                  .deleteModel(model);
-              if (mounted) {
-                showSuccessSnackBar(context, t.settings.modelDeleted);
-              }
-            },
-            child: Text(t.common.delete),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSectionHeader(
@@ -132,21 +101,6 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
     );
   }
 
-  void _showDownloadDialog(AvailableModel model) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => DownloadModelDialog(
-        model: model,
-        currentSettings: _draftSettings,
-        onDownloaded: () {
-          _updateSelectedModel(model);
-          ref.invalidate(isModelInstalledProvider(model.id));
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -155,10 +109,6 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
       (m) => m.id == _draftSettings.selectedModel,
       orElse: () => kAvailableModels.first,
     );
-
-    final installedModelsCount = kAvailableModels.where((m) {
-      return ref.watch(isModelInstalledProvider(m.id)).value == true;
-    }).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -286,39 +236,17 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
                     ),
                   ],
                 ),
-                trailing: isInstalledAsync.value == true
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!isSelected && installedModelsCount > 1)
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                color: theme.colorScheme.error,
-                              ),
-                              tooltip: t.settings.deleteModelTitle,
-                              onPressed: () => _confirmDeleteModel(model),
-                            ),
-                          isSelected
-                              ? Icon(
-                                  Icons.check_circle,
-                                  color: theme.colorScheme.primary,
-                                )
-                              : IconButton(
-                                  icon: Icon(
-                                    Icons.check_circle_outline,
-                                    color: theme.colorScheme.outline,
-                                  ),
-                                  onPressed: () => _updateSelectedModel(model),
-                                ),
-                        ],
+                trailing: isSelected
+                    ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
+                    : isInstalledAsync.value == true
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.check_circle_outline,
+                          color: theme.colorScheme.outline,
+                        ),
+                        onPressed: () => _updateSelectedModel(model),
                       )
-                    : IconButton(
-                        icon: const Icon(Icons.download_rounded),
-                        color: theme.colorScheme.primary,
-                        tooltip: t.settings.downloadModelTooltip,
-                        onPressed: () => _showDownloadDialog(model),
-                      ),
+                    : null,
                 onTap: isInstalledAsync.value == true
                     ? () => _updateSelectedModel(model)
                     : null,
