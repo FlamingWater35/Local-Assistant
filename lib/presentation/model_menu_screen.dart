@@ -52,6 +52,36 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
     Navigator.pop(context);
   }
 
+  void _confirmDeleteModel(AvailableModel model) {
+    final t = Translations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.settings.deleteModelTitle),
+        content: Text(t.settings.deleteModelConfirm(name: model.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t.common.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(modelDownloaderProvider.notifier)
+                  .deleteModel(model);
+              if (mounted) {
+                showSuccessSnackBar(context, t.settings.modelDeleted);
+              }
+            },
+            child: Text(t.common.delete),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(
     BuildContext context,
     String title,
@@ -125,6 +155,10 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
       (m) => m.id == _draftSettings.selectedModel,
       orElse: () => kAvailableModels.first,
     );
+
+    final installedModelsCount = kAvailableModels.where((m) {
+      return ref.watch(isModelInstalledProvider(m.id)).value == true;
+    }).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -253,18 +287,32 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
                   ],
                 ),
                 trailing: isInstalledAsync.value == true
-                    ? (isSelected
-                          ? Icon(
-                              Icons.check_circle,
-                              color: theme.colorScheme.primary,
-                            )
-                          : IconButton(
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isSelected && installedModelsCount > 1)
+                            IconButton(
                               icon: Icon(
-                                Icons.check_circle_outline,
-                                color: theme.colorScheme.outline,
+                                Icons.delete_outline,
+                                color: theme.colorScheme.error,
                               ),
-                              onPressed: () => _updateSelectedModel(model),
-                            ))
+                              tooltip: t.settings.deleteModelTitle,
+                              onPressed: () => _confirmDeleteModel(model),
+                            ),
+                          isSelected
+                              ? Icon(
+                                  Icons.check_circle,
+                                  color: theme.colorScheme.primary,
+                                )
+                              : IconButton(
+                                  icon: Icon(
+                                    Icons.check_circle_outline,
+                                    color: theme.colorScheme.outline,
+                                  ),
+                                  onPressed: () => _updateSelectedModel(model),
+                                ),
+                        ],
+                      )
                     : IconButton(
                         icon: const Icon(Icons.download_rounded),
                         color: theme.colorScheme.primary,

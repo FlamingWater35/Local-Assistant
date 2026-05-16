@@ -778,17 +778,30 @@ class _DownloadModelDialogState extends ConsumerState<DownloadModelDialog> {
             if (progress != null) ...[
               SizedBox(
                 height: 20,
-                child: LinearProgressIndicator(
-                  value: progress == 100 ? null : progress / 100,
-                  borderRadius: BorderRadius.circular(10),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(
+                    begin: 0,
+                    end: progress == 100 ? 1.0 : progress / 100,
+                  ),
+                  duration: const Duration(milliseconds: 500),
+                  builder: (context, value, child) => LinearProgressIndicator(
+                    value: value,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                progress == 100
-                    ? t.download.processing
-                    : t.download.downloading(progress: progress),
-                style: theme.textTheme.bodyMedium,
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: progress.toDouble()),
+                duration: const Duration(milliseconds: 500),
+                builder: (context, value, child) => Text(
+                  progress == 100
+                      ? t.download.processing
+                      : t.download.downloading(
+                          progress: value.toStringAsFixed(1),
+                        ),
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
             ],
             if (_error != null)

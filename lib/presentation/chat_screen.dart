@@ -737,7 +737,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         if (thinking.isNotEmpty)
                                           ThinkingWidget(
                                             thinkingContent: thinking,
-                                            isGenerating: isGenerating,
+                                            isGenerating:
+                                                isGenerating && text.isEmpty,
                                           ),
                                         if (text.isNotEmpty || thinking.isEmpty)
                                           Container(

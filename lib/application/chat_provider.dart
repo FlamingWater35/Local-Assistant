@@ -152,7 +152,12 @@ class ChatLogic extends _$ChatLogic {
   }
 
   Future<void> stopGeneration() async {
+    if (_activeGenerationSessionId == currentSessionId &&
+        _generationSubscription != null) {
+      _finalizeActiveStreamMessage();
+    }
     await _cancelActiveGeneration();
+    _saveSessionToHive();
   }
 
   Future<void> sendMessage(
@@ -299,35 +304,7 @@ class ChatLogic extends _$ChatLogic {
                 ? t.errors.contextOverflow
                 : t.errors.inferenceFailed(error: error);
 
-            final streamManager = ref.read(chatStreamManagerProvider.notifier);
-            final aiText = streamManager.getText(aiMsgId);
-            final aiThinking = streamManager.getThinking(aiMsgId);
-
-            final combinedContent = aiText.isNotEmpty
-                ? "$aiText\n\n$errText"
-                : errText;
-            String finalCombined = aiThinking.isNotEmpty
-                ? '<local_assistant_thinking>\n$aiThinking\n</local_assistant_thinking>\n$combinedContent'
-                : combinedContent;
-
-            final finalMsg = _createLocalMessage(
-              finalCombined,
-              'ai',
-              id: aiMsgId,
-            );
-
-            try {
-              final streamMsg = state.messages.firstWhere(
-                (m) => m.id == aiMsgId,
-              );
-              state.updateMessage(streamMsg, finalMsg.toChatCoreType());
-            } catch (_) {
-              state.insertMessage(finalMsg.toChatCoreType());
-            }
-
-            Future.delayed(const Duration(milliseconds: 100), () {
-              streamManager.cleanup(aiMsgId);
-            });
+            _finalizeActiveStreamMessage(errText);
           }
 
           _generationSubscription = null;
@@ -351,31 +328,7 @@ class ChatLogic extends _$ChatLogic {
               isFirstChunk = false;
             }
 
-            final streamManager = ref.read(chatStreamManagerProvider.notifier);
-            final aiText = streamManager.getText(aiMsgId);
-            final aiThinking = streamManager.getThinking(aiMsgId);
-
-            String finalCombined = aiThinking.isNotEmpty
-                ? '<local_assistant_thinking>\n$aiThinking\n</local_assistant_thinking>\n$aiText'
-                : aiText;
-            final finalMsg = _createLocalMessage(
-              finalCombined,
-              'ai',
-              id: aiMsgId,
-            );
-
-            try {
-              final streamMsg = state.messages.firstWhere(
-                (m) => m.id == aiMsgId,
-              );
-              state.updateMessage(streamMsg, finalMsg.toChatCoreType());
-            } catch (_) {
-              state.insertMessage(finalMsg.toChatCoreType());
-            }
-
-            Future.delayed(const Duration(milliseconds: 100), () {
-              streamManager.cleanup(aiMsgId);
-            });
+            _finalizeActiveStreamMessage();
           }
 
           _generationSubscription = null;
@@ -408,6 +361,39 @@ class ChatLogic extends _$ChatLogic {
         );
       }
       _saveSessionToHive();
+    }
+  }
+
+  void _finalizeActiveStreamMessage([String? errorText]) {
+    final streamMsg = state.messages
+        .whereType<core.CustomMessage>()
+        .where((m) => m.metadata?['type'] == 'stream')
+        .firstOrNull;
+
+    if (streamMsg != null) {
+      final aiMsgId = streamMsg.id;
+      final streamManager = ref.read(chatStreamManagerProvider.notifier);
+      final aiText = streamManager.getText(aiMsgId);
+      final aiThinking = streamManager.getThinking(aiMsgId);
+
+      String combinedContent = aiText;
+      if (errorText != null) {
+        combinedContent = combinedContent.isNotEmpty
+            ? "$combinedContent\n\n$errorText"
+            : errorText;
+      }
+
+      String finalCombined = aiThinking.isNotEmpty
+          ? '<local_assistant_thinking>\n$aiThinking\n</local_assistant_thinking>\n$combinedContent'
+          : combinedContent;
+
+      final finalMsg = _createLocalMessage(finalCombined, 'ai', id: aiMsgId);
+
+      state.updateMessage(streamMsg, finalMsg.toChatCoreType());
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        streamManager.cleanup(aiMsgId);
+      });
     }
   }
 

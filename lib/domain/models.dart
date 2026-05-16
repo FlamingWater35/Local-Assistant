@@ -50,7 +50,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsAudio: true,
     supportsThinking: true,
     modelType: ModelType.gemma4,
-    maxContextSize: 4096,
+    maxContextSize: 8192,
   ),
   AvailableModel(
     id: 'gemma-4-e4b',
@@ -63,7 +63,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsAudio: true,
     supportsThinking: true,
     modelType: ModelType.gemma4,
-    maxContextSize: 4096,
+    maxContextSize: 8192,
   ),
 
   // Gemma 3 Nano models
