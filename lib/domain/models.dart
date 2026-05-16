@@ -89,19 +89,6 @@ const List<AvailableModel> kAvailableModels = [
   ),
 
   AvailableModel(
-    id: 'deepseek-r1-distill-qwen-1.5b',
-    name: 'DeepSeek R1 Distill Qwen 1.5B',
-    url:
-        'https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/deepseek_q8_ekv1280.task',
-    fileName: 'deepseek_q8_ekv1280.task',
-    requiresAuth: false,
-    supportsThinking: true,
-    modelType: ModelType.deepSeek,
-    preferredBackend: PreferredBackend.cpu,
-    maxContextSize: 1280,
-  ),
-
-  AvailableModel(
     id: 'qwen3-0.6b',
     name: 'Qwen3 0.6B',
     url:
