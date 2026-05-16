@@ -78,7 +78,6 @@ class ChatLogic extends _$ChatLogic {
       oldController.dispose();
     }
 
-    // Yield to let the UI render the new message list instantaneously
     await Future.delayed(const Duration(milliseconds: 50));
 
     final settings = ref.read(settingsControllerProvider);
@@ -214,7 +213,6 @@ class ChatLogic extends _$ChatLogic {
       ),
     );
 
-    // Yield to the event loop so the UI smoothly updates and animated dialogs can collapse BEFORE the heavy processing blocks the channel
     await Future.delayed(const Duration(milliseconds: 150));
 
     WakelockPlus.enable();

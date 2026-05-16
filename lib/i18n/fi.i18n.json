@@ -38,8 +38,8 @@
   },
   "attachments": {
     "photo": "Kuva",
-    "audio": "Ääni (.wav)",
-    "document": "Asiakirja (.txt, .md, .csv)"
+    "audio": "Ääni",
+    "document": "Asiakirja"
   },
   "settings": {
     "title": "Asetukset",

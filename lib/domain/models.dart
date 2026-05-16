@@ -40,7 +40,7 @@ const List<AvailableModel> kAvailableModels = [
   // Gemma 4 models
   AvailableModel(
     id: 'gemma-4-e2b',
-    name: 'Gemma 4 E2B (INT4)',
+    name: 'Gemma 4 E2B',
     url:
         'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
     fileName: 'gemma-4-E2B-it.litertlm',
@@ -54,7 +54,7 @@ const List<AvailableModel> kAvailableModels = [
   ),
   AvailableModel(
     id: 'gemma-4-e4b',
-    name: 'Gemma 4 E4B (INT4)',
+    name: 'Gemma 4 E4B',
     url:
         'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
     fileName: 'gemma-4-E4B-it.litertlm',
@@ -69,7 +69,7 @@ const List<AvailableModel> kAvailableModels = [
   // Gemma 3 Nano models
   AvailableModel(
     id: 'gemma-3n-e2b',
-    name: 'Gemma 3n E2B (INT4)',
+    name: 'Gemma 3n E2B',
     url:
         'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
     fileName: 'gemma-3n-E2B-it-int4.task',
@@ -80,7 +80,7 @@ const List<AvailableModel> kAvailableModels = [
   ),
   AvailableModel(
     id: 'gemma-3n-e4b',
-    name: 'Gemma 3n E4B (INT4)',
+    name: 'Gemma 3n E4B',
     url:
         'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
     fileName: 'gemma-3n-E4B-it-int4.task',

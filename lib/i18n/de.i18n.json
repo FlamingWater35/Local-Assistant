@@ -38,8 +38,8 @@
   },
   "attachments": {
     "photo": "Foto",
-    "audio": "Audio (.wav)",
-    "document": "Dokument (.txt, .md, .csv)"
+    "audio": "Audio",
+    "document": "Dokument"
   },
   "settings": {
     "title": "Einstellungen",

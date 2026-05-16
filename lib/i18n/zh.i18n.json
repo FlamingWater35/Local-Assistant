@@ -38,8 +38,8 @@
   },
   "attachments": {
     "photo": "照片",
-    "audio": "音频 (.wav)",
-    "document": "文档 (.txt, .md, .csv)"
+    "audio": "音频",
+    "document": "文档"
   },
   "settings": {
     "title": "设置",

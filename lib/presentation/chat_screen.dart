@@ -12,170 +12,23 @@ import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:local_assistant/application/updater_provider.dart';
-import 'package:local_assistant/i18n/generated/translations.g.dart';
-import 'package:local_assistant/presentation/chat_drawer.dart';
+import 'package:local_assistant/infrastructure/llm_service.dart';
 import 'package:uuid/uuid.dart';
 
 import '../application/chat_provider.dart';
-import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
 import '../application/stream_manager_provider.dart';
+import '../application/updater_provider.dart';
 import '../core/audio_converter.dart';
 import '../core/constants.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
-import '../infrastructure/llm_service.dart';
-import '../router/app_router.dart';
-
-class SwitchModelBottomSheet extends ConsumerWidget {
-  const SwitchModelBottomSheet({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = Translations.of(context);
-    final theme = Theme.of(context);
-    final currentSettings = ref.watch(settingsControllerProvider);
-
-    final downloadedModels = kAvailableModels.where((m) {
-      return ref.watch(isModelInstalledProvider(m.id)).value == true;
-    }).toList();
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              t.chat.switchModel,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          if (downloadedModels.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ),
-          ...downloadedModels.map((model) {
-            final isSelected = model.id == currentSettings.selectedModel;
-            return ListTile(
-              leading: Icon(
-                Icons.smart_toy,
-                color: isSelected ? theme.colorScheme.primary : null,
-              ),
-              title: Text(
-                model.name,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              trailing: isSelected
-                  ? Icon(Icons.check, color: theme.colorScheme.primary)
-                  : null,
-              onTap: () {
-                Navigator.pop(context);
-                if (!isSelected) {
-                  ref
-                      .read(settingsControllerProvider.notifier)
-                      .updateSettings(
-                        currentSettings.copyWith(selectedModel: model.id),
-                        reloadModel: true,
-                      );
-                }
-              },
-            );
-          }),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: Text(t.chat.manageModels),
-            onTap: () {
-              Navigator.pop(context);
-              context.router.push(const ModelMenuRoute());
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ModelStatusAppBarTitle extends ConsumerWidget {
-  const ModelStatusAppBarTitle({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(modelStatusProvider);
-    final settings = ref.watch(settingsControllerProvider);
-    final currentModel = kAvailableModels.firstWhere(
-      (m) => m.id == settings.selectedModel,
-      orElse: () => kAvailableModels.first,
-    );
-    final t = Translations.of(context);
-
-    return InkWell(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          builder: (ctx) => const SwitchModelBottomSheet(),
-        );
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (status == ModelState.loading)
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else if (status == ModelState.ready)
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              )
-            else
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                status == ModelState.loading
-                    ? t.chat.loadingModel(name: currentModel.name)
-                    : currentModel.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
+import '../i18n/generated/translations.g.dart';
+import 'chat_drawer.dart';
+import 'widgets/model_status_app_bar_title.dart';
+import 'widgets/thinking_widget.dart';
+import 'widgets/throttled_markdown_widget.dart';
 
 @RoutePage()
 class ChatScreen extends ConsumerStatefulWidget {
@@ -260,26 +113,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               const SizedBox(height: 24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _AttachmentOption(
-                    icon: Icons.image,
-                    label: t.attachments.photo,
-                    enabled: modelDef.supportsImages,
-                    onTap: () => Navigator.pop(ctx, 'photo'),
+                  Expanded(
+                    child: _AttachmentOption(
+                      icon: Icons.image,
+                      label: t.attachments.photo,
+                      extensions: '.jpg, .png',
+                      enabled: modelDef.supportsImages,
+                      onTap: () => Navigator.pop(ctx, 'photo'),
+                    ),
                   ),
-                  _AttachmentOption(
-                    icon: Icons.audio_file,
-                    label: t.attachments.audio,
-                    enabled: modelDef.supportsAudio,
-                    onTap: () => Navigator.pop(ctx, 'audio'),
+                  Expanded(
+                    child: _AttachmentOption(
+                      icon: Icons.audio_file,
+                      label: t.attachments.audio,
+                      extensions: '.wav',
+                      enabled: modelDef.supportsAudio,
+                      onTap: () => Navigator.pop(ctx, 'audio'),
+                    ),
                   ),
-                  _AttachmentOption(
-                    icon: Icons.insert_drive_file,
-                    label: t.attachments.document,
-                    enabled: true,
-                    onTap: () => Navigator.pop(ctx, 'doc'),
+                  Expanded(
+                    child: _AttachmentOption(
+                      icon: Icons.insert_drive_file,
+                      label: t.attachments.document,
+                      extensions: '.txt, .md, .csv',
+                      enabled: true,
+                      onTap: () => Navigator.pop(ctx, 'doc'),
+                    ),
                   ),
                 ],
               ),
@@ -859,6 +720,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       (s) => s[streamId],
                                     ),
                                   );
+
+                                  final isGenerating = ref.watch(
+                                    isGeneratingProvider,
+                                  );
+
                                   final text = streamState?.text ?? '';
                                   final thinking = streamState?.thinking ?? '';
 
@@ -871,7 +737,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         if (thinking.isNotEmpty)
                                           ThinkingWidget(
                                             thinkingContent: thinking,
-                                            isGenerating: true,
+                                            isGenerating: isGenerating,
                                           ),
                                         if (text.isNotEmpty || thinking.isEmpty)
                                           Container(
@@ -895,7 +761,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               text: text.isEmpty
                                                   ? t.chat.generating
                                                   : text,
-                                              isGenerating: true,
+                                              isGenerating: isGenerating,
                                               style: appTheme
                                                   .textTheme
                                                   .bodyLarge
@@ -942,44 +808,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     ),
                                   ),
                                 if (text.isNotEmpty)
-                                  SelectionArea(
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 4,
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: isSentByMe
-                                            ? appTheme
-                                                  .colorScheme
-                                                  .primaryContainer
-                                            : appTheme
-                                                  .colorScheme
-                                                  .surfaceContainerHighest,
-                                        borderRadius: BorderRadius.circular(16)
-                                            .copyWith(
-                                              bottomRight: isSentByMe
-                                                  ? Radius.zero
-                                                  : const Radius.circular(16),
-                                              bottomLeft: !isSentByMe
-                                                  ? Radius.zero
-                                                  : const Radius.circular(16),
-                                            ),
-                                      ),
-                                      child: GptMarkdown(
-                                        text,
-                                        style: appTheme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: isSentByMe
-                                                  ? appTheme
-                                                        .colorScheme
-                                                        .onPrimaryContainer
-                                                  : appTheme
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                            ),
-                                      ),
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 4,
+                                    ),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isSentByMe
+                                          ? appTheme
+                                                .colorScheme
+                                                .primaryContainer
+                                          : appTheme
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(16)
+                                          .copyWith(
+                                            bottomRight: isSentByMe
+                                                ? Radius.zero
+                                                : const Radius.circular(16),
+                                            bottomLeft: !isSentByMe
+                                                ? Radius.zero
+                                                : const Radius.circular(16),
+                                          ),
+                                    ),
+                                    child: GptMarkdown(
+                                      text,
+                                      style: appTheme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            color: isSentByMe
+                                                ? appTheme
+                                                      .colorScheme
+                                                      .onPrimaryContainer
+                                                : appTheme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                          ),
                                     ),
                                   ),
                                 Padding(
@@ -1045,44 +909,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   : CrossAxisAlignment.start,
                               children: [
                                 if (message.text.isNotEmpty)
-                                  SelectionArea(
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 4,
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: isSentByMe
-                                            ? appTheme
-                                                  .colorScheme
-                                                  .primaryContainer
-                                            : appTheme
-                                                  .colorScheme
-                                                  .surfaceContainerHighest,
-                                        borderRadius: BorderRadius.circular(16)
-                                            .copyWith(
-                                              bottomRight: isSentByMe
-                                                  ? Radius.zero
-                                                  : const Radius.circular(16),
-                                              bottomLeft: !isSentByMe
-                                                  ? Radius.zero
-                                                  : const Radius.circular(16),
-                                            ),
-                                      ),
-                                      child: GptMarkdown(
-                                        message.text,
-                                        style: appTheme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: isSentByMe
-                                                  ? appTheme
-                                                        .colorScheme
-                                                        .onPrimaryContainer
-                                                  : appTheme
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                            ),
-                                      ),
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 4,
+                                    ),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isSentByMe
+                                          ? appTheme
+                                                .colorScheme
+                                                .primaryContainer
+                                          : appTheme
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(16)
+                                          .copyWith(
+                                            bottomRight: isSentByMe
+                                                ? Radius.zero
+                                                : const Radius.circular(16),
+                                            bottomLeft: !isSentByMe
+                                                ? Radius.zero
+                                                : const Radius.circular(16),
+                                          ),
+                                    ),
+                                    child: GptMarkdown(
+                                      message.text,
+                                      style: appTheme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            color: isSentByMe
+                                                ? appTheme
+                                                      .colorScheme
+                                                      .onPrimaryContainer
+                                                : appTheme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                          ),
                                     ),
                                   ),
                                 Padding(
@@ -1155,11 +1017,13 @@ class _AttachmentOption extends StatelessWidget {
   const _AttachmentOption({
     required this.icon,
     required this.label,
+    required this.extensions,
     required this.enabled,
     required this.onTap,
   });
 
   final bool enabled;
+  final String extensions;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -1175,7 +1039,7 @@ class _AttachmentOption extends StatelessWidget {
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1203,203 +1067,21 @@ class _AttachmentOption extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              extensions,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color.withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class ThinkingWidget extends StatefulWidget {
-  const ThinkingWidget({
-    super.key,
-    required this.thinkingContent,
-    required this.isGenerating,
-  });
-
-  final bool isGenerating;
-  final String thinkingContent;
-
-  @override
-  State<ThinkingWidget> createState() => _ThinkingWidgetState();
-}
-
-class _ThinkingWidgetState extends State<ThinkingWidget> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-    final theme = Theme.of(context);
-
-    if (widget.thinkingContent.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.psychology,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  t.chat.thinking,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (widget.isGenerating)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                const Spacer(),
-                Icon(
-                  _isExpanded ? Icons.expand_less : Icons.expand_more,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-              ],
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            child: _isExpanded
-                ? Column(
-                    children: [
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ThrottledMarkdownWidget(
-                          text: widget.thinkingContent,
-                          isGenerating: widget.isGenerating,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ThrottledMarkdownWidget extends StatefulWidget {
-  const ThrottledMarkdownWidget({
-    super.key,
-    required this.text,
-    required this.isGenerating,
-    this.style,
-  });
-
-  final bool isGenerating;
-  final TextStyle? style;
-  final String text;
-
-  @override
-  State<ThrottledMarkdownWidget> createState() =>
-      _ThrottledMarkdownWidgetState();
-}
-
-class _ThrottledMarkdownWidgetState extends State<ThrottledMarkdownWidget> {
-  late String _displayedText;
-  Timer? _timer;
-
-  @override
-  void didUpdateWidget(covariant ThrottledMarkdownWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (widget.text != oldWidget.text) {
-      if (!widget.isGenerating) {
-        _timer?.cancel();
-        setState(() {
-          _displayedText = widget.text;
-        });
-      } else {
-        if (_timer == null || !_timer!.isActive) {
-          _timer = Timer(const Duration(milliseconds: 250), () {
-            if (mounted) {
-              setState(() {
-                _displayedText = widget.text;
-              });
-            }
-          });
-        }
-      }
-    } else if (oldWidget.isGenerating && !widget.isGenerating) {
-      _timer?.cancel();
-      setState(() {
-        _displayedText = widget.text;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _displayedText = widget.text;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-
-    final bool showPlaceholder = widget.isGenerating && _displayedText.isEmpty;
-    final String textToRender = showPlaceholder
-        ? t.chat.generating
-        : _displayedText;
-
-    return RepaintBoundary(
-      child: GptMarkdown(
-        textToRender,
-        style: showPlaceholder
-            ? widget.style?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: widget.style?.color?.withValues(alpha: 0.7),
-              )
-            : widget.style,
-        useDollarSignsForLatex: true,
       ),
     );
   }

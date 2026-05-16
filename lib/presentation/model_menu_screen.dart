@@ -4,6 +4,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_assistant/application/model_manager_provider.dart';
 import 'package:local_assistant/application/settings_provider.dart';
+import 'package:local_assistant/core/logger.dart';
 import 'package:local_assistant/core/snackbar_helper.dart';
 import 'package:local_assistant/domain/models.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
@@ -19,7 +20,6 @@ class ModelMenuScreen extends ConsumerStatefulWidget {
 
 class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
   late AppSettings _draftSettings;
-  bool _isSaving = false;
 
   @override
   void initState() {
@@ -38,30 +38,18 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
     });
   }
 
-  Future<void> _saveSettings() async {
+  void _saveSettings() {
     final t = Translations.of(context);
-    setState(() => _isSaving = true);
 
-    await Future.delayed(const Duration(milliseconds: 50));
+    ref
+        .read(settingsControllerProvider.notifier)
+        .updateSettings(_draftSettings, reloadModel: true)
+        .catchError((e) {
+          appLogger.e("Failed to apply model settings", error: e);
+        });
 
-    try {
-      await ref
-          .read(settingsControllerProvider.notifier)
-          .updateSettings(_draftSettings, reloadModel: true);
-      if (mounted) {
-        showSuccessSnackBar(context, t.settings.settingsApplied);
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        showErrorSnackBar(
-          context,
-          t.settings.errorWithDetails(details: e.toString()),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
+    showSuccessSnackBar(context, t.settings.settingsApplied);
+    Navigator.pop(context);
   }
 
   Widget _buildSectionHeader(
@@ -371,20 +359,14 @@ class _ModelMenuScreenState extends ConsumerState<ModelMenuScreen> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton(
-            onPressed: _isSaving ? null : _saveSettings,
+            onPressed: _saveSettings,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(t.settings.applyChanges),
+            child: Text(t.settings.applyChanges),
           ),
         ),
       ),
