@@ -178,13 +178,13 @@ class _ChatHistoryScreenState extends ConsumerState<ChatHistoryScreen> {
                         session.title,
                       ),
                     ),
-                    onTap: () async {
+                    onTap: () {
                       if (!isActive) {
-                        await ref
+                        Navigator.pop(context);
+                        ref
                             .read(chatLogicProvider.notifier)
                             .loadSession(session.id);
-                      }
-                      if (context.mounted) {
+                      } else {
                         Navigator.pop(context);
                       }
                     },

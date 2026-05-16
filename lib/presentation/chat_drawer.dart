@@ -83,12 +83,10 @@ class ChatDrawer extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: FilledButton.icon(
-                onPressed: () async {
+                onPressed: () {
                   appLogger.i("UI: Starting new chat from drawer.");
-                  await ref.read(chatLogicProvider.notifier).loadSession(null);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
+                  Navigator.pop(context);
+                  ref.read(chatLogicProvider.notifier).loadSession(null);
                 },
                 icon: const Icon(Icons.add),
                 label: Text(t.chat.newChat),
@@ -169,16 +167,16 @@ class ChatDrawer extends ConsumerWidget {
                             session.title,
                           ),
                         ),
-                        onTap: () async {
+                        onTap: () {
                           if (!isActive) {
                             appLogger.i(
                               "UI: Loading existing chat: ${session.title}",
                             );
-                            await ref
+                            Navigator.pop(context);
+                            ref
                                 .read(chatLogicProvider.notifier)
                                 .loadSession(session.id);
-                          }
-                          if (context.mounted) {
+                          } else {
                             Navigator.pop(context);
                           }
                         },

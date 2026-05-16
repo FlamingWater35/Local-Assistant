@@ -23,7 +23,6 @@ class SetupScreen extends ConsumerStatefulWidget {
 class _SetupScreenState extends ConsumerState<SetupScreen> {
   late AppSettings _draftSettings;
   bool _isChecking = true;
-  bool _isInitializing = false;
 
   @override
   void initState() {
@@ -45,15 +44,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
 
     if (anyInstalled) {
-      appLogger.i(
-        "SetupScreen: Found installed model. Proceeding to initialization.",
-      );
+      appLogger.i("SetupScreen: Found installed model. Proceeding to Chat.");
       if (!(await FlutterGemma.isModelInstalled(
         kAvailableModels
             .firstWhere((m) => m.id == settings.selectedModel)
             .fileName,
       ))) {
-        await ref
+        ref
             .read(settingsControllerProvider.notifier)
             .updateSettings(
               settings.copyWith(selectedModel: firstInstalledId),
@@ -61,13 +58,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             );
       }
 
-      try {
-        await ref
-            .read(llmServiceProvider)
-            .initModel(ref.read(settingsControllerProvider));
-      } catch (e) {
-        appLogger.e("SetupScreen: Error during initModel", error: e);
-      }
+      ref
+          .read(llmServiceProvider)
+          .initModel(ref.read(settingsControllerProvider));
 
       if (mounted) context.router.replace(const ChatRoute());
     } else {
@@ -82,16 +75,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _finishSetup() async {
-    setState(() => _isInitializing = true);
     try {
-      await ref
+      ref
           .read(settingsControllerProvider.notifier)
           .updateSettings(_draftSettings, reloadModel: false);
-      await ref.read(llmServiceProvider).initModel(_draftSettings);
+      ref.read(llmServiceProvider).initModel(_draftSettings);
       if (mounted) context.router.replace(const ChatRoute());
     } catch (e) {
       appLogger.e("SetupScreen: Error applying model", error: e);
-      setState(() => _isInitializing = false);
     }
   }
 
@@ -139,22 +130,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    if (_isChecking || _isInitializing) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 24),
-              Text(
-                _isChecking ? t.setup.checkingSystem : t.setup.startingModel,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
-          ),
-        ),
-      );
+    if (_isChecking) {
+      return const Scaffold();
     }
 
     final theme = Theme.of(context);

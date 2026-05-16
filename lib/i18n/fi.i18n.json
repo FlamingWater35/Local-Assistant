@@ -31,7 +31,10 @@
     "chatHistory": "Keskusteluhistoria",
     "searchHistory": "Hae historiasta...",
     "noHistory": "Ei keskusteluhistoriaa",
-    "noResults": "Ei vastaavia keskusteluja"
+    "noResults": "Ei vastaavia keskusteluja",
+    "loadingModel": "Ladataan $name...",
+    "switchModel": "Vaihda mallia",
+    "manageModels": "Hallitse malleja"
   },
   "attachments": {
     "photo": "Kuva",

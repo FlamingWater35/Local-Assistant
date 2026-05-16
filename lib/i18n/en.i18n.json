@@ -31,7 +31,10 @@
     "chatHistory": "Chat History",
     "searchHistory": "Search history...",
     "noHistory": "No chat history",
-    "noResults": "No matching chats"
+    "noResults": "No matching chats",
+    "loadingModel": "Loading $name...",
+    "switchModel": "Switch Model",
+    "manageModels": "Manage Models"
   },
   "attachments": {
     "photo": "Photo",

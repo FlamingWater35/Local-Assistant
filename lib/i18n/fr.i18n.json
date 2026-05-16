@@ -31,7 +31,10 @@
     "chatHistory": "Historique des discussions",
     "searchHistory": "Rechercher dans l'historique...",
     "noHistory": "Aucun historique",
-    "noResults": "Aucune discussion correspondante"
+    "noResults": "Aucune discussion correspondante",
+    "loadingModel": "Chargement de $name...",
+    "switchModel": "Changer de modèle",
+    "manageModels": "Gérer les modèles"
   },
   "attachments": {
     "photo": "Photo",

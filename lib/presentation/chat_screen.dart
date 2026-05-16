@@ -18,6 +18,8 @@ import 'package:local_assistant/presentation/chat_drawer.dart';
 import 'package:uuid/uuid.dart';
 
 import '../application/chat_provider.dart';
+import '../application/model_manager_provider.dart';
+import '../application/settings_provider.dart';
 import '../application/stream_manager_provider.dart';
 import '../core/audio_converter.dart';
 import '../core/constants.dart';
@@ -25,6 +27,155 @@ import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../infrastructure/llm_service.dart';
+import '../router/app_router.dart';
+
+class SwitchModelBottomSheet extends ConsumerWidget {
+  const SwitchModelBottomSheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final theme = Theme.of(context);
+    final currentSettings = ref.watch(settingsControllerProvider);
+
+    final downloadedModels = kAvailableModels.where((m) {
+      return ref.watch(isModelInstalledProvider(m.id)).value == true;
+    }).toList();
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              t.chat.switchModel,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          if (downloadedModels.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          ...downloadedModels.map((model) {
+            final isSelected = model.id == currentSettings.selectedModel;
+            return ListTile(
+              leading: Icon(
+                Icons.smart_toy,
+                color: isSelected ? theme.colorScheme.primary : null,
+              ),
+              title: Text(
+                model.name,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              trailing: isSelected
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                Navigator.pop(context);
+                if (!isSelected) {
+                  ref
+                      .read(settingsControllerProvider.notifier)
+                      .updateSettings(
+                        currentSettings.copyWith(selectedModel: model.id),
+                        reloadModel: true,
+                      );
+                }
+              },
+            );
+          }),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: Text(t.chat.manageModels),
+            onTap: () {
+              Navigator.pop(context);
+              context.router.push(const ModelMenuRoute());
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ModelStatusAppBarTitle extends ConsumerWidget {
+  const ModelStatusAppBarTitle({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(modelStatusProvider);
+    final settings = ref.watch(settingsControllerProvider);
+    final currentModel = kAvailableModels.firstWhere(
+      (m) => m.id == settings.selectedModel,
+      orElse: () => kAvailableModels.first,
+    );
+    final t = Translations.of(context);
+
+    return InkWell(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (ctx) => const SwitchModelBottomSheet(),
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (status == ModelState.loading)
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (status == ModelState.ready)
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+              )
+            else
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                status == ModelState.loading
+                    ? t.chat.loadingModel(name: currentModel.name)
+                    : currentModel.name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 @RoutePage()
 class ChatScreen extends ConsumerStatefulWidget {
@@ -401,7 +552,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 8,
+        ).copyWith(top: 0),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           boxShadow: [
@@ -418,6 +572,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 10),
               if (_pendingAttachments.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(
@@ -610,7 +765,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        appBar: AppBar(title: Text(t.chat.title), centerTitle: true),
+        appBar: AppBar(
+          title: const ModelStatusAppBarTitle(),
+          centerTitle: true,
+        ),
         drawer: const ChatDrawer(),
         body: RepaintBoundary(
           child: Chat(

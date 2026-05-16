@@ -31,7 +31,10 @@
     "chatHistory": "聊天记录",
     "searchHistory": "搜索记录...",
     "noHistory": "暂无聊天记录",
-    "noResults": "未找到匹配的聊天"
+    "noResults": "未找到匹配的聊天",
+    "loadingModel": "正在加载 $name...",
+    "switchModel": "切换模型",
+    "manageModels": "管理模型"
   },
   "attachments": {
     "photo": "照片",

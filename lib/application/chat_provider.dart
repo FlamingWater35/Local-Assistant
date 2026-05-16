@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -73,17 +72,19 @@ class ChatLogic extends _$ChatLogic {
       }
     }
 
+    final oldController = state;
+    state = newController;
+    if (oldController != newController) {
+      oldController.dispose();
+    }
+
+    // Yield to let the UI render the new message list instantaneously
+    await Future.delayed(const Duration(milliseconds: 50));
+
     final settings = ref.read(settingsControllerProvider);
     final allSessions = ref.read(hiveServiceProvider).getAllSessions();
 
-    final completer = Completer<void>();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (!completer.isCompleted) completer.complete();
-    });
-    await completer.future;
-
     if (currentSessionId != sessionId) {
-      newController.dispose();
       return;
     }
 
@@ -95,18 +96,11 @@ class ChatLogic extends _$ChatLogic {
     );
 
     if (currentSessionId != sessionId) {
-      newController.dispose();
       return;
     }
 
     if (!success) {
       appLogger.e("Context loading failed. Model may need re-initialization.");
-    }
-
-    final oldController = state;
-    state = newController;
-    if (oldController != newController) {
-      oldController.dispose();
     }
   }
 
@@ -151,11 +145,7 @@ class ChatLogic extends _$ChatLogic {
     final allSessions = hiveService.getAllSessions();
     final llmService = ref.read(llmServiceProvider);
 
-    final completer = Completer<void>();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (!completer.isCompleted) completer.complete();
-    });
-    await completer.future;
+    await Future.delayed(const Duration(milliseconds: 50));
 
     if (currentSessionId != session.id) return;
 
@@ -223,6 +213,9 @@ class ChatLogic extends _$ChatLogic {
         metadata: {'type': 'typing'},
       ),
     );
+
+    // Yield to the event loop so the UI smoothly updates and animated dialogs can collapse BEFORE the heavy processing blocks the channel
+    await Future.delayed(const Duration(milliseconds: 150));
 
     WakelockPlus.enable();
 
