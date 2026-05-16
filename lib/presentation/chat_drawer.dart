@@ -187,7 +187,7 @@ class ChatDrawer extends ConsumerWidget {
               ),
             ),
 
-            if (history.length > 20)
+            if (history.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
