@@ -92,6 +92,7 @@
     "percentComplete": "$percent% complete",
     "updateCheckFailed": "Update check failed",
     "downloadModelTooltip": "Download Model",
+    "systemSettings": "SYSTEM SETTINGS",
     "ramIndicator": {
       "unknown": "Device RAM: Unknown",
       "detected": "Device RAM: $ram GB",

@@ -92,6 +92,7 @@
     "percentComplete": "$percent% terminé",
     "updateCheckFailed": "Échec de la vérification",
     "downloadModelTooltip": "Télécharger le modèle",
+    "systemSettings": "PARAMÈTRES SYSTÈME",
     "ramIndicator": {
       "unknown": "RAM de l'appareil: Inconnue",
       "detected": "RAM de l'appareil: $ram Go",

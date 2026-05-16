@@ -92,6 +92,7 @@
     "percentComplete": "已完成 $percent%",
     "updateCheckFailed": "更新检查失败",
     "downloadModelTooltip": "下载模型",
+    "systemSettings": "系统设置",
     "ramIndicator": {
       "unknown": "设备内存: 未知",
       "detected": "设备内存: $ram GB",

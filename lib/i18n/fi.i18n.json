@@ -92,6 +92,7 @@
     "percentComplete": "$percent% valmis",
     "updateCheckFailed": "Päivityksen tarkistus epäonnistui",
     "downloadModelTooltip": "Lataa Malli",
+    "systemSettings": "JÄRJESTELMÄASETUKSET",
     "ramIndicator": {
       "unknown": "Laitteen RAM: Tuntematon",
       "detected": "Laitteen RAM: $ram GB",

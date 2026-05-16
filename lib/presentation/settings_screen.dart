@@ -312,9 +312,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final t = Translations.of(context);
     final theme = Theme.of(context);
 
-    final downloadedModels = kAvailableModels.where((m) {
-      return ref.read(isModelInstalledProvider(m.id)).value == true;
-    }).toList();
+    for (final model in kAvailableModels) {
+      ref.invalidate(isModelInstalledProvider(model.id));
+    }
 
     showModalBottomSheet(
       context: context,
@@ -323,76 +323,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                t.settings.modelMenu.selectModel,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            if (downloadedModels.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  t.settings.modelManagement.noModelsInstalled,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ...downloadedModels.map((model) {
-              final isSelected = _draftSettings.selectedModel == model.id;
-              return ListTile(
-                leading: Icon(
-                  isSelected ? Icons.check_circle : Icons.circle_outlined,
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outline,
-                ),
-                title: Text(
-                  model.name,
-                  style: TextStyle(
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+      builder: (ctx) => Consumer(
+        builder: (context, ref, child) {
+          final downloadedModels = kAvailableModels.where((m) {
+            return ref.watch(isModelInstalledProvider(m.id)).value == true;
+          }).toList();
+
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    t.settings.modelMenu.selectModel,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                subtitle: _buildModelChips(model, theme),
-                selected: isSelected,
-                onTap: () {
-                  Navigator.pop(ctx);
-                  setState(() {
-                    _draftSettings = _draftSettings.copyWith(
-                      selectedModel: model.id,
-                    );
-                    if (_draftSettings.maxTokens > model.maxContextSize) {
-                      _draftSettings = _draftSettings.copyWith(
-                        maxTokens: model.maxContextSize,
-                      );
-                    }
-                  });
-                },
-              );
-            }),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.cloud_download_outlined),
-              title: Text(t.settings.modelManagement.title),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.router.push(const ModelManagementRoute());
-              },
+                if (downloadedModels.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      t.settings.modelManagement.noModelsInstalled,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ...downloadedModels.map((model) {
+                  final isSelected = _draftSettings.selectedModel == model.id;
+                  return ListTile(
+                    leading: Icon(
+                      isSelected ? Icons.check_circle : Icons.circle_outlined,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline,
+                    ),
+                    title: Text(
+                      model.name,
+                      style: TextStyle(
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    subtitle: _buildModelChips(model, theme),
+                    selected: isSelected,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _draftSettings = _draftSettings.copyWith(
+                          selectedModel: model.id,
+                        );
+                        if (_draftSettings.maxTokens > model.maxContextSize) {
+                          _draftSettings = _draftSettings.copyWith(
+                            maxTokens: model.maxContextSize,
+                          );
+                        }
+                      });
+                    },
+                  );
+                }),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.cloud_download_outlined),
+                  title: Text(t.settings.modelManagement.title),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.router.push(const ModelManagementRoute());
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            const SizedBox(height: 8),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -472,6 +480,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               letterSpacing: 1.1,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemDivider(BuildContext context) {
+    final t = Translations.of(context);
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Row(
+        children: [
+          const Expanded(child: Divider(indent: 24)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.settings_suggest_outlined,
+                  size: 18,
+                  color: theme.colorScheme.tertiary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  t.settings.systemSettings,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(child: Divider(endIndent: 24)),
         ],
       ),
     );
@@ -808,6 +853,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             _buildConfigurationSelector(context, theme, activeConfig),
 
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 4, 28, 0),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Model, context, and behavior settings are saved per configuration',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.6,
+                        ),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 8),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
@@ -1065,9 +1137,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
 
-            const SizedBox(height: 8),
-            const Divider(indent: 16, endIndent: 16),
-            const SizedBox(height: 8),
+            _buildSystemDivider(context),
 
             _buildSectionHeader(
               context,

@@ -92,6 +92,7 @@
     "percentComplete": "$percent% abgeschlossen",
     "updateCheckFailed": "Fehler bei der Update-Suche",
     "downloadModelTooltip": "Modell herunterladen",
+    "systemSettings": "SYSTEMEINSTELLUNGEN",
     "ramIndicator": {
       "unknown": "Geräte-RAM: Unbekannt",
       "detected": "Geräte-RAM: $ram GB",
