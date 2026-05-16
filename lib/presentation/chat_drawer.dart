@@ -98,7 +98,7 @@ class ChatDrawer extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
@@ -123,9 +123,12 @@ class ChatDrawer extends ConsumerWidget {
                     final isActive = session.id == activeSessionId;
 
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
+                      padding: const EdgeInsets.only(bottom: 8.0),
                       child: ListTile(
-                        visualDensity: VisualDensity.compact,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -139,14 +142,14 @@ class ChatDrawer extends ConsumerWidget {
                           color: isActive
                               ? appTheme.colorScheme.onSecondaryContainer
                               : appTheme.colorScheme.onSurfaceVariant,
-                          size: 20,
+                          size: 22,
                         ),
                         title: Text(
                           session.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: isActive
                                 ? FontWeight.bold
                                 : FontWeight.w500,
@@ -156,7 +159,7 @@ class ChatDrawer extends ConsumerWidget {
                           ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18),
+                          icon: const Icon(Icons.delete_outline, size: 20),
                           color: appTheme.colorScheme.error.withValues(
                             alpha: 0.8,
                           ),
@@ -191,7 +194,7 @@ class ChatDrawer extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 8,
+                  vertical: 16,
                 ),
                 child: OutlinedButton.icon(
                   onPressed: () {
@@ -201,7 +204,7 @@ class ChatDrawer extends ConsumerWidget {
                   icon: const Icon(Icons.history, size: 18),
                   label: Text(t.chat.viewAllHistory),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
