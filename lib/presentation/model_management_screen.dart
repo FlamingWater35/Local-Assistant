@@ -126,6 +126,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     final theme = Theme.of(context);
 
     return Card.filled(
+      clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       child: ListTile(
@@ -147,6 +148,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     final theme = Theme.of(context);
 
     return Card.outlined(
+      clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

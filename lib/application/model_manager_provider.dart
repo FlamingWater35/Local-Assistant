@@ -16,7 +16,7 @@ Future<bool> isModelInstalled(Ref ref, String modelId) async {
   return await FlutterGemma.isModelInstalled(modelDef.fileName);
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ModelDownloader extends _$ModelDownloader {
   Future<void> download(AvailableModel model, String token) async {
     state = const AsyncLoading();

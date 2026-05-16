@@ -557,7 +557,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -581,42 +581,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _activeConfigId,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.settings_suggest_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   ),
                 ),
-                items: _configurations.map((config) {
-                  return DropdownMenuItem<String>(
-                    value: config.id,
-                    child: Text(config.name, overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (String? value) {
-                  if (value != null && value != _activeConfigId) {
-                    _switchConfiguration(value);
-                  }
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _activeConfigId,
+                    isExpanded: true,
+                    borderRadius: BorderRadius.circular(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    icon: Icon(
+                      Icons.unfold_more,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    items: _configurations.map((config) {
+                      final isActive = config.id == _activeConfigId;
+                      return DropdownMenuItem<String>(
+                        value: config.id,
+                        child: Row(
+                          children: [
+                            Icon(
+                              isActive
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                              size: 18,
+                              color: isActive
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                config.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: isActive
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? value) {
+                      if (value != null && value != _activeConfigId) {
+                        _switchConfiguration(value);
+                      }
+                    },
+                  ),
+                ),
               ),
               if (_configurations.length > 1 || _activeConfigId != 'default')
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -1051,34 +1081,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               leading: const Icon(Icons.language_outlined),
               title: Text(t.settings.language),
-              trailing: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _draftSettings.locale,
-                  borderRadius: BorderRadius.circular(12),
-                  alignment: AlignmentDirectional.centerEnd,
-                  items: [
-                    DropdownMenuItem(
-                      value: '',
-                      child: Text(t.settings.systemLanguage),
+              trailing: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _draftSettings.locale,
+                    borderRadius: BorderRadius.circular(12),
+                    alignment: AlignmentDirectional.centerEnd,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
                     ),
-                    const DropdownMenuItem(value: 'en', child: Text('English')),
-                    const DropdownMenuItem(value: 'de', child: Text('Deutsch')),
-                    const DropdownMenuItem(
-                      value: 'fr',
-                      child: Text('Français'),
-                    ),
-                    const DropdownMenuItem(value: 'fi', child: Text('Suomi')),
-                    const DropdownMenuItem(value: 'zh', child: Text('中文')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(
-                        () => _draftSettings = _draftSettings.copyWith(
-                          locale: val,
-                        ),
-                      );
-                    }
-                  },
+                    items: [
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text(t.settings.systemLanguage),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'en',
+                        child: Text('English'),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'de',
+                        child: Text('Deutsch'),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'fr',
+                        child: Text('Français'),
+                      ),
+                      const DropdownMenuItem(value: 'fi', child: Text('Suomi')),
+                      const DropdownMenuItem(value: 'zh', child: Text('中文')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(
+                          () => _draftSettings = _draftSettings.copyWith(
+                            locale: val,
+                          ),
+                        );
+                      }
+                    },
+                  ),
                 ),
               ),
             ),
