@@ -36,16 +36,6 @@ class IsGenerating extends _$IsGenerating {
 }
 
 @Riverpod(keepAlive: true)
-class CurrentThinking extends _$CurrentThinking {
-  void setThinking(String value) => state = value;
-
-  void clear() => state = '';
-
-  @override
-  String build() => '';
-}
-
-@Riverpod(keepAlive: true)
 class ChatLogic extends _$ChatLogic {
   String? currentSessionId;
 

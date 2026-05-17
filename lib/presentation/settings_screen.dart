@@ -2,18 +2,20 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:local_assistant/router/app_router.dart';
 
-import '../application/device_info_provider.dart';
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
-import '../application/updater_provider.dart';
-import '../core/constants.dart';
 import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../i18n/generated/translations.g.dart';
+import 'settings/widgets/configuration_selector.dart';
+import 'settings/widgets/model_card.dart';
+import 'settings/widgets/model_feature_chip.dart';
+import 'settings/widgets/ram_indicator.dart';
+import 'settings/widgets/settings_section_header.dart';
+import 'settings/widgets/updater_card.dart';
 
 @RoutePage()
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -406,6 +408,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildModelChips(AvailableModel model, ThemeData theme) {
+    final t = Translations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Wrap(
@@ -413,73 +416,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         runSpacing: 2,
         children: [
           if (model.supportsImages)
-            _buildChip(
-              Icons.image,
-              t.settings.modelMenu.supportsImages,
-              theme.colorScheme.tertiary,
+            ModelFeatureChip(
+              icon: Icons.image,
+              label: t.settings.modelMenu.supportsImages,
+              color: theme.colorScheme.tertiary,
             ),
           if (model.supportsAudio)
-            _buildChip(
-              Icons.audiotrack,
-              t.settings.modelMenu.supportsAudio,
-              theme.colorScheme.secondary,
+            ModelFeatureChip(
+              icon: Icons.audiotrack,
+              label: t.settings.modelMenu.supportsAudio,
+              color: theme.colorScheme.secondary,
             ),
           if (model.supportsThinking)
-            _buildChip(
-              Icons.psychology,
-              t.settings.modelMenu.supportsThinking,
-              theme.colorScheme.primary,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(
-    BuildContext context,
-    String title,
-    IconData icon,
-  ) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
+            ModelFeatureChip(
+              icon: Icons.psychology,
+              label: t.settings.modelMenu.supportsThinking,
               color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
             ),
-          ),
         ],
       ),
     );
@@ -522,304 +475,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildRamIndicator(BuildContext context, double ramGb, int maxTokens) {
-    final t = Translations.of(context);
-    final theme = Theme.of(context);
-
-    final bool isSafe = AppConstants.isMemorySafe(ramGb, maxTokens);
-
-    final safeColor = theme.brightness == Brightness.dark
-        ? Colors.green.shade400
-        : Colors.green.shade700;
-
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isSafe
-            ? Colors.green.withValues(alpha: 0.1)
-            : theme.colorScheme.errorContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSafe ? safeColor : theme.colorScheme.error,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.memory,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                ramGb > 0
-                    ? t.settings.ramIndicator.detected(
-                        ram: ramGb.toStringAsFixed(1),
-                      )
-                    : t.settings.ramIndicator.unknown,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            isSafe
-                ? t.settings.ramIndicator.safe
-                : t.settings.ramIndicator.warning,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: isSafe ? safeColor : theme.colorScheme.error,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConfigurationSelector(
-    BuildContext context,
-    ThemeData theme,
-    SettingConfiguration activeConfig,
-  ) {
-    final t = Translations.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Card(
-        elevation: 0,
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.tune, size: 20, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    t.settings.configurations.title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, size: 22),
-                    color: theme.colorScheme.primary,
-                    tooltip: t.settings.configurations.add,
-                    onPressed: _showAddConfigurationDialog,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _activeConfigId,
-                    isExpanded: true,
-                    borderRadius: BorderRadius.circular(12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    icon: Icon(
-                      Icons.unfold_more,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    items: _configurations.map((config) {
-                      final isActive = config.id == _activeConfigId;
-                      return DropdownMenuItem<String>(
-                        value: config.id,
-                        child: Row(
-                          children: [
-                            Icon(
-                              isActive
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_unchecked,
-                              size: 18,
-                              color: isActive
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                config.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: isActive
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? value) {
-                      if (value != null && value != _activeConfigId) {
-                        _switchConfiguration(value);
-                      }
-                    },
-                  ),
-                ),
-              ),
-              if (_configurations.length > 1 || _activeConfigId != 'default')
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: Text(t.settings.configurations.rename),
-                        onPressed: () =>
-                            _showRenameConfigurationDialog(activeConfig),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                      if (_configurations.length > 1)
-                        TextButton.icon(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            size: 16,
-                            color: theme.colorScheme.error,
-                          ),
-                          label: Text(
-                            t.common.delete,
-                            style: TextStyle(color: theme.colorScheme.error),
-                          ),
-                          onPressed: () =>
-                              _confirmDeleteConfiguration(activeConfig),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModelCard(
-    BuildContext context,
-    ThemeData theme,
-    AvailableModel selectedModelDef,
-  ) {
-    final t = Translations.of(context);
-    final isInstalled = ref.watch(
-      isModelInstalledProvider(_draftSettings.selectedModel),
-    );
-
-    return Card.filled(
-      clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isInstalled.value == true
-          ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
-          : theme.colorScheme.errorContainer.withValues(alpha: 0.2),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: _showModelSelector,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.smart_toy,
-                  color: theme.colorScheme.onPrimaryContainer,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selectedModelDef.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    isInstalled.when(
-                      data: (installed) => Text(
-                        installed
-                            ? t.settings.readyToUse
-                            : t.settings.notDownloaded,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: installed
-                              ? Colors.green.shade600
-                              : theme.colorScheme.error,
-                        ),
-                      ),
-                      loading: () => Text(
-                        t.settings.checkingStatus,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      error: (_, _) => Text(
-                        t.settings.errorCheckingStatus,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     final theme = Theme.of(context);
-
-    final ramAsync = ref.watch(deviceRamGbProvider);
-    final double ramGb = ramAsync.value ?? 0.0;
 
     final selectedModelDef = kAvailableModels.firstWhere(
       (m) => m.id == _draftSettings.selectedModel,
@@ -852,8 +511,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            _buildConfigurationSelector(context, theme, activeConfig),
-
+            ConfigurationSelector(
+              activeConfigId: _activeConfigId,
+              configurations: _configurations,
+              activeConfig: activeConfig,
+              onSwitch: _switchConfiguration,
+              onAdd: _showAddConfigurationDialog,
+              onRename: _showRenameConfigurationDialog,
+              onDelete: _confirmDeleteConfiguration,
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(28, 4, 28, 0),
               child: Row(
@@ -880,20 +546,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
-
-            _buildSectionHeader(
-              context,
-              t.settings.aiModels,
-              Icons.smart_toy_outlined,
+            SettingsSectionHeader(
+              title: t.settings.aiModels,
+              icon: Icons.smart_toy_outlined,
             ),
-            _buildModelCard(context, theme, selectedModelDef),
-
+            ModelCard(
+              selectedModelDef: selectedModelDef,
+              onTap: _showModelSelector,
+            ),
             const SizedBox(height: 8),
-
             if (selectedModelDef.supportsThinking)
               SwitchListTile(
                 contentPadding: const EdgeInsets.symmetric(
@@ -910,7 +574,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Column(
@@ -958,17 +621,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
-
-            _buildSectionHeader(
-              context,
-              t.settings.inferenceAndMemory,
-              Icons.memory_outlined,
+            SettingsSectionHeader(
+              title: t.settings.inferenceAndMemory,
+              icon: Icons.memory_outlined,
             ),
-
             SwitchListTile(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 24,
@@ -984,7 +643,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Column(
@@ -1040,21 +698,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   ),
-                  _buildRamIndicator(context, ramGb, _draftSettings.maxTokens),
+                  RamIndicator(maxTokens: _draftSettings.maxTokens),
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
-
-            _buildSectionHeader(
-              context,
-              t.settings.behavior,
-              Icons.psychology_outlined,
+            SettingsSectionHeader(
+              title: t.settings.behavior,
+              icon: Icons.psychology_outlined,
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Column(
@@ -1086,9 +740,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Column(
@@ -1137,13 +789,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
-
             _buildSystemDivider(context),
-
-            _buildSectionHeader(
-              context,
-              t.settings.general,
-              Icons.tune_outlined,
+            SettingsSectionHeader(
+              title: t.settings.general,
+              icon: Icons.tune_outlined,
             ),
             ListTile(
               contentPadding: const EdgeInsets.symmetric(
@@ -1196,15 +845,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 8),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
-
-            _buildSectionHeader(
-              context,
-              t.settings.modelManagement.title,
-              Icons.download_outlined,
+            SettingsSectionHeader(
+              title: t.settings.modelManagement.title,
+              icon: Icons.download_outlined,
             ),
             Card.filled(
               clipBehavior: Clip.antiAlias,
@@ -1219,21 +865,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 },
               ),
             ),
-
             const SizedBox(height: 8),
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
-
-            _buildSectionHeader(
-              context,
-              t.settings.appUpdate,
-              Icons.system_update_outlined,
+            SettingsSectionHeader(
+              title: t.settings.appUpdate,
+              icon: Icons.system_update_outlined,
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: _UpdaterCard(),
+              child: UpdaterCard(),
             ),
-
             const SizedBox(height: 100),
           ],
         ),
@@ -1249,115 +891,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               icon: const Icon(Icons.check),
               label: Text(t.settings.applyChanges),
             ),
-    );
-  }
-}
-
-class _UpdaterCard extends ConsumerWidget {
-  const _UpdaterCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = Translations.of(context);
-    final updateState = ref.watch(updaterControllerProvider);
-    final updaterNotifier = ref.read(updaterControllerProvider.notifier);
-    final theme = Theme.of(context);
-
-    return Card.outlined(
-      clipBehavior: Clip.antiAlias,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        child: switch (updateState) {
-          UpdateInitial() => ListTile(
-            leading: const Icon(Icons.update),
-            title: Text(t.settings.checkForUpdates),
-            onTap: updaterNotifier.checkForUpdate,
-          ),
-          UpdateChecking() => ListTile(
-            leading: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            title: Text(t.settings.checkingForUpdates),
-          ),
-          UpdateNotAvailable() => ListTile(
-            leading: Icon(
-              Icons.check_circle_outline,
-              color: theme.colorScheme.primary,
-            ),
-            title: Text(t.settings.appUpToDate),
-            subtitle: Text(t.settings.latestVersion),
-            onTap: updaterNotifier.checkForUpdate,
-          ),
-          UpdateAvailable(info: final info) => Column(
-            children: [
-              ListTile(
-                leading: Icon(
-                  Icons.download_for_offline_outlined,
-                  color: theme.colorScheme.secondary,
-                ),
-                title: Text(t.settings.updateAvailable(version: info.version)),
-                subtitle: Text(t.settings.tapToDownload),
-                onTap: updaterNotifier.downloadUpdate,
-              ),
-              if (info.releaseNotes != null && info.releaseNotes!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ExpansionTile(
-                      shape: const Border(),
-                      title: Text(
-                        t.settings.releaseNotes,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      childrenPadding: const EdgeInsets.all(12.0),
-                      children: [GptMarkdown(info.releaseNotes!)],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          UpdateDownloading(progress: final progress) => ListTile(
-            title: Text(t.settings.downloadingUpdate),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  LinearProgressIndicator(
-                    value: progress,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    t.settings.percentComplete(
-                      percent: (progress * 100).toStringAsFixed(0),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          UpdateError(message: final message) => ListTile(
-            leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
-            title: Text(t.settings.updateCheckFailed),
-            subtitle: Text(message),
-            onTap: updaterNotifier.checkForUpdate,
-          ),
-        },
-      ),
     );
   }
 }
