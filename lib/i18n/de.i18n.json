@@ -160,7 +160,8 @@
       "makeReadOnly": "Schreibgeschützt machen",
       "exportSuccess": "Konfiguration in Datei exportiert",
       "importSuccess": "Konfiguration erfolgreich importiert",
-      "importError": "Ungültiges Konfigurationsformat"
+      "importError": "Ungültiges Konfigurationsformat",
+      "switchConfiguration": "Konfiguration wechseln"
     }
   },
   "setup": {

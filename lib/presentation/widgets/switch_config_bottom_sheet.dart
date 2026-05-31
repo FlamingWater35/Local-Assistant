@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/settings_provider.dart';
+import '../../i18n/generated/translations.g.dart';
 
 class SwitchConfigBottomSheet extends ConsumerWidget {
   const SwitchConfigBottomSheet({super.key});
@@ -9,6 +10,7 @@ class SwitchConfigBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final t = Translations.of(context);
     final configurations = ref
         .watch(settingsControllerProvider.notifier)
         .getConfigurations();
@@ -23,7 +25,7 @@ class SwitchConfigBottomSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              "Switch Configuration",
+              t.settings.configurations.switchConfiguration,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),

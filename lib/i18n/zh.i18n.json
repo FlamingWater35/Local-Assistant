@@ -160,7 +160,8 @@
       "makeReadOnly": "设为只读",
       "exportSuccess": "配置已导出到文件",
       "importSuccess": "成功导入配置",
-      "importError": "无效的配置格式"
+      "importError": "无效的配置格式",
+      "switchConfiguration": "切换配置"
     }
   },
   "setup": {

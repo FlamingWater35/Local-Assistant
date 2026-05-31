@@ -160,7 +160,8 @@
       "makeReadOnly": "Make Read-only",
       "exportSuccess": "Configuration exported to file",
       "importSuccess": "Configuration imported successfully",
-      "importError": "Invalid configuration format"
+      "importError": "Invalid configuration format",
+      "switchConfiguration": "Switch Configuration"
     }
   },
   "setup": {

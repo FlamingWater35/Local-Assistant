@@ -160,7 +160,8 @@
       "makeReadOnly": "Rendre en lecture seule",
       "exportSuccess": "Configuration exportée vers un fichier",
       "importSuccess": "Configuration importée avec succès",
-      "importError": "Format de configuration invalide"
+      "importError": "Format de configuration invalide",
+      "switchConfiguration": "Changer de configuration"
     }
   },
   "setup": {

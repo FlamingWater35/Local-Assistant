@@ -487,70 +487,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  Widget _buildModelSystemTab(AppSettings currentSettings) {
+  Widget _buildSystemTab(AppSettings currentSettings) {
     final t = Translations.of(context);
-    final theme = Theme.of(context);
-    final selectedModelDef = kAvailableModels.firstWhere(
-      (m) => m.id == currentSettings.selectedModel,
-      orElse: () => kAvailableModels.first,
-    );
-
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        SettingsSectionHeader(
-          title: t.settings.aiModels,
-          icon: Icons.smart_toy_outlined,
-        ),
-        ModelCard(
-          selectedModelDef: selectedModelDef,
-          onTap: _showModelSelector,
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Tooltip(
-                message: t.settings.modelMenu.backendDescription,
-                child: Text(
-                  t.settings.modelMenu.backend,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SegmentedButton<PreferredBackend>(
-                segments: const [
-                  ButtonSegment<PreferredBackend>(
-                    value: PreferredBackend.cpu,
-                    label: Text('CPU'),
-                    icon: Icon(Icons.memory, size: 16),
-                  ),
-                  ButtonSegment<PreferredBackend>(
-                    value: PreferredBackend.gpu,
-                    label: Text('GPU'),
-                    icon: Icon(Icons.graphic_eq, size: 16),
-                  ),
-                  ButtonSegment<PreferredBackend>(
-                    value: PreferredBackend.npu,
-                    label: Text('NPU'),
-                    icon: Icon(Icons.graphic_eq, size: 16),
-                  ),
-                ],
-                selected: {currentSettings.selectedBackend},
-                onSelectionChanged: (Set<PreferredBackend> selection) {
-                  _updateSetting(
-                    currentSettings.copyWith(selectedBackend: selection.first),
-                    reloadModel: true,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Divider(indent: 16, endIndent: 16),
-        const SizedBox(height: 8),
         SettingsSectionHeader(
           title: t.settings.modelManagement.title,
           icon: Icons.download_outlined,
@@ -638,6 +579,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        SettingsSectionHeader(
+          title: t.settings.aiModels,
+          icon: Icons.smart_toy_outlined,
+        ),
+        ModelCard(
+          selectedModelDef: selectedModelDef,
+          onTap: _showModelSelector,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Tooltip(
+                message: t.settings.modelMenu.backendDescription,
+                child: Text(
+                  t.settings.modelMenu.backend,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<PreferredBackend>(
+                segments: const [
+                  ButtonSegment<PreferredBackend>(
+                    value: PreferredBackend.cpu,
+                    label: Text('CPU'),
+                    icon: Icon(Icons.memory, size: 16),
+                  ),
+                  ButtonSegment<PreferredBackend>(
+                    value: PreferredBackend.gpu,
+                    label: Text('GPU'),
+                    icon: Icon(Icons.graphic_eq, size: 16),
+                  ),
+                  ButtonSegment<PreferredBackend>(
+                    value: PreferredBackend.npu,
+                    label: Text('NPU'),
+                    icon: Icon(Icons.graphic_eq, size: 16),
+                  ),
+                ],
+                selected: {currentSettings.selectedBackend},
+                onSelectionChanged: (Set<PreferredBackend> selection) {
+                  _updateSetting(
+                    currentSettings.copyWith(selectedBackend: selection.first),
+                    reloadModel: true,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Divider(indent: 16, endIndent: 16),
+        const SizedBox(height: 8),
         SettingsSectionHeader(
           title: t.settings.inferenceAndMemory,
           icon: Icons.memory_outlined,
@@ -880,7 +874,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           controller: _tabController,
           children: [
             _buildConfigurationsTab(),
-            _buildModelSystemTab(currentSettings),
+            _buildSystemTab(currentSettings),
             _buildInferenceTab(currentSettings),
             _buildBehaviorTab(currentSettings),
           ],

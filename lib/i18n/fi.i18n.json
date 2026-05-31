@@ -160,7 +160,8 @@
       "makeReadOnly": "Tee vain luku",
       "exportSuccess": "Konfiguraatio viety tiedostoon",
       "importSuccess": "Konfiguraatio tuotu onnistuneesti",
-      "importError": "Virheellinen konfiguraatioformaatti"
+      "importError": "Virheellinen konfiguraatioformaatti",
+      "switchConfiguration": "Vaihda konfiguraatiota"
     }
   },
   "setup": {
