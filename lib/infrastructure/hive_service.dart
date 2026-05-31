@@ -116,6 +116,28 @@ class HiveService {
     await _configurationsBox.delete('cfg_$id');
   }
 
+  String? getInterruptedDownload() {
+    return _configurationsBox.get('interrupted_download');
+  }
+
+  int getInterruptedDownloadProgress() {
+    final val = _configurationsBox.get('interrupted_download_progress');
+    return val != null ? int.tryParse(val) ?? 0 : 0;
+  }
+
+  Future<void> setInterruptedDownload(String? id, [int progress = 0]) async {
+    if (id == null) {
+      await _configurationsBox.delete('interrupted_download');
+      await _configurationsBox.delete('interrupted_download_progress');
+    } else {
+      await _configurationsBox.put('interrupted_download', id);
+      await _configurationsBox.put(
+        'interrupted_download_progress',
+        progress.toString(),
+      );
+    }
+  }
+
   void _migrateConfigurations() {
     if (_configurationsBox.get('active_id') == null) {
       final settings = getSettings();
@@ -123,6 +145,7 @@ class HiveService {
         settings,
         id: 'default',
         name: 'Default',
+        isReadOnly: true,
       );
       saveConfiguration(defaultConfig);
       _configurationsBox.put('active_id', 'default');

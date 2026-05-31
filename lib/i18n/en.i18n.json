@@ -94,6 +94,18 @@
     "updateCheckFailed": "Update check failed",
     "downloadModelTooltip": "Download Model",
     "systemSettings": "SYSTEM SETTINGS",
+    "storageSpaceWarning": "Storage Space Warning",
+    "notEnoughSpace": "Not enough free space. You need at least $required GB.",
+    "cleanUpStorageAttempted": "Storage cleanup attempted.",
+    "cleanUpStorageFailed": "Storage cleanup failed.",
+    "advancedMemoryOptions": "Advanced Memory Options",
+    "livePreview": "Live Preview",
+    "tabs": {
+      "configs": "Configs",
+      "system": "System",
+      "inference": "Inference",
+      "behavior": "Behavior"
+    },
     "ramIndicator": {
       "unknown": "Device RAM: Unknown",
       "detected": "Device RAM: $ram GB",
@@ -119,6 +131,9 @@
       "installedModels": "Installed Models",
       "availableModels": "Available Models",
       "download": "Download",
+      "resume": "Resume",
+      "paused": "Paused",
+      "minsLeft": "mins left",
       "noModelsInstalled": "No models installed yet. Download one to get started!",
       "allModelsDownloaded": "All available models are installed!",
       "hfToken": "HuggingFace Token",
@@ -137,7 +152,15 @@
       "renameTitle": "Rename Configuration",
       "delete": "Delete",
       "deleteConfirm": "Are you sure you want to delete the \"$name\" configuration? The active configuration will switch to the first available one.",
-      "cannotDeleteLast": "Cannot delete the last configuration."
+      "cannotDeleteLast": "Cannot delete the last configuration.",
+      "yourConfigurations": "Your Configurations",
+      "importFromFiles": "Import from file",
+      "exportToFiles": "Export to file",
+      "makeEditable": "Make Editable",
+      "makeReadOnly": "Make Read-only",
+      "exportSuccess": "Configuration exported to file",
+      "importSuccess": "Configuration imported successfully",
+      "importError": "Invalid configuration format"
     }
   },
   "setup": {

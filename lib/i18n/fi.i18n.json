@@ -94,6 +94,18 @@
     "updateCheckFailed": "Päivityksen tarkistus epäonnistui",
     "downloadModelTooltip": "Lataa Malli",
     "systemSettings": "JÄRJESTELMÄASETUKSET",
+    "storageSpaceWarning": "Varoitus tallennustilasta",
+    "notEnoughSpace": "Ei tarpeeksi vapaata tilaa. Tarvitset vähintään $required GB.",
+    "cleanUpStorageAttempted": "Tallennustilan puhdistusta yritettiin.",
+    "cleanUpStorageFailed": "Tallennustilan puhdistus epäonnistui.",
+    "advancedMemoryOptions": "Lisämuistiasetukset",
+    "livePreview": "Live-esikatselu",
+    "tabs": {
+      "configs": "Konfiguraatiot",
+      "system": "Järjestelmä",
+      "inference": "Päättely",
+      "behavior": "Käyttäytyminen"
+    },
     "ramIndicator": {
       "unknown": "Laitteen RAM: Tuntematon",
       "detected": "Laitteen RAM: $ram GB",
@@ -119,6 +131,9 @@
       "installedModels": "Asennetut mallit",
       "availableModels": "Saatavilla olevat mallit",
       "download": "Lataa",
+      "resume": "Jatka",
+      "paused": "Keskeytetty",
+      "minsLeft": "min jäljellä",
       "noModelsInstalled": "Ei asennettuja malleja. Lataa ensimmäinen!",
       "allModelsDownloaded": "Kaikki saatavilla olevat mallit on asennettu!",
       "hfToken": "HuggingFace-tunnus",
@@ -137,7 +152,15 @@
       "renameTitle": "Nimeä konfiguraatio uudelleen",
       "delete": "Poista",
       "deleteConfirm": "Haluatko varmasti poistaa konfiguraation \"$name\"? Aktiivinen konfiguraatio vaihtuu ensimmäiseen saatavilla olevaan.",
-      "cannotDeleteLast": "Viimeistä konfiguraatiota ei voi poistaa."
+      "cannotDeleteLast": "Viimeistä konfiguraatiota ei voi poistaa.",
+      "yourConfigurations": "Omat konfiguraatiot",
+      "importFromFiles": "Tuo tiedostosta",
+      "exportToFiles": "Vie tiedostoon",
+      "makeEditable": "Tee muokattavaksi",
+      "makeReadOnly": "Tee vain luku",
+      "exportSuccess": "Konfiguraatio viety tiedostoon",
+      "importSuccess": "Konfiguraatio tuotu onnistuneesti",
+      "importError": "Virheellinen konfiguraatioformaatti"
     }
   },
   "setup": {

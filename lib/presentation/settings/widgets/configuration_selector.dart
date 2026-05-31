@@ -1,169 +1,182 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_assistant/core/snackbar_helper.dart';
 import 'package:local_assistant/domain/models.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ConfigurationSelector extends ConsumerWidget {
   const ConfigurationSelector({
     super.key,
     required this.activeConfigId,
     required this.configurations,
-    required this.activeConfig,
     required this.onSwitch,
     required this.onAdd,
     required this.onRename,
     required this.onDelete,
+    required this.onDuplicate,
+    required this.onToggleReadOnly,
+    required this.onImport,
   });
 
   final String activeConfigId;
   final List<SettingConfiguration> configurations;
-  final SettingConfiguration activeConfig;
-  final void Function(String configId) onSwitch;
   final VoidCallback onAdd;
-  final void Function(SettingConfiguration config) onRename;
   final void Function(SettingConfiguration config) onDelete;
+  final void Function(SettingConfiguration config) onDuplicate;
+  final VoidCallback onImport;
+  final void Function(SettingConfiguration config) onRename;
+  final void Function(String configId) onSwitch;
+  final void Function(SettingConfiguration config, bool isReadOnly)
+  onToggleReadOnly;
+
+  void _exportConfig(BuildContext context, SettingConfiguration config) async {
+    final t = Translations.of(context);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/${config.name}.json');
+    await file.writeAsString(jsonEncode(config.toJson()));
+
+    final params = SaveFileDialogParams(
+      sourceFilePath: file.path,
+      fileName: "${config.name}.json",
+    );
+    final filePath = await FlutterFileDialog.saveFile(params: params);
+
+    if (!context.mounted) return;
+    if (filePath != null) {
+      showSuccessSnackBar(context, t.settings.configurations.exportSuccess);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = Translations.of(context);
     final theme = Theme.of(context);
+    final t = Translations.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Card(
-        elevation: 0,
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          ),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              t.settings.configurations.yourConfigurations,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.download_outlined),
+                  tooltip: t.settings.configurations.importFromFiles,
+                  onPressed: onImport,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  tooltip: t.settings.configurations.add,
+                  onPressed: onAdd,
+                ),
+              ],
+            ),
+          ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.tune, size: 20, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    t.settings.configurations.title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+        const SizedBox(height: 8),
+        ...configurations.map((config) {
+          final isActive = config.id == activeConfigId;
+          return Card(
+            elevation: isActive ? 2 : 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: isActive
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outlineVariant,
+                width: isActive ? 2 : 1,
+              ),
+            ),
+            child: ListTile(
+              leading: Icon(
+                isActive
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: isActive
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                config.name,
+                style: TextStyle(
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              subtitle: config.isReadOnly
+                  ? Text(
+                      "Read-only",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    )
+                  : null,
+              onTap: () => onSwitch(config.id),
+              trailing: PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'rename') {
+                    onRename(config);
+                  }
+                  if (value == 'duplicate') {
+                    onDuplicate(config);
+                  }
+                  if (value == 'export') {
+                    _exportConfig(context, config);
+                  }
+                  if (value == 'delete') {
+                    onDelete(config);
+                  }
+                  if (value == 'toggle_readonly') {
+                    onToggleReadOnly(config, !config.isReadOnly);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (!config.isReadOnly)
+                    PopupMenuItem(
+                      value: 'rename',
+                      child: Text(t.settings.configurations.rename),
+                    ),
+                  const PopupMenuItem(
+                    value: 'duplicate',
+                    child: Text('Duplicate'),
+                  ),
+                  PopupMenuItem(
+                    value: 'export',
+                    child: Text(t.settings.configurations.exportToFiles),
+                  ),
+                  PopupMenuItem(
+                    value: 'toggle_readonly',
+                    child: Text(
+                      config.isReadOnly
+                          ? (t.settings.configurations.makeEditable)
+                          : (t.settings.configurations.makeReadOnly),
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, size: 22),
-                    color: theme.colorScheme.primary,
-                    tooltip: t.settings.configurations.add,
-                    onPressed: onAdd,
-                  ),
+                  if (configurations.length > 1 && !config.isReadOnly)
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        t.common.delete,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: activeConfigId,
-                    isExpanded: true,
-                    borderRadius: BorderRadius.circular(12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    icon: Icon(
-                      Icons.unfold_more,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    items: configurations.map((config) {
-                      final isActive = config.id == activeConfigId;
-                      return DropdownMenuItem<String>(
-                        value: config.id,
-                        child: Row(
-                          children: [
-                            Icon(
-                              isActive
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_unchecked,
-                              size: 18,
-                              color: isActive
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                config.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: isActive
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? value) {
-                      if (value != null && value != activeConfigId) {
-                        onSwitch(value);
-                      }
-                    },
-                  ),
-                ),
-              ),
-              if (configurations.length > 1 || activeConfigId != 'default')
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: Text(t.settings.configurations.rename),
-                        onPressed: () => onRename(activeConfig),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                      if (configurations.length > 1)
-                        TextButton.icon(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            size: 16,
-                            color: theme.colorScheme.error,
-                          ),
-                          label: Text(
-                            t.common.delete,
-                            style: TextStyle(color: theme.colorScheme.error),
-                          ),
-                          onPressed: () => onDelete(activeConfig),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }

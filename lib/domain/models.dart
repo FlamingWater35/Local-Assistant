@@ -13,6 +13,7 @@ class AvailableModel {
     required this.url,
     required this.fileName,
     required this.requiresAuth,
+    required this.sizeMb,
     this.isRecommended = false,
     this.supportsImages = false,
     this.supportsAudio = false,
@@ -30,6 +31,7 @@ class AvailableModel {
   final String name;
   final PreferredBackend preferredBackend;
   final bool requiresAuth;
+  final int sizeMb;
   final bool supportsAudio;
   final bool supportsImages;
   final bool supportsThinking;
@@ -50,6 +52,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsThinking: true,
     modelType: ModelType.gemma4,
     maxContextSize: 8192,
+    sizeMb: 2400,
   ),
   AvailableModel(
     id: 'gemma-4-e4b',
@@ -63,6 +66,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsThinking: true,
     modelType: ModelType.gemma4,
     maxContextSize: 8192,
+    sizeMb: 4300,
   ),
 
   AvailableModel(
@@ -75,6 +79,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsImages: true,
     supportsThinking: true,
     maxContextSize: 4096,
+    sizeMb: 3100,
   ),
   AvailableModel(
     id: 'gemma-3n-e4b',
@@ -86,6 +91,7 @@ const List<AvailableModel> kAvailableModels = [
     supportsImages: true,
     supportsThinking: true,
     maxContextSize: 4096,
+    sizeMb: 6500,
   ),
 
   AvailableModel(
@@ -99,6 +105,7 @@ const List<AvailableModel> kAvailableModels = [
     modelType: ModelType.qwen3,
     preferredBackend: PreferredBackend.cpu,
     maxContextSize: 4096,
+    sizeMb: 586,
   ),
 ];
 
@@ -134,6 +141,7 @@ class SettingConfiguration {
     this.enableThinking = false,
     this.selectedBackend = PreferredBackend.gpu,
     this.enableGlobalMemory = false,
+    this.isReadOnly = false,
   });
 
   factory SettingConfiguration.fromJson(Map<String, dynamic> json) {
@@ -150,12 +158,14 @@ class SettingConfiguration {
       selectedBackend:
           PreferredBackend.values[json['selectedBackend'] as int? ?? 1],
       enableGlobalMemory: json['enableGlobalMemory'] as bool? ?? false,
+      isReadOnly: json['isReadOnly'] as bool? ?? false,
     );
   }
 
   final bool enableGlobalMemory;
   final bool enableThinking;
   final String id;
+  final bool isReadOnly;
   final int maxTokens;
   final String name;
   final PreferredBackend selectedBackend;
@@ -174,6 +184,7 @@ class SettingConfiguration {
       'enableThinking': enableThinking,
       'selectedBackend': selectedBackend.index,
       'enableGlobalMemory': enableGlobalMemory,
+      'isReadOnly': isReadOnly,
     };
   }
 
@@ -187,6 +198,7 @@ class SettingConfiguration {
     bool? enableThinking,
     PreferredBackend? selectedBackend,
     bool? enableGlobalMemory,
+    bool? isReadOnly,
   }) {
     return SettingConfiguration(
       id: id ?? this.id,
@@ -198,6 +210,7 @@ class SettingConfiguration {
       enableThinking: enableThinking ?? this.enableThinking,
       selectedBackend: selectedBackend ?? this.selectedBackend,
       enableGlobalMemory: enableGlobalMemory ?? this.enableGlobalMemory,
+      isReadOnly: isReadOnly ?? this.isReadOnly,
     );
   }
 
@@ -217,6 +230,7 @@ class SettingConfiguration {
     AppSettings settings, {
     required String id,
     required String name,
+    bool isReadOnly = false,
   }) {
     return SettingConfiguration(
       id: id,
@@ -228,6 +242,7 @@ class SettingConfiguration {
       enableThinking: settings.enableThinking,
       selectedBackend: settings.selectedBackend,
       enableGlobalMemory: settings.enableGlobalMemory,
+      isReadOnly: isReadOnly,
     );
   }
 }

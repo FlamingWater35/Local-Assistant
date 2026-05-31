@@ -94,6 +94,18 @@
     "updateCheckFailed": "Fehler bei der Update-Suche",
     "downloadModelTooltip": "Modell herunterladen",
     "systemSettings": "SYSTEMEINSTELLUNGEN",
+    "storageSpaceWarning": "Speicherplatzwarnung",
+    "notEnoughSpace": "Nicht genügend freier Speicherplatz. Sie benötigen mindestens $required GB.",
+    "cleanUpStorageAttempted": "Speicherbereinigung versucht.",
+    "cleanUpStorageFailed": "Speicherbereinigung fehlgeschlagen.",
+    "advancedMemoryOptions": "Erweiterte Speicheroptionen",
+    "livePreview": "Live-Vorschau",
+    "tabs": {
+      "configs": "Konfigs",
+      "system": "System",
+      "inference": "Inferenz",
+      "behavior": "Verhalten"
+    },
     "ramIndicator": {
       "unknown": "Geräte-RAM: Unbekannt",
       "detected": "Geräte-RAM: $ram GB",
@@ -119,6 +131,9 @@
       "installedModels": "Installierte Modelle",
       "availableModels": "Verfügbare Modelle",
       "download": "Herunterladen",
+      "resume": "Fortsetzen",
+      "paused": "Pausiert",
+      "minsLeft": "Min. verbleibend",
       "noModelsInstalled": "Noch keine Modelle installiert. Laden Sie eines herunter!",
       "allModelsDownloaded": "Alle verfügbaren Modelle sind installiert!",
       "hfToken": "HuggingFace-Token",
@@ -137,7 +152,15 @@
       "renameTitle": "Konfiguration umbenennen",
       "delete": "Löschen",
       "deleteConfirm": "Möchten Sie die Konfiguration \"$name\" wirklich löschen? Die aktive Konfiguration wird auf die erste verfügbare umgeschaltet.",
-      "cannotDeleteLast": "Die letzte Konfiguration kann nicht gelöscht werden."
+      "cannotDeleteLast": "Die letzte Konfiguration kann nicht gelöscht werden.",
+      "yourConfigurations": "Ihre Konfigurationen",
+      "importFromFiles": "Aus Datei importieren",
+      "exportToFiles": "In Datei exportieren",
+      "makeEditable": "Bearbeitbar machen",
+      "makeReadOnly": "Schreibgeschützt machen",
+      "exportSuccess": "Konfiguration in Datei exportiert",
+      "importSuccess": "Konfiguration erfolgreich importiert",
+      "importError": "Ungültiges Konfigurationsformat"
     }
   },
   "setup": {

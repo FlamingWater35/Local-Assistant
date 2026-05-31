@@ -6,7 +6,6 @@ import '../../core/constants.dart';
 import '../../domain/models.dart';
 import '../../i18n/generated/translations.g.dart';
 import '../../infrastructure/llm_service.dart';
-import 'switch_model_bottom_sheet.dart';
 
 class ModelStatusAppBarTitle extends ConsumerWidget {
   const ModelStatusAppBarTitle({super.key});
@@ -21,61 +20,47 @@ class ModelStatusAppBarTitle extends ConsumerWidget {
     );
     final t = Translations.of(context);
 
-    return InkWell(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          builder: (ctx) => const SwitchModelBottomSheet(),
-        );
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (status == ModelState.loading)
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else if (status == ModelState.ready)
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              )
-            else
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status == ModelState.loading)
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else if (status == ModelState.ready)
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
               ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                status == ModelState.loading
-                    ? t.chat.loadingModel(name: currentModel.name)
-                    : currentModel.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            )
+          else
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, size: 20),
-          ],
-        ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              status == ModelState.loading
+                  ? t.chat.loadingModel(name: currentModel.name)
+                  : currentModel.name,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

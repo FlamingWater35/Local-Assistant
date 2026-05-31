@@ -33,7 +33,7 @@ class SettingsController extends _$SettingsController {
     final hiveService = ref.read(hiveServiceProvider);
     final activeId = hiveService.getActiveConfigurationId();
     final activeConfig = hiveService.getConfiguration(activeId);
-    if (activeConfig != null) {
+    if (activeConfig != null && !activeConfig.isReadOnly) {
       final updatedConfig = SettingConfiguration.fromSettings(
         newSettings,
         id: activeConfig.id,
@@ -84,6 +84,33 @@ class SettingsController extends _$SettingsController {
     await hiveService.saveConfiguration(newConfig);
     await switchConfiguration(id);
     return newConfig;
+  }
+
+  Future<void> addImportedConfiguration(SettingConfiguration config) async {
+    final hiveService = ref.read(hiveServiceProvider);
+    await hiveService.saveConfiguration(config);
+    await switchConfiguration(config.id);
+  }
+
+  Future<void> duplicateConfiguration(SettingConfiguration config) async {
+    final hiveService = ref.read(hiveServiceProvider);
+    final id = const Uuid().v4();
+    final newConfig = config.copyWith(
+      id: id,
+      name: '${config.name} (Copy)',
+      isReadOnly: false,
+    );
+    await hiveService.saveConfiguration(newConfig);
+    await switchConfiguration(id);
+  }
+
+  Future<void> toggleReadOnly(String id, bool isReadOnly) async {
+    final hiveService = ref.read(hiveServiceProvider);
+    final config = hiveService.getConfiguration(id);
+    if (config == null) return;
+    final updated = config.copyWith(isReadOnly: isReadOnly);
+    await hiveService.saveConfiguration(updated);
+    ref.invalidateSelf();
   }
 
   Future<void> renameConfiguration(String id, String newName) async {

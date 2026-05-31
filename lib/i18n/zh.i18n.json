@@ -94,6 +94,18 @@
     "updateCheckFailed": "更新检查失败",
     "downloadModelTooltip": "下载模型",
     "systemSettings": "系统设置",
+    "storageSpaceWarning": "存储空间警告",
+    "notEnoughSpace": "可用空间不足。您需要至少 $required GB。",
+    "cleanUpStorageAttempted": "尝试清理存储。",
+    "cleanUpStorageFailed": "清理存储失败。",
+    "advancedMemoryOptions": "高级内存选项",
+    "livePreview": "实时预览",
+    "tabs": {
+      "configs": "配置",
+      "system": "系统",
+      "inference": "推理",
+      "behavior": "行为"
+    },
     "ramIndicator": {
       "unknown": "设备内存: 未知",
       "detected": "设备内存: $ram GB",
@@ -119,6 +131,9 @@
       "installedModels": "已安装模型",
       "availableModels": "可用模型",
       "download": "下载",
+      "resume": "恢复",
+      "paused": "已暂停",
+      "minsLeft": "分钟剩余",
       "noModelsInstalled": "尚未安装模型。请先下载一个！",
       "allModelsDownloaded": "所有可用模型已安装！",
       "hfToken": "HuggingFace Token",
@@ -137,7 +152,15 @@
       "renameTitle": "重命名配置",
       "delete": "删除",
       "deleteConfirm": "您确定要删除“$name”配置吗？活动配置将切换到第一个可用配置。",
-      "cannotDeleteLast": "无法删除最后一个配置。"
+      "cannotDeleteLast": "无法删除最后一个配置。",
+      "yourConfigurations": "您的配置",
+      "importFromFiles": "从文件导入",
+      "exportToFiles": "导出到文件",
+      "makeEditable": "设为可编辑",
+      "makeReadOnly": "设为只读",
+      "exportSuccess": "配置已导出到文件",
+      "importSuccess": "成功导入配置",
+      "importError": "无效的配置格式"
     }
   },
   "setup": {

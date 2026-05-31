@@ -94,6 +94,18 @@
     "updateCheckFailed": "Échec de la vérification",
     "downloadModelTooltip": "Télécharger le modèle",
     "systemSettings": "PARAMÈTRES SYSTÈME",
+    "storageSpaceWarning": "Avertissement d'espace de stockage",
+    "notEnoughSpace": "Pas assez d'espace libre. Vous avez besoin d'au moins $required Go.",
+    "cleanUpStorageAttempted": "Tentative de nettoyage du stockage.",
+    "cleanUpStorageFailed": "Échec du nettoyage du stockage.",
+    "advancedMemoryOptions": "Options de mémoire avancées",
+    "livePreview": "Aperçu en direct",
+    "tabs": {
+      "configs": "Configs",
+      "system": "Système",
+      "inference": "Inférence",
+      "behavior": "Comportement"
+    },
     "ramIndicator": {
       "unknown": "RAM de l'appareil: Inconnue",
       "detected": "RAM de l'appareil: $ram Go",
@@ -119,6 +131,9 @@
       "installedModels": "Modèles installés",
       "availableModels": "Modèles disponibles",
       "download": "Télécharger",
+      "resume": "Reprendre",
+      "paused": "En pause",
+      "minsLeft": "min restantes",
       "noModelsInstalled": "Aucun modèle installé. Téléchargez-en un !",
       "allModelsDownloaded": "Tous les modèles disponibles sont installés !",
       "hfToken": "Jeton HuggingFace",
@@ -137,7 +152,15 @@
       "renameTitle": "Renommer la configuration",
       "delete": "Supprimer",
       "deleteConfirm": "Voulez-vous vraiment supprimer la configuration \"$name\" ? La configuration active passera à la première disponible.",
-      "cannotDeleteLast": "Impossible de supprimer la dernière configuration."
+      "cannotDeleteLast": "Impossible de supprimer la dernière configuration.",
+      "yourConfigurations": "Vos configurations",
+      "importFromFiles": "Importer depuis un fichier",
+      "exportToFiles": "Exporter vers un fichier",
+      "makeEditable": "Rendre modifiable",
+      "makeReadOnly": "Rendre en lecture seule",
+      "exportSuccess": "Configuration exportée vers un fichier",
+      "importSuccess": "Configuration importée avec succès",
+      "importError": "Format de configuration invalide"
     }
   },
   "setup": {

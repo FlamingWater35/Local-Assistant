@@ -5,12 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:local_assistant/router/app_router.dart';
 
+import '../application/device_info_provider.dart';
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
 import '../core/logger.dart';
+import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../infrastructure/llm_service.dart';
-import '../presentation/model_management_screen.dart';
 
 @RoutePage()
 class SetupScreen extends ConsumerStatefulWidget {
@@ -28,6 +29,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   void initState() {
     super.initState();
     _checkInitialState();
+  }
+
+  String _formatSize(int sizeMb) {
+    if (sizeMb >= 1024) {
+      return '${(sizeMb / 1024).toStringAsFixed(1)} GB';
+    }
+    return '$sizeMb MB';
   }
 
   Future<void> _checkInitialState() async {
@@ -86,20 +94,82 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
   }
 
-  void _showDownloadDialog(AvailableModel model) {
+  void _startDownload(AvailableModel model) async {
+    final token = _draftSettings.hfToken;
+    if (model.requiresAuth && token.isEmpty) {
+      _showTokenDialog(model);
+      return;
+    }
+    await _executeDownload(model, token);
+  }
+
+  void _showTokenDialog(AvailableModel model) {
+    final t = Translations.of(context);
+    final controller = TextEditingController(text: _draftSettings.hfToken);
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => DownloadModelDialog(
-        model: model,
-        currentSettings: _draftSettings,
-        onDownloaded: () {
-          setState(() {
-            _draftSettings = _draftSettings.copyWith(selectedModel: model.id);
-          });
-        },
+      builder: (ctx) => AlertDialog(
+        title: Text(t.download.hfTokenRequired),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(t.download.requiresAuth),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: t.download.hfToken,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t.common.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final inputToken = controller.text.trim();
+              if (inputToken.isNotEmpty) {
+                Navigator.pop(ctx);
+                setState(
+                  () => _draftSettings = _draftSettings.copyWith(
+                    hfToken: inputToken,
+                  ),
+                );
+                _executeDownload(model, inputToken);
+              }
+            },
+            child: Text(t.download.proceed),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _executeDownload(AvailableModel model, String token) async {
+    final t = Translations.of(context);
+    final freeBytes = await ref.read(freeStorageBytesProvider.future);
+    final requiredBytes = (model.sizeMb * 1024 * 1024) + (1024 * 1024 * 1024);
+    if (freeBytes != -1 && freeBytes < requiredBytes) {
+      if (!mounted) return;
+      showErrorSnackBar(
+        context,
+        t.settings.notEnoughSpace(
+          required: (requiredBytes / 1024 / 1024 / 1024).toStringAsFixed(1),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await ref.read(modelDownloaderProvider.notifier).download(model, token);
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, e.toString());
+    }
   }
 
   Widget _buildChip(IconData icon, String label, Color color) {
@@ -194,6 +264,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       isModelInstalledProvider(model.id),
                     );
                     final isSelected = _draftSettings.selectedModel == model.id;
+                    final downloadState =
+                        ref.watch(modelDownloaderProvider)[model.id] ??
+                        const DownloadStatus();
 
                     return Card.outlined(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -216,7 +289,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           spacing: 8,
                           children: [
                             Text(
-                              model.name,
+                              '${model.name} (${_formatSize(model.sizeMb)})',
                               style: TextStyle(
                                 fontWeight: isSelected
                                     ? FontWeight.bold
@@ -275,26 +348,77 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            isInstalledAsync.when(
-                              data: (installed) => Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  installed
-                                      ? t.setup.downloaded
-                                      : t.setup.tapToDownload,
-                                  style: TextStyle(
-                                    color: installed
-                                        ? Colors.green.shade600
-                                        : theme.colorScheme.onSurfaceVariant,
+                            if (downloadState.isDownloading ||
+                                downloadState.isPaused)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    LinearProgressIndicator(
+                                      value: downloadState.progress / 100,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '${downloadState.progress}%',
+                                          style: theme.textTheme.labelSmall,
+                                        ),
+                                        if (downloadState.isPaused)
+                                          Text(
+                                            t.settings.modelManagement.paused,
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color:
+                                                      theme.colorScheme.error,
+                                                ),
+                                          )
+                                        else if (downloadState
+                                                .estimatedTimeRemaining >
+                                            0)
+                                          Text(
+                                            '~${(downloadState.estimatedTimeRemaining / 60).toStringAsFixed(1)}m',
+                                            style: theme.textTheme.labelSmall,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              isInstalledAsync.when(
+                                data: (installed) => Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    installed
+                                        ? t.setup.downloaded
+                                        : t.setup.tapToDownload,
+                                    style: TextStyle(
+                                      color: installed
+                                          ? Colors.green.shade600
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
+                                loading: () => Text(t.setup.checking),
+                                error: (_, _) => Text(t.setup.error),
                               ),
-                              loading: () => Text(t.setup.checking),
-                              error: (_, _) => Text(t.setup.error),
-                            ),
                           ],
                         ),
-                        trailing: isInstalledAsync.value == true
+                        trailing: downloadState.isDownloading
+                            ? null
+                            : downloadState.isPaused
+                            ? FilledButton.icon(
+                                icon: const Icon(Icons.play_arrow, size: 18),
+                                label: Text(t.settings.modelManagement.resume),
+                                onPressed: () => _startDownload(model),
+                              )
+                            : isInstalledAsync.value == true
                             ? (isSelected
                                   ? Icon(
                                       Icons.check_circle,
@@ -304,7 +428,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                             : FilledButton.icon(
                                 icon: const Icon(Icons.download, size: 18),
                                 label: Text(t.setup.get),
-                                onPressed: () => _showDownloadDialog(model),
+                                onPressed: () => _startDownload(model),
                               ),
                         onTap: isInstalledAsync.value == true
                             ? () => setState(
