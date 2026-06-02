@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/logger.dart';
 import '../domain/models.dart';
 import '../i18n/generated/translations.g.dart';
 import '../infrastructure/hive_service.dart';
@@ -9,159 +10,283 @@ import 'chat_provider.dart';
 
 part 'settings_provider.g.dart';
 
+// Controller providing active system settings and profile configs
 @Riverpod(keepAlive: true)
 class SettingsController extends _$SettingsController {
+  // Saves new settings to storage, reloads translation keys, and restarts the model context
   Future<void> updateSettings(
     AppSettings newSettings, {
     bool reloadModel = true,
   }) async {
-    if (state.locale != newSettings.locale) {
-      if (newSettings.locale.isEmpty) {
-        LocaleSettings.useDeviceLocale();
-      } else {
-        try {
-          LocaleSettings.setLocaleRaw(newSettings.locale);
-        } catch (_) {
+    try {
+      if (state.locale != newSettings.locale) {
+        if (newSettings.locale.isEmpty) {
           LocaleSettings.useDeviceLocale();
+        } else {
+          try {
+            LocaleSettings.setLocaleRaw(newSettings.locale);
+          } catch (e) {
+            appLogger.w(
+              "Requested locale unrecognized, falling back to system default",
+              error: e,
+            );
+            LocaleSettings.useDeviceLocale();
+          }
         }
       }
-    }
 
-    state = newSettings;
-    await ref.read(hiveServiceProvider).saveSettings(newSettings);
+      state = newSettings;
+      final hiveService = ref.read(hiveServiceProvider);
+      await hiveService.saveSettings(newSettings);
 
-    final hiveService = ref.read(hiveServiceProvider);
-    final activeId = hiveService.getActiveConfigurationId();
-    final activeConfig = hiveService.getConfiguration(activeId);
-    if (activeConfig != null && !activeConfig.isReadOnly) {
-      final updatedConfig = SettingConfiguration.fromSettings(
-        newSettings,
-        id: activeConfig.id,
-        name: activeConfig.name,
-      );
-      await hiveService.saveConfiguration(updatedConfig);
-    }
-
-    if (reloadModel) {
-      try {
-        await ref.read(llmServiceProvider).initModel(newSettings);
-      } catch (e) {
-        throw Exception("Failed to apply model settings: $e");
+      final activeId = hiveService.getActiveConfigurationId();
+      final activeConfig = hiveService.getConfiguration(activeId);
+      if (activeConfig != null && !activeConfig.isReadOnly) {
+        final updatedConfig = SettingConfiguration.fromSettings(
+          newSettings,
+          id: activeConfig.id,
+          name: activeConfig.name,
+        );
+        await hiveService.saveConfiguration(updatedConfig);
       }
+
+      if (reloadModel) {
+        try {
+          await ref.read(llmServiceProvider).initModel(newSettings);
+        } catch (e, st) {
+          appLogger.e(
+            "Failed to reload model configuration",
+            error: e,
+            stackTrace: st,
+          );
+          throw Exception("Failed to apply model settings: $e");
+        }
+      }
+
+      final currentSessionId = ref
+          .read(chatLogicProvider.notifier)
+          .currentSessionId;
+      await ref.read(chatLogicProvider.notifier).loadSession(currentSessionId);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to completely update settings profile",
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
     }
-
-    final currentSessionId = ref
-        .read(chatLogicProvider.notifier)
-        .currentSessionId;
-    await ref.read(chatLogicProvider.notifier).loadSession(currentSessionId);
   }
 
+  // Switches active profile config and re-loads model parameters
   Future<void> switchConfiguration(String configId) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    final config = hiveService.getConfiguration(configId);
-    if (config == null) return;
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final config = hiveService.getConfiguration(configId);
+      if (config == null) return;
 
-    await hiveService.setActiveConfigurationId(configId);
+      await hiveService.setActiveConfigurationId(configId);
 
-    final newSettings = config.applyToSettings(state);
-    await updateSettings(newSettings, reloadModel: true);
+      final newSettings = config.applyToSettings(state);
+      await updateSettings(newSettings, reloadModel: true);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to switch configuration profile to $configId",
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
 
+  // Registers a brand new custom config parameter profile
   Future<SettingConfiguration> addConfiguration(
     String name, {
     bool copyCurrent = true,
   }) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    final id = const Uuid().v4();
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final id = const Uuid().v4();
 
-    final SettingConfiguration newConfig;
-    if (copyCurrent) {
-      newConfig = SettingConfiguration.fromSettings(state, id: id, name: name);
-    } else {
-      newConfig = SettingConfiguration(id: id, name: name);
-    }
-
-    await hiveService.saveConfiguration(newConfig);
-    await switchConfiguration(id);
-    return newConfig;
-  }
-
-  Future<void> addImportedConfiguration(SettingConfiguration config) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    await hiveService.saveConfiguration(config);
-    await switchConfiguration(config.id);
-  }
-
-  Future<void> duplicateConfiguration(SettingConfiguration config) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    final id = const Uuid().v4();
-    final newConfig = config.copyWith(
-      id: id,
-      name: '${config.name} (Copy)',
-      isReadOnly: false,
-    );
-    await hiveService.saveConfiguration(newConfig);
-    await switchConfiguration(id);
-  }
-
-  Future<void> toggleReadOnly(String id, bool isReadOnly) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    final config = hiveService.getConfiguration(id);
-    if (config == null) return;
-    final updated = config.copyWith(isReadOnly: isReadOnly);
-    await hiveService.saveConfiguration(updated);
-    ref.invalidateSelf();
-  }
-
-  Future<void> renameConfiguration(String id, String newName) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    final config = hiveService.getConfiguration(id);
-    if (config == null) return;
-    final updated = config.copyWith(name: newName);
-    await hiveService.saveConfiguration(updated);
-  }
-
-  Future<bool> deleteConfiguration(String id) async {
-    final hiveService = ref.read(hiveServiceProvider);
-    final configs = hiveService.getAllConfigurations();
-    if (configs.length <= 1) return false;
-
-    await hiveService.deleteConfiguration(id);
-
-    if (hiveService.getActiveConfigurationId() == id) {
-      final remaining = hiveService.getAllConfigurations();
-      if (remaining.isNotEmpty) {
-        await switchConfiguration(remaining.first.id);
+      final SettingConfiguration newConfig;
+      if (copyCurrent) {
+        newConfig = SettingConfiguration.fromSettings(
+          state,
+          id: id,
+          name: name,
+        );
+      } else {
+        newConfig = SettingConfiguration(id: id, name: name);
       }
+
+      await hiveService.saveConfiguration(newConfig);
+      await switchConfiguration(id);
+      return newConfig;
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to create configuration $name",
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
     }
-    return true;
   }
 
+  // Saves a configuration profile imported from disk
+  Future<void> addImportedConfiguration(SettingConfiguration config) async {
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      await hiveService.saveConfiguration(config);
+      await switchConfiguration(config.id);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to import configuration: ${config.id}",
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  // Duplicates an existing configuration profile
+  Future<void> duplicateConfiguration(SettingConfiguration config) async {
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final id = const Uuid().v4();
+      final newConfig = config.copyWith(
+        id: id,
+        name: '${config.name} (Copy)',
+        isReadOnly: false,
+      );
+      await hiveService.saveConfiguration(newConfig);
+      await switchConfiguration(id);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to duplicate configuration ${config.name}",
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  // Locks or unlocks a configuration profile from user edits
+  Future<void> toggleReadOnly(String id, bool isReadOnly) async {
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final config = hiveService.getConfiguration(id);
+      if (config == null) return;
+      final updated = config.copyWith(isReadOnly: isReadOnly);
+      await hiveService.saveConfiguration(updated);
+      ref.invalidateSelf();
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to toggle read-only status for $id",
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  // Renames a user-created configuration profile
+  Future<void> renameConfiguration(String id, String newName) async {
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final config = hiveService.getConfiguration(id);
+      if (config == null) return;
+      final updated = config.copyWith(name: newName);
+      await hiveService.saveConfiguration(updated);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to rename configuration $id to $newName",
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  // Deletes a target configuration profile, shifting the active profile to the fallback
+  Future<bool> deleteConfiguration(String id) async {
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final configs = hiveService.getAllConfigurations();
+      if (configs.length <= 1) return false;
+
+      await hiveService.deleteConfiguration(id);
+
+      if (hiveService.getActiveConfigurationId() == id) {
+        final remaining = hiveService.getAllConfigurations();
+        if (remaining.isNotEmpty) {
+          await switchConfiguration(remaining.first.id);
+        }
+      }
+      return true;
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to delete configuration profile $id",
+        error: e,
+        stackTrace: st,
+      );
+      return false;
+    }
+  }
+
+  // Reads and returns all config profiles from Hive DB
   List<SettingConfiguration> getConfigurations() {
-    return ref.read(hiveServiceProvider).getAllConfigurations();
+    try {
+      return ref.read(hiveServiceProvider).getAllConfigurations();
+    } catch (e, st) {
+      appLogger.e("Failed to fetch profiles from DB", error: e, stackTrace: st);
+      return [];
+    }
   }
 
+  // Returns the active configuration ID
   String getActiveConfigurationId() {
-    return ref.read(hiveServiceProvider).getActiveConfigurationId();
+    try {
+      return ref.read(hiveServiceProvider).getActiveConfigurationId();
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to load active configuration ID",
+        error: e,
+        stackTrace: st,
+      );
+      return 'default';
+    }
   }
 
+  // Returns the resolved configuration profile mapped to the active ID
   SettingConfiguration? getActiveConfiguration() {
-    final hiveService = ref.read(hiveServiceProvider);
-    final activeId = hiveService.getActiveConfigurationId();
-    return hiveService.getConfiguration(activeId);
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      final activeId = hiveService.getActiveConfigurationId();
+      return hiveService.getConfiguration(activeId);
+    } catch (e, st) {
+      appLogger.e(
+        "Error loading active configuration profile details",
+        error: e,
+        stackTrace: st,
+      );
+      return null;
+    }
   }
 
   @override
   AppSettings build() {
-    final hiveService = ref.read(hiveServiceProvider);
-    var settings = hiveService.getSettings();
+    try {
+      final hiveService = ref.read(hiveServiceProvider);
+      var settings = hiveService.getSettings();
 
-    final activeId = hiveService.getActiveConfigurationId();
-    final activeConfig = hiveService.getConfiguration(activeId);
-    if (activeConfig != null) {
-      settings = activeConfig.applyToSettings(settings);
+      final activeId = hiveService.getActiveConfigurationId();
+      final activeConfig = hiveService.getConfiguration(activeId);
+      if (activeConfig != null) {
+        settings = activeConfig.applyToSettings(settings);
+      }
+
+      return settings;
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to build base Settings state",
+        error: e,
+        stackTrace: st,
+      );
+      return AppSettings();
     }
-
-    return settings;
   }
 }

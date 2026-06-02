@@ -13,6 +13,7 @@ import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../infrastructure/llm_service.dart';
 
+// First-time setup onboarding flow screen allowing selection and download of initial local LLMs
 @RoutePage()
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -38,37 +39,55 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     return '$sizeMb MB';
   }
 
+  // Audits current platform file system to determine if there is an existing local model or initiates download flow
   Future<void> _checkInitialState() async {
     appLogger.i("SetupScreen: Checking initial state...");
     final settings = ref.read(settingsControllerProvider);
     bool anyInstalled = false;
     String? firstInstalledId;
 
-    for (var model in kAvailableModels) {
-      if (await FlutterGemma.isModelInstalled(model.fileName)) {
-        anyInstalled = true;
-        firstInstalledId ??= model.id;
+    try {
+      for (var model in kAvailableModels) {
+        if (await FlutterGemma.isModelInstalled(model.fileName)) {
+          anyInstalled = true;
+          firstInstalledId ??= model.id;
+        }
       }
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to check installed models during onboarding audit",
+        error: e,
+        stackTrace: st,
+      );
     }
 
     if (anyInstalled) {
       appLogger.i("SetupScreen: Found installed model. Proceeding to Chat.");
-      if (!(await FlutterGemma.isModelInstalled(
-        kAvailableModels
-            .firstWhere((m) => m.id == settings.selectedModel)
-            .fileName,
-      ))) {
-        ref
-            .read(settingsControllerProvider.notifier)
-            .updateSettings(
-              settings.copyWith(selectedModel: firstInstalledId),
-              reloadModel: false,
-            );
-      }
+      try {
+        final currentModelInstalled = await FlutterGemma.isModelInstalled(
+          kAvailableModels
+              .firstWhere((m) => m.id == settings.selectedModel)
+              .fileName,
+        );
+        if (!currentModelInstalled) {
+          ref
+              .read(settingsControllerProvider.notifier)
+              .updateSettings(
+                settings.copyWith(selectedModel: firstInstalledId),
+                reloadModel: false,
+              );
+        }
 
-      ref
-          .read(llmServiceProvider)
-          .initModel(ref.read(settingsControllerProvider));
+        ref
+            .read(llmServiceProvider)
+            .initModel(ref.read(settingsControllerProvider));
+      } catch (e, st) {
+        appLogger.e(
+          "Onboarding model pre-init failed, continuing anyway",
+          error: e,
+          stackTrace: st,
+        );
+      }
 
       if (mounted) context.router.replace(const ChatRoute());
     } else {
@@ -82,6 +101,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
   }
 
+  // Saves onboarding configuration and opens the main chat room interface
   Future<void> _finishSetup() async {
     try {
       ref
@@ -89,11 +109,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           .updateSettings(_draftSettings, reloadModel: false);
       ref.read(llmServiceProvider).initModel(_draftSettings);
       if (mounted) context.router.replace(const ChatRoute());
-    } catch (e) {
-      appLogger.e("SetupScreen: Error applying model", error: e);
+    } catch (e, st) {
+      appLogger.e(
+        "SetupScreen: Error applying model or transitioning",
+        error: e,
+        stackTrace: st,
+      );
+      if (mounted) {
+        showErrorSnackBar(context, "Failed to start selected model: $e");
+      }
     }
   }
 
+  // Prepares system and initiates the background model download workflow
   void _startDownload(AvailableModel model) async {
     final token = _draftSettings.hfToken;
     if (model.requiresAuth && token.isEmpty) {
@@ -103,6 +131,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     await _executeDownload(model, token);
   }
 
+  // Opens secure dialog capturing HuggingFace tokens for gated models
   void _showTokenDialog(AvailableModel model) {
     final t = Translations.of(context);
     final controller = TextEditingController(text: _draftSettings.hfToken);
@@ -150,9 +179,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
+  // Triggers the download manager provider with storage validation checks
   Future<void> _executeDownload(AvailableModel model, String token) async {
     final t = Translations.of(context);
-    final freeBytes = await ref.read(freeStorageBytesProvider.future);
+
+    int freeBytes = -1;
+    try {
+      freeBytes = await ref.read(freeStorageBytesProvider.future);
+    } catch (e) {
+      appLogger.w(
+        "Could not query disk space. Proceeding cautiously.",
+        error: e,
+      );
+    }
+
     final requiredBytes = (model.sizeMb * 1024 * 1024) + (1024 * 1024 * 1024);
     if (freeBytes != -1 && freeBytes < requiredBytes) {
       if (!mounted) return;
@@ -167,7 +207,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
     try {
       await ref.read(modelDownloaderProvider.notifier).download(model, token);
-    } catch (e) {
+    } catch (e, st) {
+      appLogger.e(
+        "Download init failed on onboarding screen",
+        error: e,
+        stackTrace: st,
+      );
       if (mounted) showErrorSnackBar(context, e.toString());
     }
   }
@@ -201,7 +246,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     if (_isChecking) {
-      return const Scaffold();
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final theme = Theme.of(context);

@@ -30,6 +30,7 @@ import 'widgets/model_status_app_bar_title.dart';
 import 'widgets/thinking_widget.dart';
 import 'widgets/throttled_markdown_widget.dart';
 
+// The primary screen where users interact with the Local Assistant AI model
 @RoutePage()
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -48,6 +49,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
+  // Opens a confirmation dialog and securely attempts to delete a single target message
   void _confirmDeleteMessage(String messageId) {
     final t = Translations.of(context);
     showDialog(
@@ -63,12 +65,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await ref
-                  .read(chatLogicProvider.notifier)
-                  .deleteMessage(messageId);
-              if (mounted && ctx.mounted) {
-                Navigator.pop(ctx);
-                showSuccessSnackBar(context, t.chat.messageDeleted);
+              try {
+                await ref
+                    .read(chatLogicProvider.notifier)
+                    .deleteMessage(messageId);
+                if (mounted && ctx.mounted) {
+                  Navigator.pop(ctx);
+                  showSuccessSnackBar(context, t.chat.messageDeleted);
+                }
+              } catch (e, st) {
+                appLogger.e("Error deleting message", error: e, stackTrace: st);
+                if (mounted && ctx.mounted) {
+                  Navigator.pop(ctx);
+                  showErrorSnackBar(context, "Failed to delete message");
+                }
               }
             },
             child: Text(t.common.delete),
@@ -78,6 +88,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  // Opens a bottom sheet for the user to select an attachment type, then processes the selection securely
   Future<void> _handleAttachmentTap() async {
     final t = Translations.of(context);
     if (_pendingAttachments.length >= AppConstants.maxAttachments) {
@@ -105,7 +116,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                t.chat.addAttachment,
+                'Add Attachment',
                 style: Theme.of(
                   ctx,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -152,120 +163,152 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     if (choice == null || !mounted) return;
 
-    if (choice == 'photo') {
-      final picker = ImagePicker();
-      final xFile = await picker.pickImage(source: ImageSource.gallery);
-      if (xFile == null) return;
+    try {
+      if (choice == 'photo') {
+        final picker = ImagePicker();
+        final xFile = await picker.pickImage(source: ImageSource.gallery);
+        if (xFile == null) return;
 
-      final bytes = await xFile.readAsBytes();
-      final url = 'http://local_image_${const Uuid().v4()}.jpg';
-      await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
-
-      if (!mounted) return;
-      setState(() {
-        _pendingAttachments.add(
-          ChatAttachment(
-            type: 'photo',
-            bytes: bytes,
-            url: url,
-            fileName: xFile.name,
-            mimeType: 'image/jpeg',
-          ),
-        );
-      });
-    } else if (choice == 'audio') {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['wav'],
-      );
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final rawBytes = await file.readAsBytes();
-
-        Uint8List pcmData;
-        try {
-          final parsed = AudioConverter.parseWav(rawBytes);
-          pcmData = AudioConverter.toPCM16kHzMono(
-            parsed.pcmData,
-            sourceSampleRate: parsed.sampleRate,
-            sourceChannels: parsed.channels,
-          );
-        } catch (e) {
-          appLogger.e("Invalid WAV file", error: e);
-          if (mounted) showErrorSnackBar(context, t.errors.invalidAudioFormat);
-          return;
-        }
-
-        final url = 'http://local_audio_${const Uuid().v4()}.wav';
-        await DefaultCacheManager().putFile(url, pcmData, fileExtension: 'wav');
+        final bytes = await xFile.readAsBytes();
+        final url = 'http://local_image_${const Uuid().v4()}.jpg';
+        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
 
         if (!mounted) return;
         setState(() {
           _pendingAttachments.add(
             ChatAttachment(
-              type: 'audio',
-              bytes: pcmData,
-              url: url,
-              fileName: result.files.single.name,
-              fileSize: pcmData.length,
-              mimeType: 'audio/wav',
-            ),
-          );
-        });
-      }
-    } else if (choice == 'doc') {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['txt', 'md', 'csv', 'json', 'log'],
-      );
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-
-        String textContent;
-        try {
-          textContent = await file.readAsString();
-        } catch (e) {
-          if (mounted) {
-            showErrorSnackBar(context, t.errors.cannotReadFile);
-          }
-          return;
-        }
-
-        final bytes = await file.readAsBytes();
-        final url = 'http://local_doc_${const Uuid().v4()}.txt';
-        await DefaultCacheManager().putFile(url, bytes, fileExtension: 'txt');
-
-        if (!mounted) return;
-        setState(() {
-          _pendingAttachments.add(
-            ChatAttachment(
-              type: 'doc',
+              type: 'photo',
               bytes: bytes,
               url: url,
-              fileName: result.files.single.name,
-              fileSize: result.files.single.size,
-              mimeType: 'text/plain',
-              textContent: textContent,
+              fileName: xFile.name,
+              mimeType: 'image/jpeg',
             ),
           );
         });
+      } else if (choice == 'audio') {
+        final result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['wav'],
+        );
+        if (result != null && result.files.single.path != null) {
+          final file = File(result.files.single.path!);
+          final rawBytes = await file.readAsBytes();
+
+          Uint8List pcmData;
+          try {
+            final parsed = AudioConverter.parseWav(rawBytes);
+            pcmData = AudioConverter.toPCM16kHzMono(
+              parsed.pcmData,
+              sourceSampleRate: parsed.sampleRate,
+              sourceChannels: parsed.channels,
+            );
+          } catch (e) {
+            appLogger.e("Invalid WAV file", error: e);
+            if (mounted) {
+              showErrorSnackBar(context, t.errors.invalidAudioFormat);
+            }
+            return;
+          }
+
+          final url = 'http://local_audio_${const Uuid().v4()}.wav';
+          await DefaultCacheManager().putFile(
+            url,
+            pcmData,
+            fileExtension: 'wav',
+          );
+
+          if (!mounted) return;
+          setState(() {
+            _pendingAttachments.add(
+              ChatAttachment(
+                type: 'audio',
+                bytes: pcmData,
+                url: url,
+                fileName: result.files.single.name,
+                fileSize: pcmData.length,
+                mimeType: 'audio/wav',
+              ),
+            );
+          });
+        }
+      } else if (choice == 'doc') {
+        final result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['txt', 'md', 'csv', 'json', 'log'],
+        );
+        if (result != null && result.files.single.path != null) {
+          final file = File(result.files.single.path!);
+
+          String textContent;
+          try {
+            textContent = await file.readAsString();
+          } catch (e) {
+            if (mounted) {
+              showErrorSnackBar(
+                context,
+                'Cannot read file. Please ensure it is a valid text document.',
+              );
+            }
+            return;
+          }
+
+          final bytes = await file.readAsBytes();
+          final url = 'http://local_doc_${const Uuid().v4()}.txt';
+          await DefaultCacheManager().putFile(url, bytes, fileExtension: 'txt');
+
+          if (!mounted) return;
+          setState(() {
+            _pendingAttachments.add(
+              ChatAttachment(
+                type: 'doc',
+                bytes: bytes,
+                url: url,
+                fileName: result.files.single.name,
+                fileSize: result.files.single.size,
+                mimeType: 'text/plain',
+                textContent: textContent,
+              ),
+            );
+          });
+        }
+      }
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to process attachment selection",
+        error: e,
+        stackTrace: st,
+      );
+      if (mounted) {
+        showErrorSnackBar(
+          context,
+          "An error occurred while attaching the file.",
+        );
       }
     }
   }
 
+  // Sends the current input text and attached files securely
   void _triggerSend(String text) {
     if (text.trim().isEmpty && _pendingAttachments.isEmpty) return;
 
-    ref
-        .read(chatLogicProvider.notifier)
-        .sendMessage(text.trim(), attachments: List.from(_pendingAttachments));
-
-    setState(() {
-      _pendingAttachments.clear();
-      _composerController.clear();
-    });
+    try {
+      ref
+          .read(chatLogicProvider.notifier)
+          .sendMessage(
+            text.trim(),
+            attachments: List.from(_pendingAttachments),
+          );
+      setState(() {
+        _pendingAttachments.clear();
+        _composerController.clear();
+      });
+    } catch (e, st) {
+      appLogger.e("Failed to submit chat message", error: e, stackTrace: st);
+      showErrorSnackBar(context, "Failed to send message.");
+    }
   }
 
+  // Expands the input field into a full-screen editor modal for long messages
   void _openExpandedComposer() {
     final t = Translations.of(context);
     showGeneralDialog(
@@ -338,6 +381,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  // Generates visual component for any attachment in chat
   Widget _buildUnifiedAttachmentBubble(
     Map att,
     bool isSentByMe,
@@ -436,6 +480,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  // Composes the sticky bottom navigation chat bar taking active attachments and model readiness into account
   Widget _buildCustomComposer(BuildContext context, ThemeData theme) {
     final t = Translations.of(context);
     return Container(
@@ -638,7 +683,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
 
     final chatController = ref.watch(chatLogicProvider);
-
     final appTheme = Theme.of(context);
     final chatTheme = ChatTheme.fromThemeData(appTheme);
 
@@ -646,7 +690,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       canPop: true,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) {
-          await ref.read(chatLogicProvider.notifier).loadSession(null);
+          try {
+            await ref.read(chatLogicProvider.notifier).loadSession(null);
+          } catch (e) {
+            appLogger.w("Failed to flush session safely on pop", error: e);
+          }
         }
       },
       child: Scaffold(
@@ -717,11 +765,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       (s) => s[streamId],
                                     ),
                                   );
-
                                   final isGenerating = ref.watch(
                                     isGeneratingProvider,
                                   );
-
                                   final text = streamState?.text ?? '';
                                   final thinking = streamState?.thinking ?? '';
 
@@ -981,9 +1027,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         ),
                                         visualDensity: VisualDensity.compact,
                                         tooltip: t.chat.deleteMessage,
-                                        onPressed: () {
-                                          _confirmDeleteMessage(message.id);
-                                        },
+                                        onPressed: () =>
+                                            _confirmDeleteMessage(message.id),
                                       ),
                                     ],
                                   ),
@@ -1011,6 +1056,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+// Custom Stateless Widget representing an attachment option
 class _AttachmentOption extends StatelessWidget {
   const _AttachmentOption({
     required this.icon,

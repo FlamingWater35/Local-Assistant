@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 
 import '../application/model_manager_provider.dart';
 import '../application/settings_provider.dart';
+import '../core/logger.dart';
 import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../i18n/generated/translations.g.dart';
@@ -21,6 +22,7 @@ import 'settings/widgets/ram_indicator.dart';
 import 'settings/widgets/settings_section_header.dart';
 import 'settings/widgets/updater_card.dart';
 
+// The centralized control panel allowing configuration of models, system limits, and UI parameters
 @RoutePage()
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -67,12 +69,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     });
   }
 
+  // Propagates changed values to the configuration provider
   void _updateSetting(AppSettings newSettings, {bool reloadModel = false}) {
-    ref
-        .read(settingsControllerProvider.notifier)
-        .updateSettings(newSettings, reloadModel: reloadModel);
+    try {
+      ref
+          .read(settingsControllerProvider.notifier)
+          .updateSettings(newSettings, reloadModel: reloadModel);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to update dynamic setting value",
+        error: e,
+        stackTrace: st,
+      );
+      showErrorSnackBar(context, "Failed to apply dynamic settings: $e");
+    }
   }
 
+  // Resets settings to factory defaults after double-confirmation
   void _confirmReset() {
     final t = Translations.of(context);
     showDialog(
@@ -88,20 +101,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              final defaultSettings = AppSettings();
-              final current = ref.read(settingsControllerProvider);
-              _updateSetting(
-                current.copyWith(
-                  temperature: defaultSettings.temperature,
-                  maxTokens: defaultSettings.maxTokens,
-                  systemPrompt: defaultSettings.systemPrompt,
-                  enableGlobalMemory: defaultSettings.enableGlobalMemory,
-                  enableThinking: defaultSettings.enableThinking,
-                  selectedBackend: defaultSettings.selectedBackend,
-                ),
-              );
-              _systemPromptController.text = defaultSettings.systemPrompt;
-              showInfoSnackBar(context, t.settings.resetSuccess);
+              try {
+                final defaultSettings = AppSettings();
+                final current = ref.read(settingsControllerProvider);
+                _updateSetting(
+                  current.copyWith(
+                    temperature: defaultSettings.temperature,
+                    maxTokens: defaultSettings.maxTokens,
+                    systemPrompt: defaultSettings.systemPrompt,
+                    enableGlobalMemory: defaultSettings.enableGlobalMemory,
+                    enableThinking: defaultSettings.enableThinking,
+                    selectedBackend: defaultSettings.selectedBackend,
+                  ),
+                );
+                _systemPromptController.text = defaultSettings.systemPrompt;
+                showInfoSnackBar(context, t.settings.resetSuccess);
+              } catch (e, st) {
+                appLogger.e("Settings reset failed", error: e, stackTrace: st);
+                showErrorSnackBar(context, "Reset operation failed");
+              }
             },
             child: Text(t.settings.resetDefaults),
           ),
@@ -110,9 +128,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
+  // Prompts the file selector to load and apply a custom configurations schema JSON
   Future<void> _importConfig() async {
     final t = Translations.of(context);
-    final params = const OpenFileDialogParams(fileExtensionsFilter: ['json']);
+    const params = OpenFileDialogParams(fileExtensionsFilter: ['json']);
     try {
       final filePath = await FlutterFileDialog.pickFile(params: params);
       if (filePath != null) {
@@ -122,20 +141,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         final config = SettingConfiguration.fromJson(
           map,
         ).copyWith(id: const Uuid().v4());
+
         await ref
             .read(settingsControllerProvider.notifier)
             .addImportedConfiguration(config);
+
         if (mounted) {
           showSuccessSnackBar(context, t.settings.configurations.importSuccess);
         }
       }
-    } catch (e) {
+    } catch (e, st) {
+      appLogger.e("Config import failed", error: e, stackTrace: st);
       if (mounted) {
         showErrorSnackBar(context, t.settings.configurations.importError);
       }
     }
   }
 
+  // Opens input dialog for setting profile parameters and initiates a new configurations instance
   void _showAddConfigurationDialog() {
     final t = Translations.of(context);
     final nameController = TextEditingController();
@@ -179,9 +202,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
                 Navigator.pop(ctx);
-                await ref
-                    .read(settingsControllerProvider.notifier)
-                    .addConfiguration(name, copyCurrent: copyCurrent);
+                try {
+                  await ref
+                      .read(settingsControllerProvider.notifier)
+                      .addConfiguration(name, copyCurrent: copyCurrent);
+                } catch (e, st) {
+                  appLogger.e(
+                    "Failed to add configuration Profile",
+                    error: e,
+                    stackTrace: st,
+                  );
+                  if (mounted) {
+                    showErrorSnackBar(context, "Failed to create profile: $e");
+                  }
+                }
               },
               child: Text(t.settings.configurations.add),
             ),
@@ -191,6 +225,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
+  // Opens dialog for renaming active configuration
   void _showRenameConfigurationDialog(SettingConfiguration config) {
     final t = Translations.of(context);
     final nameController = TextEditingController(text: config.name);
@@ -217,9 +252,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               final name = nameController.text.trim();
               if (name.isEmpty) return;
               Navigator.pop(ctx);
-              await ref
-                  .read(settingsControllerProvider.notifier)
-                  .renameConfiguration(config.id, name);
+              try {
+                await ref
+                    .read(settingsControllerProvider.notifier)
+                    .renameConfiguration(config.id, name);
+              } catch (e, st) {
+                appLogger.e(
+                  "Failed to rename profile context",
+                  error: e,
+                  stackTrace: st,
+                );
+                if (mounted) {
+                  showErrorSnackBar(context, "Failed to rename profile");
+                }
+              }
             },
             child: Text(t.settings.configurations.rename),
           ),
@@ -228,6 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
+  // Deletes settings configuration safely, with safety fallback checks
   void _confirmDeleteConfiguration(SettingConfiguration config) {
     final t = Translations.of(context);
     showDialog(
@@ -246,14 +293,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              final success = await ref
-                  .read(settingsControllerProvider.notifier)
-                  .deleteConfiguration(config.id);
-              if (mounted && !success) {
-                showErrorSnackBar(
-                  context,
-                  t.settings.configurations.cannotDeleteLast,
+              try {
+                final success = await ref
+                    .read(settingsControllerProvider.notifier)
+                    .deleteConfiguration(config.id);
+                if (mounted && !success) {
+                  showErrorSnackBar(
+                    context,
+                    t.settings.configurations.cannotDeleteLast,
+                  );
+                }
+              } catch (e, st) {
+                appLogger.e(
+                  "Failed to delete configuration context",
+                  error: e,
+                  stackTrace: st,
                 );
+                if (mounted) {
+                  showErrorSnackBar(context, "Failed to delete target profile");
+                }
               }
             },
             child: Text(t.common.delete),
@@ -263,29 +321,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
+  // Clones an existing profile template
   void _duplicateConfiguration(SettingConfiguration config) async {
-    await ref
-        .read(settingsControllerProvider.notifier)
-        .duplicateConfiguration(config);
-  }
-
-  void _toggleReadOnly(SettingConfiguration config, bool isReadOnly) async {
-    await ref
-        .read(settingsControllerProvider.notifier)
-        .toggleReadOnly(config.id, isReadOnly);
-  }
-
-  void _switchConfiguration(String configId) async {
-    await ref
-        .read(settingsControllerProvider.notifier)
-        .switchConfiguration(configId);
-    if (mounted) {
-      _systemPromptController.text = ref
-          .read(settingsControllerProvider)
-          .systemPrompt;
+    try {
+      await ref
+          .read(settingsControllerProvider.notifier)
+          .duplicateConfiguration(config);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to duplicate configurations profile",
+        error: e,
+        stackTrace: st,
+      );
+      if (mounted) {
+        showErrorSnackBar(context, "Duplicate profile operation failed.");
+      }
     }
   }
 
+  // Toggles the read-only flag on specific profiles to prevent accidental mutations
+  void _toggleReadOnly(SettingConfiguration config, bool isReadOnly) async {
+    try {
+      await ref
+          .read(settingsControllerProvider.notifier)
+          .toggleReadOnly(config.id, isReadOnly);
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to change read-only status",
+        error: e,
+        stackTrace: st,
+      );
+      if (mounted) {
+        showErrorSnackBar(context, "Failed to change write state.");
+      }
+    }
+  }
+
+  // Switches profiles and refreshes UI form states securely
+  void _switchConfiguration(String configId) async {
+    try {
+      await ref
+          .read(settingsControllerProvider.notifier)
+          .switchConfiguration(configId);
+      if (mounted) {
+        _systemPromptController.text = ref
+            .read(settingsControllerProvider)
+            .systemPrompt;
+      }
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to apply requested configurations profile switch",
+        error: e,
+        stackTrace: st,
+      );
+      if (mounted) {
+        showErrorSnackBar(context, "Failed to switch profiles: $e");
+      }
+    }
+  }
+
+  // Opens a modal for picking and setting an active downloaded LLM model context
   void _showModelSelector() {
     final t = Translations.of(context);
     final theme = Theme.of(context);
@@ -414,13 +509,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
   Widget _buildLivePreview(AppSettings currentSettings) {
     final theme = Theme.of(context);
-    final t = Translations.of(context);
-
-    String previewText = t.settings.previewDefault;
+    String previewText =
+        "Paris is the capital of France, known for its art and culture.";
     if (currentSettings.temperature < 0.3) {
-      previewText = t.settings.previewFocused;
+      previewText = "The capital of France is Paris.";
     } else if (currentSettings.temperature >= 0.7) {
-      previewText = t.settings.previewCreative;
+      previewText =
+          "Ah, Paris! The luminous capital of France, a city where art, history, and romance intertwine...";
     }
 
     return Container(
@@ -443,7 +538,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                t.settings.livePreview,
+                Translations.of(context).settings.livePreview,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
@@ -844,7 +939,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final currentSettings = ref.watch(settingsControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -874,9 +968,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           controller: _tabController,
           children: [
             _buildConfigurationsTab(),
-            _buildSystemTab(currentSettings),
-            _buildInferenceTab(currentSettings),
-            _buildBehaviorTab(currentSettings),
+            _buildSystemTab(ref.watch(settingsControllerProvider)),
+            _buildInferenceTab(ref.watch(settingsControllerProvider)),
+            _buildBehaviorTab(ref.watch(settingsControllerProvider)),
           ],
         ),
       ),

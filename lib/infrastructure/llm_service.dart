@@ -11,6 +11,7 @@ import '../domain/models.dart';
 
 part 'llm_service.g.dart';
 
+// Represents an individual chunk of data yielded by the LLM stream
 class GenerationChunk {
   GenerationChunk({this.text, this.thinking});
 
@@ -18,10 +19,10 @@ class GenerationChunk {
   final String? thinking;
 
   bool get isText => text != null;
-
   bool get isThinking => thinking != null;
 }
 
+// Tracks the global initialization state of the local LLM
 @Riverpod(keepAlive: true)
 class ModelStatus extends _$ModelStatus {
   void setStatus(ModelState status) {
@@ -32,6 +33,7 @@ class ModelStatus extends _$ModelStatus {
   ModelState build() => ModelState.uninitialized;
 }
 
+// Core service responsible for initializing, handling context, and running inference on the local LLM
 class LlmService {
   LlmService(this.ref);
 
@@ -45,6 +47,7 @@ class LlmService {
   bool _isUnloading = false;
   final _sessionLock = Completer<void>();
 
+  // Mounts the selected LLM into memory and initializes a fresh InferenceChat session
   Future<void> initModel(AppSettings settings) async {
     if (_isUnloading) {
       await _sessionLock.future
@@ -58,7 +61,12 @@ class LlmService {
     _isSessionActive = false;
     _isUnloading = false;
     _setStatus(ModelState.loading);
-    WakelockPlus.enable();
+
+    try {
+      WakelockPlus.enable();
+    } catch (e) {
+      appLogger.w("Could not acquire Wakelock during initModel", error: e);
+    }
 
     try {
       appLogger.i("⚙️ initModel: Starting model initialization...");
@@ -114,6 +122,7 @@ class LlmService {
         supportAudio: modelDef.supportsAudio,
         isThinking: settings.enableThinking && modelDef.supportsThinking,
       );
+
       _currentContextTokens = AppConstants.estimateTokens(
         settings.systemPrompt,
       );
@@ -121,16 +130,25 @@ class LlmService {
       _isSessionActive = true;
       _setStatus(ModelState.ready);
       appLogger.i("✅ initModel: Model initialized successfully.");
-    } catch (e) {
-      appLogger.e("❌ initModel: Failed to initialize model.", error: e);
+    } catch (e, st) {
+      appLogger.e(
+        "❌ initModel: Failed to initialize model.",
+        error: e,
+        stackTrace: st,
+      );
       _isSessionActive = false;
       _setStatus(ModelState.error);
       rethrow;
     } finally {
-      WakelockPlus.disable();
+      try {
+        WakelockPlus.disable();
+      } catch (e) {
+        appLogger.d("Wakelock already disabled", error: e);
+      }
     }
   }
 
+  // Parses attached documents, generates embeddings via Gecko model, and augments the original prompt
   Future<String> processAttachmentsForRag(
     String prompt,
     List<ChatAttachment> attachments,
@@ -175,6 +193,7 @@ class LlmService {
       final query = prompt.trim().isEmpty
           ? "Summarize the key points of the documents."
           : prompt;
+
       final results = await FlutterGemmaPlugin.instance.searchSimilar(
         query: query,
         topK: 4,
@@ -190,12 +209,17 @@ class LlmService {
         "RAG: Augmented prompt with ${results.length} context chunks.",
       );
       return "Use the following retrieved document context to answer the user's query.\n\nContext:\n$contextText\n\nUser Query: $query";
-    } catch (e) {
-      appLogger.e("RAG: Failed during embedding or vector search.", error: e);
-      return prompt;
+    } catch (e, st) {
+      appLogger.e(
+        "RAG: Failed during embedding or vector search. Proceeding with unaugmented prompt.",
+        error: e,
+        stackTrace: st,
+      );
+      return prompt; // Fallback to safe raw prompt
     }
   }
 
+  // Injects prior messages from a specific session into the model's fresh chat context
   Future<bool> loadSessionContext(
     ChatSession? session,
     AppSettings settings,
@@ -243,6 +267,7 @@ class LlmService {
         supportAudio: modelDef.supportsAudio,
         isThinking: settings.enableThinking && modelDef.supportsThinking,
       );
+
       int totalTokens = systemTokens;
       int imageCount = reserveImages;
 
@@ -263,9 +288,7 @@ class LlmService {
           final atts = msg.attachments ?? [];
           final msgPhotos = atts.where((a) => a.type == 'photo').length;
 
-          if (imageCount + msgPhotos > AppConstants.maxAttachments) {
-            continue;
-          }
+          if (imageCount + msgPhotos > AppConstants.maxAttachments) continue;
 
           int msgTokens = AppConstants.estimateTokens(msg.text);
           msgTokens += AppConstants.estimateLocalAttachmentTokens(atts);
@@ -366,13 +389,15 @@ class LlmService {
       _currentImageCount = imageCount - reserveImages;
       _setStatus(ModelState.ready);
       return true;
-    } catch (e) {
+    } catch (e, st) {
+      appLogger.e("Failed to load session context", error: e, stackTrace: st);
       _isSessionActive = false;
       _setStatus(ModelState.error);
       return false;
     }
   }
 
+  // Asynchronously generates the response from the LLM, passing results chunk by chunk
   Stream<GenerationChunk> generateResponseStream({
     required String prompt,
     required ChatSession session,
@@ -445,9 +470,7 @@ class LlmService {
     try {
       final stream = _activeChat!.generateChatResponseAsync();
       await for (final response in stream) {
-        if (_isUnloading || !_isSessionActive) {
-          break;
-        }
+        if (_isUnloading || !_isSessionActive) break;
 
         if (response is TextResponse) {
           if (_isSessionActive && !_isUnloading) {
@@ -455,33 +478,41 @@ class LlmService {
               int tok = AppConstants.estimateTokens(response.token);
               generatedTokens += tok;
               _currentContextTokens += tok;
-            } catch (_) {}
+            } catch (e) {
+              appLogger.d("Error estimating generation tokens", error: e);
+            }
           }
           yield GenerationChunk(text: response.token);
         } else if (response is ThinkingResponse && settings.enableThinking) {
           yield GenerationChunk(thinking: response.content);
-        } else if (response is FunctionCallResponse) {
-          continue;
-        } else if (response is ParallelFunctionCallResponse) {
-          continue;
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       _currentContextTokens -= (promptTokens + generatedTokens);
       _currentImageCount -= incomingImages;
-      if (e.toString().contains('CANCELLED') ||
-          e.toString().contains('Process cancelled') ||
-          e.toString().contains('Session not created')) {
+
+      final errorStr = e.toString();
+      if (errorStr.contains('CANCELLED') ||
+          errorStr.contains('Process cancelled') ||
+          errorStr.contains('Session not created')) {
         return;
       }
-      if (e.toString().contains('Failed to invoke') ||
-          e.toString().contains('SizeOfDimension')) {
+
+      appLogger.e(
+        "Inference failed during generation stream",
+        error: e,
+        stackTrace: st,
+      );
+
+      if (errorStr.contains('Failed to invoke') ||
+          errorStr.contains('SizeOfDimension')) {
         throw Exception("CONTEXT_OVERFLOW");
       }
       rethrow;
     }
   }
 
+  // Gracefully shuts down the LLM Engine, disposing of active chats and models
   Future<void> unloadModel() async {
     if (_isUnloading) return;
 
@@ -491,20 +522,21 @@ class LlmService {
 
     try {
       if (_activeChat != null) {
-        try {
-          await _activeChat!.close();
-        } catch (_) {}
+        await _activeChat!.close();
         _activeChat = null;
       }
       if (_activeModel != null) {
-        try {
-          await _activeModel!.close();
-        } catch (_) {}
+        await _activeModel!.close();
         _activeModel = null;
       }
       _currentContextTokens = 0;
       _currentImageCount = 0;
-    } catch (_) {
+    } catch (e, st) {
+      appLogger.e(
+        "Error safely unloading LLM instances",
+        error: e,
+        stackTrace: st,
+      );
     } finally {
       _isUnloading = false;
       _setStatus(ModelState.uninitialized);
@@ -514,6 +546,7 @@ class LlmService {
     }
   }
 
+  // Updates ModelStatus flag to Ready if initialization succeeds behind the scenes
   void markSessionReady() {
     if (_activeModel != null && _activeChat != null) {
       _isSessionActive = true;
