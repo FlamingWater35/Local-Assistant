@@ -155,10 +155,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     final t = Translations.of(context);
     final settings = ref.read(settingsControllerProvider);
     if (model.requiresAuth && settings.hfToken.isEmpty) {
-      showErrorSnackBar(
-        context,
-        "A HuggingFace token is required for this model.",
-      );
+      showErrorSnackBar(context, t.errors.tokenRequired);
       return;
     }
 

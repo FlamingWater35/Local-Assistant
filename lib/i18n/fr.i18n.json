@@ -34,7 +34,8 @@
     "noResults": "Aucune discussion correspondante",
     "loadingModel": "Chargement de $name...",
     "switchModel": "Changer de modèle",
-    "manageModels": "Gérer les modèles"
+    "manageModels": "Gérer les modèles",
+    "addAttachment": "Ajouter une pièce jointe"
   },
   "attachments": {
     "photo": "Photo",
@@ -63,7 +64,7 @@
     "errorWithDetails": "Erreur: $details",
     "storageManagement": "Gestion du stockage",
     "cleanUpStorage": "Nettoyer le stockage",
-    "cleanUpStorageSubtitle": "Supprimer les fichiers de modèle incomplets or orphelins",
+    "cleanUpStorageSubtitle": "Supprimer les fichiers de modèle incomplets ou orphelins",
     "noOrphanedFiles": "Aucun fichier orphelin trouvé.",
     "freedUpStorage": "Espace libéré de $count fichiers orphelins.",
     "cleanupFailed": "Échec du nettoyage: $error",
@@ -100,6 +101,9 @@
     "cleanUpStorageFailed": "Échec du nettoyage du stockage.",
     "advancedMemoryOptions": "Options de mémoire avancées",
     "livePreview": "Aperçu en direct",
+    "previewFocused": "La capitale de la France est Paris.",
+    "previewDefault": "Paris est la capitale de la France, connue pour son art et sa culture.",
+    "previewCreative": "Ah, Paris ! La lumineuse capitale de la France, une ville où l'art, l'histoire et le romantisme s'entrelacent...",
     "tabs": {
       "configs": "Configs",
       "system": "Système",
@@ -161,7 +165,9 @@
       "exportSuccess": "Configuration exportée vers un fichier",
       "importSuccess": "Configuration importée avec succès",
       "importError": "Format de configuration invalide",
-      "switchConfiguration": "Changer de configuration"
+      "switchConfiguration": "Changer de configuration",
+      "readOnly": "Lecture seule",
+      "duplicate": "Dupliquer"
     }
   },
   "setup": {
@@ -171,7 +177,7 @@
     "welcomeSubtitle": "Pour commencer, veuillez télécharger un modèle d'IA. Toutes les inférences s'exécutent localement et de manière privée sur votre matériel.",
     "availableModels": "MODÈLES DISPONIBLES",
     "downloaded": "Téléchargé",
-    "tapToDownload": "Appuyez pour télécharger",
+    "tapToDownload": "Appez pour télécharger",
     "checking": "Vérification...",
     "error": "Erreur",
     "get": "Obtenir",
@@ -198,7 +204,9 @@
     "invalidAudioFormat": "Format audio invalide. Requis: fichier .wav propre",
     "contextOverflow": "⚠️ Erreur: L'entrée a dépassé les limites strictes de la mémoire matérielle. Le système a tenté d'élaguer la mémoire mais le message est trop grand. Veuillez augmenter la 'Fenêtre de contexte totale' dans les paramètres ou démarrer un nouveau chat.",
     "inferenceFailed": "⚠️ Erreur: L'inférence du modèle a échoué.\nDétails: $error",
-    "generationFailed": "⚠️ Erreur: Échec du démarrage de la génération.\nDétails: $error"
+    "generationFailed": "⚠️ Erreur: Échec du démarrage de la génération.\nDétails: $error",
+    "cannotReadFile": "Impossible de lire le fichier. Veuillez vous assurer qu'il s'agit d'un document texte valide.",
+    "tokenRequired": "Un jeton HuggingFace est requis pour ce modèle."
   },
   "common": {
     "cancel": "Annuler",

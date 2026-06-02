@@ -34,7 +34,8 @@
     "noResults": "No matching chats",
     "loadingModel": "Loading $name...",
     "switchModel": "Switch Model",
-    "manageModels": "Manage Models"
+    "manageModels": "Manage Models",
+    "addAttachment": "Add Attachment"
   },
   "attachments": {
     "photo": "Photo",
@@ -100,6 +101,9 @@
     "cleanUpStorageFailed": "Storage cleanup failed.",
     "advancedMemoryOptions": "Advanced Memory Options",
     "livePreview": "Live Preview",
+    "previewFocused": "The capital of France is Paris.",
+    "previewDefault": "Paris is the capital of France, known for its art and culture.",
+    "previewCreative": "Ah, Paris! The luminous capital of France, a city where art, history, and romance intertwine...",
     "tabs": {
       "configs": "Configs",
       "system": "System",
@@ -161,7 +165,9 @@
       "exportSuccess": "Configuration exported to file",
       "importSuccess": "Configuration imported successfully",
       "importError": "Invalid configuration format",
-      "switchConfiguration": "Switch Configuration"
+      "switchConfiguration": "Switch Configuration",
+      "readOnly": "Read-only",
+      "duplicate": "Duplicate"
     }
   },
   "setup": {
@@ -198,7 +204,9 @@
     "invalidAudioFormat": "Invalid Audio Format. Required: Clean .wav file",
     "contextOverflow": "⚠️ Error: The input exceeded strict hardware memory limits. The system attempted to prune memory but the prompt is too large. Please increase 'Total Context Window' in Settings or start a new chat.",
     "inferenceFailed": "⚠️ Error: Model inference failed.\nDetails: $error",
-    "generationFailed": "⚠️ Error: Failed to start generation.\nDetails: $error"
+    "generationFailed": "⚠️ Error: Failed to start generation.\nDetails: $error",
+    "cannotReadFile": "Cannot read file. Please ensure it is a valid text document.",
+    "tokenRequired": "A HuggingFace token is required for this model."
   },
   "common": {
     "cancel": "Cancel",

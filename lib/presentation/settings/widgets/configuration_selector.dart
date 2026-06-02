@@ -116,7 +116,7 @@ class ConfigurationSelector extends ConsumerWidget {
               ),
               subtitle: config.isReadOnly
                   ? Text(
-                      "Read-only",
+                      t.settings.configurations.readOnly,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.error,
                       ),
@@ -147,9 +147,9 @@ class ConfigurationSelector extends ConsumerWidget {
                       value: 'rename',
                       child: Text(t.settings.configurations.rename),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'duplicate',
-                    child: Text('Duplicate'),
+                    child: Text(t.settings.configurations.duplicate),
                   ),
                   PopupMenuItem(
                     value: 'export',

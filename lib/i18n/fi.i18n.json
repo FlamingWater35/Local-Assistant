@@ -34,7 +34,8 @@
     "noResults": "Ei vastaavia keskusteluja",
     "loadingModel": "Ladataan $name...",
     "switchModel": "Vaihda mallia",
-    "manageModels": "Hallitse malleja"
+    "manageModels": "Hallitse malleja",
+    "addAttachment": "Lisää liite"
   },
   "attachments": {
     "photo": "Kuva",
@@ -100,6 +101,9 @@
     "cleanUpStorageFailed": "Tallennustilan puhdistus epäonnistui.",
     "advancedMemoryOptions": "Lisämuistiasetukset",
     "livePreview": "Live-esikatselu",
+    "previewFocused": "Ranskan pääkaupunki on Pariisi.",
+    "previewDefault": "Pariisi on Ranskan pääkaupunki, joka tunnetaan taiteestaan ja kulttuuristaan.",
+    "previewCreative": "Ah, Pariisi! Ranskan loistava pääkaupunki, kaupunki jossa taide, historia ja romantiikka kietoutuvat toisiinsa...",
     "tabs": {
       "configs": "Konfiguraatiot",
       "system": "Järjestelmä",
@@ -161,7 +165,9 @@
       "exportSuccess": "Konfiguraatio viety tiedostoon",
       "importSuccess": "Konfiguraatio tuotu onnistuneesti",
       "importError": "Virheellinen konfiguraatioformaatti",
-      "switchConfiguration": "Vaihda konfiguraatiota"
+      "switchConfiguration": "Vaihda konfiguraatiota",
+      "readOnly": "Vain luku",
+      "duplicate": "Monista"
     }
   },
   "setup": {
@@ -198,7 +204,9 @@
     "invalidAudioFormat": "Virheellinen äänimuoto. Vaaditaan: Puhdas .wav-tiedosto",
     "contextOverflow": "⚠️ Virhe: Syöte ylitti laitteiston muistirajoitukset. Järjestelmä yritti karsia muistia, mutta kehote on edelleen liian suuri. Kasvata 'Kokonaiskontekstia' asetuksissa tai aloita uusi keskustelu.",
     "inferenceFailed": "⚠️ Virhe: Mallin päättely epäonnistui.\nLisätietoja: $error",
-    "generationFailed": "⚠️ Virhe: Luonnin aloittaminen epäonnistui.\nLisätietoja: $error"
+    "generationFailed": "⚠️ Virhe: Luonnin aloittaminen epäonnistui.\nLisätietoja: $error",
+    "cannotReadFile": "Tiedostoa ei voida lukea. Varmista, että se on kelvollinen tekstitiedosto.",
+    "tokenRequired": "Tälle mallille vaaditaan HuggingFace-tunnus."
   },
   "common": {
     "cancel": "Peruuta",

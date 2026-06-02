@@ -34,7 +34,8 @@
     "noResults": "未找到匹配的聊天",
     "loadingModel": "正在加载 $name...",
     "switchModel": "切换模型",
-    "manageModels": "管理模型"
+    "manageModels": "管理模型",
+    "addAttachment": "添加附件"
   },
   "attachments": {
     "photo": "照片",
@@ -100,6 +101,9 @@
     "cleanUpStorageFailed": "清理存储失败。",
     "advancedMemoryOptions": "高级内存选项",
     "livePreview": "实时预览",
+    "previewFocused": "法国的首都是巴黎。",
+    "previewDefault": "巴黎是法国的首都，以其艺术和文化而闻名。",
+    "previewCreative": "啊，巴黎！法国明亮的首都，一座艺术、历史和浪漫交织在一起的城市……",
     "tabs": {
       "configs": "配置",
       "system": "系统",
@@ -161,7 +165,9 @@
       "exportSuccess": "配置已导出到文件",
       "importSuccess": "成功导入配置",
       "importError": "无效的配置格式",
-      "switchConfiguration": "切换配置"
+      "switchConfiguration": "切换配置",
+      "readOnly": "只读",
+      "duplicate": "复制"
     }
   },
   "setup": {
@@ -198,7 +204,9 @@
     "invalidAudioFormat": "无效的音频格式。需要：干净的 .wav 文件",
     "contextOverflow": "⚠️ 错误：输入超出了严格的硬件内存限制。系统尝试修剪内存，但提示词仍然过大。请在设置中增加“总上下文窗口”或开始新的对话。",
     "inferenceFailed": "⚠️ 错误：模型推理失败。\n详细信息: $error",
-    "generationFailed": "⚠️ 错误：启动生成失败。\n详细信息: $error"
+    "generationFailed": "⚠️ 错误：启动生成失败。\n详细信息: $error",
+    "cannotReadFile": "无法读取文件。请确保它是一个有效的文本文件。",
+    "tokenRequired": "此模型需要 HuggingFace Token。"
   },
   "common": {
     "cancel": "取消",

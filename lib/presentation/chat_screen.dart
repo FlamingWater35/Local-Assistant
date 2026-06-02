@@ -105,7 +105,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Add Attachment',
+                t.chat.addAttachment,
                 style: Theme.of(
                   ctx,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -226,10 +226,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           textContent = await file.readAsString();
         } catch (e) {
           if (mounted) {
-            showErrorSnackBar(
-              context,
-              'Cannot read file. Please ensure it is a valid text document.',
-            );
+            showErrorSnackBar(context, t.errors.cannotReadFile);
           }
           return;
         }

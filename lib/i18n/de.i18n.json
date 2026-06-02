@@ -34,7 +34,8 @@
     "noResults": "Keine passenden Chats",
     "loadingModel": "Lade $name...",
     "switchModel": "Modell wechseln",
-    "manageModels": "Modelle verwalten"
+    "manageModels": "Modelle verwalten",
+    "addAttachment": "Anhang hinzufügen"
   },
   "attachments": {
     "photo": "Foto",
@@ -100,6 +101,9 @@
     "cleanUpStorageFailed": "Speicherbereinigung fehlgeschlagen.",
     "advancedMemoryOptions": "Erweiterte Speicheroptionen",
     "livePreview": "Live-Vorschau",
+    "previewFocused": "Die Hauptstadt von Frankreich ist Paris.",
+    "previewDefault": "Paris ist die Hauptstadt von Frankreich, bekannt für seine Kunst und Kultur.",
+    "previewCreative": "Ah, Paris! Die leuchtende Hauptstadt Frankreichs, eine Stadt, in der Kunst, Geschichte und Romantik miteinander verschmelzen...",
     "tabs": {
       "configs": "Konfigs",
       "system": "System",
@@ -161,14 +165,16 @@
       "exportSuccess": "Konfiguration in Datei exportiert",
       "importSuccess": "Konfiguration erfolgreich importiert",
       "importError": "Ungültiges Konfigurationsformat",
-      "switchConfiguration": "Konfiguration wechseln"
+      "switchConfiguration": "Konfiguration wechseln",
+      "readOnly": "Schreibgeschützt",
+      "duplicate": "Duplizieren"
     }
   },
   "setup": {
     "checkingSystem": "Systemstatus wird überprüft...",
     "startingModel": "KI-Modell wird gestartet...",
     "welcomeTitle": "Willkommen beim\nLokalen Assistenten",
-    "welcomeSubtitle": "Um loszulegen, laden Sie bitte ein KI-Modell herunter. Alle Inferenzen laufen lokal und privat auf der Hardware Ihres Geräts.",
+    "welcomeSubtitle": "Um loszulegen, bitte laden Sie ein KI-Modell herunter. Alle Inferenzen laufen lokal und privat auf der Hardware Ihres Geräts.",
     "availableModels": "VERFÜGBARE MODELLE",
     "downloaded": "Heruntergeladen",
     "tapToDownload": "Tippen zum Herunterladen",
@@ -198,7 +204,9 @@
     "invalidAudioFormat": "Ungültiges Audioformat. Erforderlich: Saubere .wav-Datei",
     "contextOverflow": "⚠️ Fehler: Die Eingabe überschreitet die strengen Hardware-Speichergrenzen. Das System hat versucht, den Speicher zu verkleinern, aber die Anfrage ist zu groß. Bitte erhöhen Sie das 'Gesamte Kontextfenster' in den Einstellungen oder starten Sie einen neuen Chat.",
     "inferenceFailed": "⚠️ Fehler: Modellinferenz fehlgeschlagen.\nDetails: $error",
-    "generationFailed": "⚠️ Fehler: Generierung konnte nicht gestartet werden.\nDetails: $error"
+    "generationFailed": "⚠️ Fehler: Generierung konnte nicht gestartet werden.\nDetails: $error",
+    "cannotReadFile": "Datei kann nicht gelesen werden. Bitte stellen Sie sicher, dass es sich um ein gültiges Textdokument handelt.",
+    "tokenRequired": "Für dieses Modell ist ein HuggingFace-Token erforderlich."
   },
   "common": {
     "cancel": "Abbrechen",

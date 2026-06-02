@@ -414,13 +414,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
   Widget _buildLivePreview(AppSettings currentSettings) {
     final theme = Theme.of(context);
-    String previewText =
-        "Paris is the capital of France, known for its art and culture.";
+    final t = Translations.of(context);
+
+    String previewText = t.settings.previewDefault;
     if (currentSettings.temperature < 0.3) {
-      previewText = "The capital of France is Paris.";
+      previewText = t.settings.previewFocused;
     } else if (currentSettings.temperature >= 0.7) {
-      previewText =
-          "Ah, Paris! The luminous capital of France, a city where art, history, and romance intertwine...";
+      previewText = t.settings.previewCreative;
     }
 
     return Container(
@@ -443,7 +443,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                Translations.of(context).settings.livePreview,
+                t.settings.livePreview,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
