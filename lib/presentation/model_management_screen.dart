@@ -11,6 +11,8 @@ import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../i18n/generated/translations.g.dart';
 
+// Screen for managing local LLM assets: downloading, deleting, and configuring auth tokens.
+// Validates storage space before downloads and provides cleanup tools for orphaned files.
 @RoutePage()
 class ModelManagementScreen extends ConsumerStatefulWidget {
   const ModelManagementScreen({super.key});
@@ -21,6 +23,7 @@ class ModelManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
+  // Formats megabytes into a human-readable string (MB or GB).
   String _formatSize(int sizeMb) {
     if (sizeMb >= 1024) {
       return '${(sizeMb / 1024).toStringAsFixed(1)} GB';
@@ -28,6 +31,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     return '$sizeMb MB';
   }
 
+  // Renders a consistent section header with an icon and title for grouping UI elements.
   Widget _buildSectionHeader(
     BuildContext context,
     String title,
@@ -53,6 +57,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Renders the HuggingFace token input field for gated model authentication.
+  // Wraps the save operation in try/catch to notify the user if persistence fails.
   Widget _buildHfTokenSection(BuildContext context, ThemeData theme) {
     final t = Translations.of(context);
     final settings = ref.read(settingsControllerProvider);
@@ -103,17 +109,31 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                     icon: const Icon(Icons.save_outlined, size: 20),
                     onPressed: () async {
                       final token = tokenController.text.trim();
-                      await ref
-                          .read(settingsControllerProvider.notifier)
-                          .updateSettings(
-                            settings.copyWith(hfToken: token),
-                            reloadModel: false,
+                      try {
+                        await ref
+                            .read(settingsControllerProvider.notifier)
+                            .updateSettings(
+                              settings.copyWith(hfToken: token),
+                              reloadModel: false,
+                            );
+                        if (context.mounted) {
+                          showSuccessSnackBar(
+                            context,
+                            t.settings.modelManagement.hfTokenSaved,
                           );
-                      if (context.mounted) {
-                        showSuccessSnackBar(
-                          context,
-                          t.settings.modelManagement.hfTokenSaved,
+                        }
+                      } catch (e, st) {
+                        appLogger.e(
+                          "Failed to save HF token",
+                          error: e,
+                          stackTrace: st,
                         );
+                        if (context.mounted) {
+                          showErrorSnackBar(
+                            context,
+                            "Failed to save token. Please try again.",
+                          );
+                        }
                       }
                     },
                   ),
@@ -126,10 +146,10 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Renders a card for an installed model with a delete action.
   Widget _buildInstalledModelCard(AvailableModel model) {
     final t = Translations.of(context);
     final theme = Theme.of(context);
-
     return Card.filled(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -151,16 +171,21 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Initiates the model download process after validating storage space and auth tokens.
+  // Wraps the download call in try/catch to show error snackbars if the network or file system fails.
   void _startDownload(AvailableModel model) async {
     final t = Translations.of(context);
     final settings = ref.read(settingsControllerProvider);
+
     if (model.requiresAuth && settings.hfToken.isEmpty) {
       showErrorSnackBar(context, t.errors.tokenRequired);
       return;
     }
 
     final freeBytes = await ref.read(freeStorageBytesProvider.future);
-    final requiredBytes = (model.sizeMb * 1024 * 1024) + (1024 * 1024 * 1024);
+    final requiredBytes =
+        (model.sizeMb * 1024 * 1024) + (1024 * 1024 * 1024); // 1GB buffer
+
     if (freeBytes != -1 && freeBytes < requiredBytes) {
       if (!mounted) return;
       showDialog(
@@ -208,11 +233,15 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       await ref
           .read(modelDownloaderProvider.notifier)
           .download(model, settings.hfToken);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, e.toString());
+    } catch (e, st) {
+      appLogger.e("Failed to start model download", error: e, stackTrace: st);
+      if (mounted) {
+        showErrorSnackBar(context, "Download failed: ${e.toString()}");
+      }
     }
   }
 
+  // Renders a card for an available model with download/resume buttons and progress indicators.
   Widget _buildAvailableModelCard(AvailableModel model) {
     final t = Translations.of(context);
     final theme = Theme.of(context);
@@ -290,6 +319,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Generates a row of feature chips (Images, Audio, Thinking) for a given model.
   Widget _buildModelChips(AvailableModel model, ThemeData theme) {
     final t = Translations.of(context);
     return Padding(
@@ -327,6 +357,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Renders a single feature chip with an icon and label.
   Widget _buildChip(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -352,6 +383,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Opens a confirmation dialog and securely attempts to delete an installed model.
+  // Wraps the deletion in try/catch to notify the user if the file system operation fails.
   void _confirmDeleteModel(AvailableModel model) {
     final t = Translations.of(context);
     final currentSettings = ref.read(settingsControllerProvider);
@@ -385,9 +418,17 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                 if (mounted) {
                   showSuccessSnackBar(context, t.settings.modelDeleted);
                 }
-              } catch (e) {
+              } catch (e, st) {
+                appLogger.e(
+                  "Failed to delete model ${model.name}",
+                  error: e,
+                  stackTrace: st,
+                );
                 if (mounted) {
-                  showErrorSnackBar(context, e.toString());
+                  showErrorSnackBar(
+                    context,
+                    "Failed to delete model. Please try again.",
+                  );
                 }
               }
             },
@@ -398,6 +439,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     );
   }
 
+  // Builds the main scrollable layout containing token input, installed models, available models, and storage cleanup.
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -420,11 +462,9 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _buildHfTokenSection(context, theme),
-
           const SizedBox(height: 8),
           const Divider(indent: 16, endIndent: 16),
           const SizedBox(height: 8),
-
           if (installedModels.isNotEmpty) ...[
             _buildSectionHeader(
               context,
@@ -436,7 +476,6 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
             const Divider(indent: 16, endIndent: 16),
             const SizedBox(height: 8),
           ],
-
           _buildSectionHeader(
             context,
             t.settings.modelManagement.availableModels,
@@ -457,11 +496,9 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
             )
           else
             ...availableModels.map((model) => _buildAvailableModelCard(model)),
-
           const SizedBox(height: 16),
           const Divider(indent: 16, endIndent: 16),
           const SizedBox(height: 8),
-
           _buildSectionHeader(
             context,
             t.settings.storageManagement,
@@ -492,8 +529,12 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                     t.settings.freedUpStorage(count: count),
                   );
                 }
-              } catch (e) {
-                appLogger.e("Storage cleanup failed.", error: e);
+              } catch (e, st) {
+                appLogger.e(
+                  "Storage cleanup failed.",
+                  error: e,
+                  stackTrace: st,
+                );
                 if (context.mounted) {
                   showErrorSnackBar(
                     context,
@@ -503,7 +544,6 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
               }
             },
           ),
-
           const SizedBox(height: 32),
         ],
       ),

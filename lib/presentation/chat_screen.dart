@@ -30,7 +30,8 @@ import 'widgets/model_status_app_bar_title.dart';
 import 'widgets/thinking_widget.dart';
 import 'widgets/throttled_markdown_widget.dart';
 
-// The primary screen where users interact with the Local Assistant AI model
+// The primary screen where users interact with the Local Assistant AI model.
+// Manages message composition, attachment handling, and real-time streaming UI.
 @RoutePage()
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -49,7 +50,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  // Opens a confirmation dialog and securely attempts to delete a single target message
+  // Opens a confirmation dialog and securely attempts to delete a single target message.
+  // Wraps the deletion in try/catch to notify the user if the database operation fails.
   void _confirmDeleteMessage(String messageId) {
     final t = Translations.of(context);
     showDialog(
@@ -77,7 +79,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 appLogger.e("Error deleting message", error: e, stackTrace: st);
                 if (mounted && ctx.mounted) {
                   Navigator.pop(ctx);
-                  showErrorSnackBar(context, "Failed to delete message");
+                  showErrorSnackBar(
+                    context,
+                    "Failed to delete message. Please try again.",
+                  );
                 }
               }
             },
@@ -88,7 +93,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  // Opens a bottom sheet for the user to select an attachment type, then processes the selection securely
+  // Opens a bottom sheet for the user to select an attachment type, then processes the selection securely.
+  // Wraps file picking and parsing in try/catch to handle permission denials or invalid file formats gracefully.
   Future<void> _handleAttachmentTap() async {
     final t = Translations.of(context);
     if (_pendingAttachments.length >= AppConstants.maxAttachments) {
@@ -168,11 +174,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         final picker = ImagePicker();
         final xFile = await picker.pickImage(source: ImageSource.gallery);
         if (xFile == null) return;
-
         final bytes = await xFile.readAsBytes();
         final url = 'http://local_image_${const Uuid().v4()}.jpg';
         await DefaultCacheManager().putFile(url, bytes, fileExtension: 'jpg');
-
         if (!mounted) return;
         setState(() {
           _pendingAttachments.add(
@@ -193,7 +197,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if (result != null && result.files.single.path != null) {
           final file = File(result.files.single.path!);
           final rawBytes = await file.readAsBytes();
-
           Uint8List pcmData;
           try {
             final parsed = AudioConverter.parseWav(rawBytes);
@@ -209,14 +212,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             }
             return;
           }
-
           final url = 'http://local_audio_${const Uuid().v4()}.wav';
           await DefaultCacheManager().putFile(
             url,
             pcmData,
             fileExtension: 'wav',
           );
-
           if (!mounted) return;
           setState(() {
             _pendingAttachments.add(
@@ -238,24 +239,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
         if (result != null && result.files.single.path != null) {
           final file = File(result.files.single.path!);
-
           String textContent;
           try {
             textContent = await file.readAsString();
           } catch (e) {
             if (mounted) {
-              showErrorSnackBar(
-                context,
-                'Cannot read file. Please ensure it is a valid text document.',
-              );
+              showErrorSnackBar(context, t.errors.cannotReadFile);
             }
             return;
           }
-
           final bytes = await file.readAsBytes();
           final url = 'http://local_doc_${const Uuid().v4()}.txt';
           await DefaultCacheManager().putFile(url, bytes, fileExtension: 'txt');
-
           if (!mounted) return;
           setState(() {
             _pendingAttachments.add(
@@ -287,10 +282,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  // Sends the current input text and attached files securely
+  // Sends the current input text and attached files securely to the LLM service.
+  // Wraps the send operation in try/catch to notify the user if the message fails to queue.
   void _triggerSend(String text) {
     if (text.trim().isEmpty && _pendingAttachments.isEmpty) return;
-
     try {
       ref
           .read(chatLogicProvider.notifier)
@@ -308,7 +303,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  // Expands the input field into a full-screen editor modal for long messages
+  // Expands the input field into a full-screen editor modal for long messages.
+  // Provides a dedicated send button that respects model readiness and attachment state.
   void _openExpandedComposer() {
     final t = Translations.of(context);
     showGeneralDialog(
@@ -381,7 +377,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  // Generates visual component for any attachment in chat
+  // Generates visual component for any attachment in chat (images, audio, documents).
+  // Handles missing file errors gracefully by showing a broken image icon or fallback text.
   Widget _buildUnifiedAttachmentBubble(
     Map att,
     bool isSentByMe,
@@ -480,7 +477,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  // Composes the sticky bottom navigation chat bar taking active attachments and model readiness into account
+  // Composes the sticky bottom navigation chat bar taking active attachments and model readiness into account.
+  // Dynamically switches between send and stop buttons based on the LLM generation state.
   Widget _buildCustomComposer(BuildContext context, ThemeData theme) {
     final t = Translations.of(context);
     return Container(
@@ -670,6 +668,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  // Builds the main chat interface with a scrollable message list and a custom composer.
+  // Listens for app updates and handles safe session flushing when the user navigates back.
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -724,7 +724,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           core.MessageGroupStatus? groupStatus,
                         }) {
                           final msgType = message.metadata?['type'] as String?;
-
                           if (msgType == 'typing') {
                             return Align(
                               alignment: Alignment.centerLeft,
@@ -770,7 +769,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   );
                                   final text = streamState?.text ?? '';
                                   final thinking = streamState?.thinking ?? '';
-
                                   return Padding(
                                     padding: EdgeInsets.zero,
                                     child: Column(
@@ -823,14 +821,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                             );
                           }
-
                           final text =
                               message.metadata?['text'] as String? ?? '';
                           final atts =
                               message.metadata?['attachments'] as List? ?? [];
                           final thinking =
                               message.metadata?['thinking'] as String? ?? '';
-
                           return Padding(
                             padding: EdgeInsets.zero,
                             child: Column(
@@ -1056,7 +1052,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-// Custom Stateless Widget representing an attachment option
+// Custom Stateless Widget representing an attachment option in the bottom sheet.
+// Visually disables itself if the selected model doesn't support the attachment type.
 class _AttachmentOption extends StatelessWidget {
   const _AttachmentOption({
     required this.icon,
@@ -1078,7 +1075,6 @@ class _AttachmentOption extends StatelessWidget {
     final color = enabled
         ? theme.colorScheme.primary
         : theme.colorScheme.onSurface.withValues(alpha: 0.38);
-
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(16),

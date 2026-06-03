@@ -15,18 +15,23 @@ import 'stream_manager_provider.dart';
 
 part 'chat_provider.g.dart';
 
-// Manages the global history of all available chat sessions
+// Manages the global history of all available chat sessions.
+// Listens to Hive database changes and provides a reactive list of sessions to the UI.
 @Riverpod(keepAlive: true)
 class ChatHistory extends _$ChatHistory {
-  // Triggers a refresh of the session list from the local Hive database
+  // Triggers a manual refresh of the session list from the local Hive database.
+  // Used when a session is created or deleted outside the normal build cycle.
   void refresh() {
     try {
       state = ref.read(hiveServiceProvider).getAllSessions();
     } catch (e, st) {
       appLogger.e("Failed to refresh chat history", error: e, stackTrace: st);
+      state = []; // Fallback to empty list to prevent UI crashes
     }
   }
 
+  // Initializes the provider state by loading all sessions from Hive.
+  // Returns an empty list if the database read fails to ensure app stability.
   @override
   List<ChatSession> build() {
     try {
@@ -42,34 +47,35 @@ class ChatHistory extends _$ChatHistory {
   }
 }
 
-// Tracks whether the LLM is currently generating a response to lock UI inputs
+// Tracks whether the LLM is currently generating a response.
+// Used by the UI to lock inputs and show loading indicators during inference.
 @Riverpod(keepAlive: true)
 class IsGenerating extends _$IsGenerating {
-  // Updates the generating status flag
+  // Updates the generating status flag.
   void setGenerating(bool value) => state = value;
 
   @override
   bool build() => false;
 }
 
-// Core logic controller for the active chat session, handling message sending and LLM interactions
+// Core logic controller for the active chat session.
+// Handles message sending, LLM streaming, context management, and session persistence.
 @Riverpod(keepAlive: true)
 class ChatLogic extends _$ChatLogic {
   String? currentSessionId;
-
   String? _activeGenerationSessionId;
   StreamSubscription? _generationSubscription;
   final _uuid = const Uuid();
 
-  // Loads a specific session into the active chat controller and initializes LLM context
+  // Loads a specific session into the active chat controller and initializes LLM context.
+  // Clears any active generation and restores message history from Hive.
   Future<void> loadSession(String? sessionId) async {
     try {
       await _cancelActiveGeneration();
       currentSessionId = sessionId;
-
       final newController = core.InMemoryChatController();
-      ChatSession? session;
 
+      ChatSession? session;
       if (sessionId != null) {
         session = ref.read(hiveServiceProvider).getSession(sessionId);
         if (session != null) {
@@ -99,7 +105,6 @@ class ChatLogic extends _$ChatLogic {
         settings,
         allSessions,
       );
-
       if (currentSessionId == sessionId && !success) {
         appLogger.e(
           "Context loading failed. Model may need re-initialization.",
@@ -110,13 +115,13 @@ class ChatLogic extends _$ChatLogic {
     }
   }
 
-  // Deletes a session entirely from the database and refreshes the history state
+  // Deletes a session entirely from the database and refreshes the history state.
+  // Rethrows errors so the UI can notify the user of failure instead of assuming success.
   Future<void> deleteSession(String sessionId) async {
     try {
       await _cancelActiveGeneration();
       await ref.read(hiveServiceProvider).deleteSession(sessionId);
       ref.read(chatHistoryProvider.notifier).refresh();
-
       if (currentSessionId == sessionId) {
         await loadSession(null);
       }
@@ -126,13 +131,14 @@ class ChatLogic extends _$ChatLogic {
         error: e,
         stackTrace: st,
       );
+      rethrow; // UI must handle this to show an error snackbar
     }
   }
 
-  // Deletes a single message from the current session and re-evaluates the LLM context
+  // Deletes a single message from the current session and re-evaluates the LLM context.
+  // Rethrows errors to allow the UI to display a failure message to the user.
   Future<void> deleteMessage(String messageId) async {
     if (currentSessionId == null) return;
-
     try {
       final hiveService = ref.read(hiveServiceProvider);
       final session = hiveService.getSession(currentSessionId!);
@@ -152,7 +158,6 @@ class ChatLogic extends _$ChatLogic {
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         messages: updatedMessages,
       );
-
       await hiveService.saveSession(updatedSession);
       ref.read(chatHistoryProvider.notifier).refresh();
 
@@ -170,10 +175,12 @@ class ChatLogic extends _$ChatLogic {
         error: e,
         stackTrace: st,
       );
+      rethrow; // UI must handle this
     }
   }
 
-  // Forces the current active generation to stop and finalizes the message
+  // Forces the current active generation to stop and finalizes the message.
+  // Rethrows errors so the UI can inform the user if stopping failed.
   Future<void> stopGeneration() async {
     try {
       if (_activeGenerationSessionId == currentSessionId &&
@@ -184,10 +191,12 @@ class ChatLogic extends _$ChatLogic {
       _saveSessionToHive();
     } catch (e, st) {
       appLogger.e("Error stopping generation", error: e, stackTrace: st);
+      rethrow; // UI must handle this
     }
   }
 
-  // Processes the user's input, attaches files if any, and kicks off LLM response streaming
+  // Processes the user's input, attaches files if any, and kicks off LLM response streaming.
+  // Handles session creation if this is the first message in a new chat.
   Future<void> sendMessage(
     String text, {
     List<ChatAttachment> attachments = const [],
@@ -203,7 +212,6 @@ class ChatLogic extends _$ChatLogic {
             : (attachments.isNotEmpty
                   ? t.chat.attachmentSession
                   : t.chat.newChat);
-
         final newSession = ChatSession(
           id: currentSessionId!,
           title: newTitle,
@@ -236,7 +244,6 @@ class ChatLogic extends _$ChatLogic {
 
       final aiMsgId = _uuid.v4();
       final typingMsgId = _uuid.v4();
-
       state.insertMessage(
         core.CustomMessage(
           id: typingMsgId,
@@ -245,7 +252,6 @@ class ChatLogic extends _$ChatLogic {
           metadata: const {'type': 'typing'},
         ),
       );
-
       await Future.delayed(const Duration(milliseconds: 150));
 
       try {
@@ -269,11 +275,9 @@ class ChatLogic extends _$ChatLogic {
           );
 
       bool isFirstChunk = true;
-
       _generationSubscription = stream.listen(
         (chunk) {
           if (_activeGenerationSessionId != currentSessionId) return;
-
           if (isFirstChunk) {
             isFirstChunk = false;
             try {
@@ -306,12 +310,9 @@ class ChatLogic extends _$ChatLogic {
                 .addChunk(aiMsgId, text: chunk.text!);
           }
         },
-        onError: (error) {
-          _handleGenerationError(error, isFirstChunk, typingMsgId);
-        },
-        onDone: () {
-          _handleGenerationDone(isFirstChunk, typingMsgId);
-        },
+        onError: (error) =>
+            _handleGenerationError(error, isFirstChunk, typingMsgId),
+        onDone: () => _handleGenerationDone(isFirstChunk, typingMsgId),
         cancelOnError: true,
       );
     } catch (e, st) {
@@ -325,7 +326,8 @@ class ChatLogic extends _$ChatLogic {
     }
   }
 
-  // Centralized error handler for the active generation stream
+  // Centralized error handler for the active generation stream.
+  // Cleans up UI state and shows an error message if inference fails.
   void _handleGenerationError(
     dynamic error,
     bool isFirstChunk,
@@ -338,7 +340,6 @@ class ChatLogic extends _$ChatLogic {
     }
 
     final errorStr = error.toString();
-
     if (errorStr.contains('CANCELLED') ||
         errorStr.contains('Process cancelled') ||
         errorStr.contains('Session not created') ||
@@ -364,7 +365,6 @@ class ChatLogic extends _$ChatLogic {
               errorStr.contains('Failed to invoke')
           ? t.errors.contextOverflow
           : t.errors.inferenceFailed(error: error);
-
       _finalizeActiveStreamMessage(errText);
     }
 
@@ -374,7 +374,8 @@ class ChatLogic extends _$ChatLogic {
     _saveSessionToHive();
   }
 
-  // Centralized completion handler for the active generation stream
+  // Centralized completion handler for the active generation stream.
+  // Finalizes the message and unlocks the UI for the next input.
   void _handleGenerationDone(bool isFirstChunk, String typingMsgId) {
     try {
       WakelockPlus.disable();
@@ -402,7 +403,8 @@ class ChatLogic extends _$ChatLogic {
     _saveSessionToHive();
   }
 
-  // Finalizes a streaming message by converting it to a fixed LocalChatMessage and saving it
+  // Finalizes a streaming message by converting it to a fixed LocalChatMessage and saving it.
+  // Combines thinking and text content into a single persistent message.
   void _finalizeActiveStreamMessage([String? errorText]) {
     try {
       final streamMsg = state.messages
@@ -419,7 +421,7 @@ class ChatLogic extends _$ChatLogic {
         String combinedContent = aiText;
         if (errorText != null) {
           combinedContent = combinedContent.isNotEmpty
-              ? "$combinedContent\n\n$errorText"
+              ? "$combinedContent\n$errorText"
               : errorText;
         }
 
@@ -443,7 +445,8 @@ class ChatLogic extends _$ChatLogic {
     }
   }
 
-  // Cancels the current stream subscription securely
+  // Cancels the current stream subscription securely.
+  // Ensures wakelock is released and UI is unlocked even if cancellation fails.
   Future<void> _cancelActiveGeneration() async {
     try {
       if (_generationSubscription != null) {
@@ -452,7 +455,6 @@ class ChatLogic extends _$ChatLogic {
       }
       _activeGenerationSessionId = null;
       ref.read(isGeneratingProvider.notifier).setGenerating(false);
-
       try {
         WakelockPlus.disable();
       } catch (e) {
@@ -467,7 +469,8 @@ class ChatLogic extends _$ChatLogic {
     }
   }
 
-  // Factory for local chat message instances
+  // Factory for local chat message instances.
+  // Generates a UUID if one isn't provided and sets the creation timestamp.
   LocalChatMessage _createLocalMessage(
     String text,
     String authorId, {
@@ -483,7 +486,8 @@ class ChatLogic extends _$ChatLogic {
     );
   }
 
-  // Commits current session state mapping to Hive Database
+  // Commits current session state mapping to Hive Database.
+  // Extracts text and thinking from custom messages and saves them as LocalChatMessages.
   void _saveSessionToHive() {
     if (currentSessionId == null) return;
     try {
@@ -497,7 +501,6 @@ class ChatLogic extends _$ChatLogic {
             final combinedText = (thinking != null && thinking.isNotEmpty)
                 ? '<local_assistant_thinking>\n$thinking\n</local_assistant_thinking>\n$rawText'
                 : rawText;
-
             return LocalChatMessage(
               id: m.id,
               text: combinedText,
@@ -543,6 +546,8 @@ class ChatLogic extends _$ChatLogic {
     }
   }
 
+  // Initializes the chat controller and sets up disposal logic.
+  // Ensures active generations are cancelled when the provider is destroyed.
   @override
   core.InMemoryChatController build() {
     final controller = core.InMemoryChatController();

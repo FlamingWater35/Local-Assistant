@@ -4,11 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_assistant/core/logger.dart';
 import 'package:local_assistant/core/snackbar_helper.dart';
 import 'package:local_assistant/domain/models.dart';
 import 'package:local_assistant/i18n/generated/translations.g.dart';
 import 'package:path_provider/path_provider.dart';
 
+// Displays a list of user-defined setting configurations with management options.
+// Allows switching, renaming, duplicating, exporting, and deleting profiles.
 class ConfigurationSelector extends ConsumerWidget {
   const ConfigurationSelector({
     super.key,
@@ -34,24 +37,42 @@ class ConfigurationSelector extends ConsumerWidget {
   final void Function(SettingConfiguration config, bool isReadOnly)
   onToggleReadOnly;
 
+  // Exports a configuration profile to a JSON file on the device.
+  // Wraps file I/O and the system save dialog in try/catch to prevent crashes on permission denial.
   void _exportConfig(BuildContext context, SettingConfiguration config) async {
     final t = Translations.of(context);
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/${config.name}.json');
-    await file.writeAsString(jsonEncode(config.toJson()));
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/${config.name}.json');
+      await file.writeAsString(jsonEncode(config.toJson()));
 
-    final params = SaveFileDialogParams(
-      sourceFilePath: file.path,
-      fileName: "${config.name}.json",
-    );
-    final filePath = await FlutterFileDialog.saveFile(params: params);
+      final params = SaveFileDialogParams(
+        sourceFilePath: file.path,
+        fileName: "${config.name}.json",
+      );
+      final filePath = await FlutterFileDialog.saveFile(params: params);
 
-    if (!context.mounted) return;
-    if (filePath != null) {
-      showSuccessSnackBar(context, t.settings.configurations.exportSuccess);
+      if (!context.mounted) return;
+      if (filePath != null) {
+        showSuccessSnackBar(context, t.settings.configurations.exportSuccess);
+      }
+    } catch (e, st) {
+      appLogger.e(
+        "Failed to export configuration ${config.name}",
+        error: e,
+        stackTrace: st,
+      );
+      if (context.mounted) {
+        showErrorSnackBar(
+          context,
+          "Failed to export configuration. Please check storage permissions.",
+        );
+      }
     }
   }
 
+  // Builds the scrollable list of configuration cards with popup menus for actions.
+  // Highlights the currently active configuration with a distinct border and icon.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -125,18 +146,10 @@ class ConfigurationSelector extends ConsumerWidget {
               onTap: () => onSwitch(config.id),
               trailing: PopupMenuButton<String>(
                 onSelected: (value) {
-                  if (value == 'rename') {
-                    onRename(config);
-                  }
-                  if (value == 'duplicate') {
-                    onDuplicate(config);
-                  }
-                  if (value == 'export') {
-                    _exportConfig(context, config);
-                  }
-                  if (value == 'delete') {
-                    onDelete(config);
-                  }
+                  if (value == 'rename') onRename(config);
+                  if (value == 'duplicate') onDuplicate(config);
+                  if (value == 'export') _exportConfig(context, config);
+                  if (value == 'delete') onDelete(config);
                   if (value == 'toggle_readonly') {
                     onToggleReadOnly(config, !config.isReadOnly);
                   }

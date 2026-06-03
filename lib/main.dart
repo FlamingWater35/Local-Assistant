@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/core/api/flutter_gemma.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -11,32 +13,57 @@ import 'infrastructure/hive_service.dart';
 import 'infrastructure/llm_service.dart';
 import 'router/app_router.dart';
 
+// Main entry point for the Local Assistant app.
+// Initializes core services (Hive, Gemma) and sets up global error handling
+// to ensure uncaught exceptions don't crash the app silently.
 void main() async {
+  // Ensures Flutter binding is initialized before running async code
   WidgetsFlutterBinding.ensureInitialized();
-  FlutterGemma.initialize();
 
-  final hiveService = HiveService();
-  await hiveService.init();
+  // Catches uncaught async errors globally to prevent silent crashes
+  runZonedGuarded(
+    () async {
+      FlutterGemma.initialize();
+      final hiveService = HiveService();
 
-  final settings = hiveService.getSettings();
-  if (settings.locale.isEmpty) {
-    LocaleSettings.useDeviceLocale();
-  } else {
-    try {
-      LocaleSettings.setLocaleRaw(settings.locale);
-    } catch (_) {
-      LocaleSettings.useDeviceLocale();
-    }
-  }
+      try {
+        await hiveService.init();
+      } catch (e, st) {
+        appLogger.e(
+          "Fatal: Failed to initialize Hive",
+          error: e,
+          stackTrace: st,
+        );
+        rethrow; // Fatal error, app cannot function without database
+      }
 
-  runApp(
-    ProviderScope(
-      overrides: [hiveServiceProvider.overrideWithValue(hiveService)],
-      child: TranslationProvider(child: const GemmaChatApp()),
-    ),
+      final settings = hiveService.getSettings();
+      if (settings.locale.isEmpty) {
+        LocaleSettings.useDeviceLocale();
+      } else {
+        try {
+          LocaleSettings.setLocaleRaw(settings.locale);
+        } catch (_) {
+          // Fallback to device locale if saved locale is invalid or unsupported
+          LocaleSettings.useDeviceLocale();
+        }
+      }
+
+      runApp(
+        ProviderScope(
+          overrides: [hiveServiceProvider.overrideWithValue(hiveService)],
+          child: TranslationProvider(child: const GemmaChatApp()),
+        ),
+      );
+    },
+    (error, stack) {
+      appLogger.e("Uncaught async error", error: error, stackTrace: stack);
+    },
   );
 }
 
+// Root widget for the application.
+// Manages app lifecycle states to pause/resume the LLM model and free memory.
 class GemmaChatApp extends ConsumerStatefulWidget {
   const GemmaChatApp({super.key});
 
@@ -49,20 +76,19 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
   final _appRouter = AppRouter();
   bool _isResuming = false;
 
+  // Handles app lifecycle changes to manage LLM memory usage.
+  // Re-initializes the model when the app resumes if it was unloaded.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.paused:
-        // Not doing anything for now
-        // appLogger.w("App paused: Freeing memory...");
-        // unawaited(ref.read(llmServiceProvider).unloadModel());
+        // Currently keeping model in memory for faster resume
         break;
-
       case AppLifecycleState.resumed:
         if (_isResuming) return;
         _isResuming = true;
-
         appLogger.i("App resumed: Checking model state...");
+
         final settings = ref.read(settingsControllerProvider);
         final modelStatus = ref.read(modelStatusProvider);
 
@@ -74,27 +100,26 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
               .then((_) {
                 ref.read(llmServiceProvider).markSessionReady();
               })
-              .catchError((e) {
-                appLogger.e("Failed to restore model after resume", error: e);
+              .catchError((e, st) {
+                appLogger.e(
+                  "Failed to restore model after resume",
+                  error: e,
+                  stackTrace: st,
+                );
               })
               .whenComplete(() {
                 _isResuming = false;
               });
         } else {
-          appLogger.i("Model already ready, no action needed.");
           _isResuming = false;
         }
         break;
-
       case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
         break;
-
       case AppLifecycleState.detached:
         appLogger.i("App detached: Final cleanup");
         unawaited(ref.read(llmServiceProvider).unloadModel());
-        break;
-
-      case AppLifecycleState.hidden:
         break;
     }
   }
@@ -112,6 +137,7 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
     WidgetsBinding.instance.addObserver(this);
   }
 
+  // Builds the root MaterialApp with routing, theming, and localization.
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
@@ -139,6 +165,8 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
   }
 }
 
+// Helper to fire-and-forget futures while ensuring errors are logged.
+// Prevents unhandled async errors from crashing the app.
 Future<void> unawaited(Future<void> future) {
   return future.catchError((error, stackTrace) {
     appLogger.e("Unawaited future error", error: error, stackTrace: stackTrace);
