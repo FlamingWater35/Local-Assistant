@@ -35,7 +35,11 @@
     "loadingModel": "Loading $name...",
     "switchModel": "Switch Model",
     "manageModels": "Manage Models",
-    "addAttachment": "Add Attachment"
+    "addAttachment": "Add Attachment",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "$days days ago",
+    "dateFormat": "$day/$month/$year"
   },
   "attachments": {
     "photo": "Photo",
@@ -47,6 +51,11 @@
     "general": "General",
     "language": "Language",
     "systemLanguage": "System Default",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "languageFrench": "Français",
+    "languageFinnish": "Suomi",
+    "languageChinese": "中文",
     "aiModels": "AI Models",
     "inferenceAndMemory": "Inference & Memory",
     "behavior": "Behavior",
@@ -104,6 +113,9 @@
     "previewFocused": "The capital of France is Paris.",
     "previewDefault": "Paris is the capital of France, known for its art and culture.",
     "previewCreative": "Ah, Paris! The luminous capital of France, a city where art, history, and romance intertwine...",
+    "backendCpu": "CPU",
+    "backendGpu": "GPU",
+    "backendNpu": "NPU",
     "tabs": {
       "configs": "Configs",
       "system": "System",
@@ -143,6 +155,7 @@
       "hfToken": "HuggingFace Token",
       "hfTokenHint": "Required for some gated models (e.g. Gemma 3n). Set once, used for all downloads.",
       "hfTokenSaved": "Token saved successfully",
+      "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Cannot delete the active model. Switch to a different model first."
     },
     "configurations": {
@@ -223,7 +236,9 @@
     "switchProfileFailed": "Failed to switch profiles.",
     "failedToStartModel": "Failed to start model.",
     "failedToExportConfig": "Failed to export configuration. Please check storage permissions.",
-    "operationFailed": "Operation failed. Please try again."
+    "operationFailed": "Operation failed. Please try again.",
+    "imageMissing": "[Image missing]",
+    "audioMissing": "[Audio missing]"
   },
   "common": {
     "cancel": "Cancel",

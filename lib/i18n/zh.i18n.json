@@ -35,7 +35,11 @@
     "loadingModel": "正在加载 $name...",
     "switchModel": "切换模型",
     "manageModels": "管理模型",
-    "addAttachment": "添加附件"
+    "addAttachment": "添加附件",
+    "today": "今天",
+    "yesterday": "昨天",
+    "daysAgo": "$days天前",
+    "dateFormat": "$year年$month月$day日"
   },
   "attachments": {
     "photo": "照片",
@@ -47,6 +51,11 @@
     "general": "常规",
     "language": "语言",
     "systemLanguage": "系统默认",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "languageFrench": "Français",
+    "languageFinnish": "Suomi",
+    "languageChinese": "中文",
     "aiModels": "AI 模型",
     "inferenceAndMemory": "推理与记忆",
     "behavior": "行为",
@@ -104,6 +113,9 @@
     "previewFocused": "法国的首都是巴黎。",
     "previewDefault": "巴黎是法国的首都，以其艺术和文化而闻名。",
     "previewCreative": "啊，巴黎！法国明亮的首都，一座艺术、历史和浪漫交织在一起的城市……",
+    "backendCpu": "CPU",
+    "backendGpu": "GPU",
+    "backendNpu": "NPU",
     "tabs": {
       "configs": "配置",
       "system": "系统",
@@ -143,6 +155,7 @@
       "hfToken": "HuggingFace Token",
       "hfTokenHint": "某些受限模型需要（如 Gemma 3n）。设置一次，所有下载通用。",
       "hfTokenSaved": "Token 保存成功",
+      "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "无法删除当前使用的模型。请先切换到其他模型。"
     },
     "configurations": {
@@ -223,7 +236,9 @@
     "switchProfileFailed": "切换配置失败。",
     "failedToStartModel": "启动模型失败。",
     "failedToExportConfig": "导出配置失败。请检查存储权限。",
-    "operationFailed": "操作失败，请重试。"
+    "operationFailed": "操作失败，请重试。",
+    "imageMissing": "[图片缺失]",
+    "audioMissing": "[音频缺失]"
   },
   "common": {
     "cancel": "取消",

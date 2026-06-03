@@ -87,20 +87,25 @@ class _ChatHistoryScreenState extends ConsumerState<ChatHistoryScreen> {
     );
   }
 
-  // Formats a Unix timestamp into a human-readable relative date string.
-  // Returns 'Today', 'Yesterday', 'X days ago', or the full date for older sessions.
+  // Formats a Unix timestamp into a human-readable relative date string using localized keys.
   String _formatDate(int timestamp) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     final difference = now.difference(date);
+    final t = Translations.of(context);
+
     if (difference.inDays == 0) {
-      return 'Today';
+      return t.chat.today;
     } else if (difference.inDays == 1) {
-      return 'Yesterday';
+      return t.chat.yesterday;
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+      return t.chat.daysAgo(days: difference.inDays.toString());
     } else {
-      return '${date.day}/${date.month}/${date.year}';
+      return t.chat.dateFormat(
+        day: date.day.toString(),
+        month: date.month.toString(),
+        year: date.year.toString(),
+      );
     }
   }
 

@@ -35,7 +35,11 @@
     "loadingModel": "Lade $name...",
     "switchModel": "Modell wechseln",
     "manageModels": "Modelle verwalten",
-    "addAttachment": "Anhang hinzufügen"
+    "addAttachment": "Anhang hinzufügen",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "daysAgo": "vor $days Tagen",
+    "dateFormat": "$day.$month.$year"
   },
   "attachments": {
     "photo": "Foto",
@@ -47,6 +51,11 @@
     "general": "Allgemein",
     "language": "Sprache",
     "systemLanguage": "Systemstandard",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "languageFrench": "Français",
+    "languageFinnish": "Suomi",
+    "languageChinese": "中文",
     "aiModels": "KI-Modelle",
     "inferenceAndMemory": "Inferenz & Gedächtnis",
     "behavior": "Verhalten",
@@ -104,6 +113,9 @@
     "previewFocused": "Die Hauptstadt von Frankreich ist Paris.",
     "previewDefault": "Paris ist die Hauptstadt von Frankreich, bekannt für seine Kunst und Kultur.",
     "previewCreative": "Ah, Paris! Die leuchtende Hauptstadt Frankreichs, eine Stadt, in der Kunst, Geschichte und Romantik miteinander verschmelzen...",
+    "backendCpu": "CPU",
+    "backendGpu": "GPU",
+    "backendNpu": "NPU",
     "tabs": {
       "configs": "Konfigs",
       "system": "System",
@@ -143,6 +155,7 @@
       "hfToken": "HuggingFace-Token",
       "hfTokenHint": "Für einige eingeschränkte Modelle erforderlich (z.B. Gemma 3n). Einmal festlegen, für alle Downloads verwendet.",
       "hfTokenSaved": "Token erfolgreich gespeichert",
+      "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Das aktive Modell kann nicht gelöscht werden. Wechseln Sie zuerst zu einem anderen Modell."
     },
     "configurations": {
@@ -223,7 +236,9 @@
     "switchProfileFailed": "Profile konnten nicht gewechselt werden.",
     "failedToStartModel": "Modell konnte nicht gestartet werden.",
     "failedToExportConfig": "Konfiguration konnte nicht exportiert werden. Bitte überprüfen Sie die Speicherberechtigungen.",
-    "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut."
+    "operationFailed": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "imageMissing": "[Bild fehlt]",
+    "audioMissing": "[Audio fehlt]"
   },
   "common": {
     "cancel": "Abbrechen",

@@ -35,7 +35,11 @@
     "loadingModel": "Chargement de $name...",
     "switchModel": "Changer de modèle",
     "manageModels": "Gérer les modèles",
-    "addAttachment": "Ajouter une pièce jointe"
+    "addAttachment": "Ajouter une pièce jointe",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "daysAgo": "il y a $days jours",
+    "dateFormat": "$day/$month/$year"
   },
   "attachments": {
     "photo": "Photo",
@@ -47,6 +51,11 @@
     "general": "Général",
     "language": "Langue",
     "systemLanguage": "Par défaut du système",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "languageFrench": "Français",
+    "languageFinnish": "Suomi",
+    "languageChinese": "中文",
     "aiModels": "Modèles d'IA",
     "inferenceAndMemory": "Inférence & Mémoire",
     "behavior": "Comportement",
@@ -104,6 +113,9 @@
     "previewFocused": "La capitale de la France est Paris.",
     "previewDefault": "Paris est la capitale de la France, connue pour son art et sa culture.",
     "previewCreative": "Ah, Paris ! La lumineuse capitale de la France, une ville où l'art, l'histoire et le romantisme s'entrelacent...",
+    "backendCpu": "CPU",
+    "backendGpu": "GPU",
+    "backendNpu": "NPU",
     "tabs": {
       "configs": "Configs",
       "system": "Système",
@@ -143,6 +155,7 @@
       "hfToken": "Jeton HuggingFace",
       "hfTokenHint": "Requis pour certains modèles restreints (ex. Gemma 3n). Défini une fois, utilisé pour tous les téléchargements.",
       "hfTokenSaved": "Jeton enregistré avec succès",
+      "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Impossible de supprimer le modèle actif. Veuillez d'abord changer de modèle."
     },
     "configurations": {
@@ -223,7 +236,9 @@
     "switchProfileFailed": "Échec du changement de profil.",
     "failedToStartModel": "Échec du démarrage du modèle.",
     "failedToExportConfig": "Échec de l'exportation de la configuration. Veuillez vérifier les autorisations de stockage.",
-    "operationFailed": "L'opération a échoué. Veuillez réessayer."
+    "operationFailed": "L'opération a échoué. Veuillez réessayer.",
+    "imageMissing": "[Image manquante]",
+    "audioMissing": "[Audio manquant]"
   },
   "common": {
     "cancel": "Annuler",

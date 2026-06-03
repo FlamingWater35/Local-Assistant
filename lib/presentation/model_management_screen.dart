@@ -63,7 +63,6 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     final t = Translations.of(context);
     final settings = ref.read(settingsControllerProvider);
     final tokenController = TextEditingController(text: settings.hfToken);
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
@@ -100,7 +99,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                 controller: tokenController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  hintText: 'hf_...',
+                  hintText: t.settings.modelManagement.hfTokenPlaceholder,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -131,7 +130,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                         if (context.mounted) {
                           showErrorSnackBar(
                             context,
-                            "Failed to save token. Please try again.",
+                            t.errors.failedToSaveToken,
                           );
                         }
                       }

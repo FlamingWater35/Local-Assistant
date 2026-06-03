@@ -35,7 +35,11 @@
     "loadingModel": "Ladataan $name...",
     "switchModel": "Vaihda mallia",
     "manageModels": "Hallitse malleja",
-    "addAttachment": "Lisää liite"
+    "addAttachment": "Lisää liite",
+    "today": "Tänään",
+    "yesterday": "Eilen",
+    "daysAgo": "$days päivää sitten",
+    "dateFormat": "$day.$month.$year"
   },
   "attachments": {
     "photo": "Kuva",
@@ -47,6 +51,11 @@
     "general": "Yleiset",
     "language": "Kieli",
     "systemLanguage": "Järjestelmän oletus",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "languageFrench": "Français",
+    "languageFinnish": "Suomi",
+    "languageChinese": "中文",
     "aiModels": "Tekoälymallit",
     "inferenceAndMemory": "Päättely ja Muisti",
     "behavior": "Käyttäytyminen",
@@ -104,6 +113,9 @@
     "previewFocused": "Ranskan pääkaupunki on Pariisi.",
     "previewDefault": "Pariisi on Ranskan pääkaupunki, joka tunnetaan taiteestaan ja kulttuuristaan.",
     "previewCreative": "Ah, Pariisi! Ranskan loistava pääkaupunki, kaupunki jossa taide, historia ja romantiikka kietoutuvat toisiinsa...",
+    "backendCpu": "CPU",
+    "backendGpu": "GPU",
+    "backendNpu": "NPU",
     "tabs": {
       "configs": "Konfiguraatiot",
       "system": "Järjestelmä",
@@ -143,6 +155,7 @@
       "hfToken": "HuggingFace-tunnus",
       "hfTokenHint": "Vaaditaan joihinkin rajoitettuihin malleihin (esim. Gemma 3n). Aseta kerran, käytetään kaikkiin latauksiin.",
       "hfTokenSaved": "Tunnus tallennettu onnistuneesti",
+      "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Aktiivista mallia ei voi poistaa. Vaihda ensin toiseen malliin."
     },
     "configurations": {
@@ -223,7 +236,9 @@
     "switchProfileFailed": "Profiilien vaihtaminen epäonnistui.",
     "failedToStartModel": "Mallin käynnistäminen epäonnistui.",
     "failedToExportConfig": "Konfiguraation vienti epäonnistui. Tarkista tallennusoikeudet.",
-    "operationFailed": "Toiminto epäonnistui. Yritä uudelleen."
+    "operationFailed": "Toiminto epäonnistui. Yritä uudelleen.",
+    "imageMissing": "[Kuva puuttuu]",
+    "audioMissing": "[Ääni puuttuu]"
   },
   "common": {
     "cancel": "Peruuta",

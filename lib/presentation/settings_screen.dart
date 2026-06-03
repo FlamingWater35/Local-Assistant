@@ -631,11 +631,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     value: '',
                     child: Text(t.settings.systemLanguage),
                   ),
-                  const DropdownMenuItem(value: 'en', child: Text('English')),
-                  const DropdownMenuItem(value: 'de', child: Text('Deutsch')),
-                  const DropdownMenuItem(value: 'fr', child: Text('Français')),
-                  const DropdownMenuItem(value: 'fi', child: Text('Suomi')),
-                  const DropdownMenuItem(value: 'zh', child: Text('中文')),
+                  DropdownMenuItem(
+                    value: 'en',
+                    child: Text(t.settings.languageEnglish),
+                  ),
+                  DropdownMenuItem(
+                    value: 'de',
+                    child: Text(t.settings.languageGerman),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fr',
+                    child: Text(t.settings.languageFrench),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fi',
+                    child: Text(t.settings.languageFinnish),
+                  ),
+                  DropdownMenuItem(
+                    value: 'zh',
+                    child: Text(t.settings.languageChinese),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) {
@@ -696,21 +711,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
               const SizedBox(height: 12),
               SegmentedButton<PreferredBackend>(
-                segments: const [
+                segments: [
                   ButtonSegment<PreferredBackend>(
                     value: PreferredBackend.cpu,
-                    label: Text('CPU'),
-                    icon: Icon(Icons.memory, size: 16),
+                    label: Text(t.settings.backendCpu),
+                    icon: const Icon(Icons.memory, size: 16),
                   ),
                   ButtonSegment<PreferredBackend>(
                     value: PreferredBackend.gpu,
-                    label: Text('GPU'),
-                    icon: Icon(Icons.graphic_eq, size: 16),
+                    label: Text(t.settings.backendGpu),
+                    icon: const Icon(Icons.graphic_eq, size: 16),
                   ),
                   ButtonSegment<PreferredBackend>(
                     value: PreferredBackend.npu,
-                    label: Text('NPU'),
-                    icon: Icon(Icons.graphic_eq, size: 16),
+                    label: Text(t.settings.backendNpu),
+                    icon: const Icon(Icons.graphic_eq, size: 16),
                   ),
                 ],
                 selected: {currentSettings.selectedBackend},
