@@ -63,10 +63,7 @@ class ConfigurationSelector extends ConsumerWidget {
         stackTrace: st,
       );
       if (context.mounted) {
-        showErrorSnackBar(
-          context,
-          "Failed to export configuration. Please check storage permissions.",
-        );
+        showErrorSnackBar(context, t.errors.failedToExportConfig);
       }
     }
   }

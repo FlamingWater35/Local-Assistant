@@ -116,7 +116,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         stackTrace: st,
       );
       if (mounted) {
-        showErrorSnackBar(context, "Failed to start selected model: $e");
+        showErrorSnackBar(context, t.errors.failedToStartModel);
       }
     }
   }
@@ -213,7 +213,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         error: e,
         stackTrace: st,
       );
-      if (mounted) showErrorSnackBar(context, e.toString());
+      if (mounted) showErrorSnackBar(context, t.errors.operationFailed);
     }
   }
 

@@ -63,9 +63,6 @@ class _ChatHistoryScreenState extends ConsumerState<ChatHistoryScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                appLogger.i(
-                  "UI: Deleting chat session ID: $sessionId from history screen.",
-                );
                 await ref
                     .read(chatLogicProvider.notifier)
                     .deleteSession(sessionId);
@@ -74,15 +71,12 @@ class _ChatHistoryScreenState extends ConsumerState<ChatHistoryScreen> {
                 }
               } catch (e, st) {
                 appLogger.e(
-                  "UI: Failed to delete chat from history screen",
+                  "Error deleting chat from history",
                   error: e,
                   stackTrace: st,
                 );
                 if (context.mounted) {
-                  showErrorSnackBar(
-                    context,
-                    "Failed to delete chat. Please try again.",
-                  );
+                  showErrorSnackBar(context, t.errors.failedToDeleteChat);
                 }
               }
             },

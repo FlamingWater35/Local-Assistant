@@ -81,7 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         error: e,
         stackTrace: st,
       );
-      showErrorSnackBar(context, "Failed to apply dynamic settings: $e");
+      showErrorSnackBar(context, t.errors.failedToApplySettings);
     }
   }
 
@@ -118,7 +118,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 showInfoSnackBar(context, t.settings.resetSuccess);
               } catch (e, st) {
                 appLogger.e("Settings reset failed", error: e, stackTrace: st);
-                showErrorSnackBar(context, "Reset operation failed");
+                showErrorSnackBar(context, t.errors.resetFailed);
               }
             },
             child: Text(t.settings.resetDefaults),
@@ -213,7 +213,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     stackTrace: st,
                   );
                   if (mounted) {
-                    showErrorSnackBar(context, "Failed to create profile: $e");
+                    showErrorSnackBar(context, t.errors.failedToCreateProfile);
                   }
                 }
               },
@@ -263,7 +263,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   stackTrace: st,
                 );
                 if (mounted) {
-                  showErrorSnackBar(context, "Failed to rename profile");
+                  showErrorSnackBar(context, t.errors.failedToRenameProfile);
                 }
               }
             },
@@ -310,7 +310,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   stackTrace: st,
                 );
                 if (mounted) {
-                  showErrorSnackBar(context, "Failed to delete target profile");
+                  showErrorSnackBar(context, t.errors.failedToDeleteProfile);
                 }
               }
             },
@@ -334,7 +334,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         stackTrace: st,
       );
       if (mounted) {
-        showErrorSnackBar(context, "Duplicate profile operation failed.");
+        showErrorSnackBar(context, t.errors.duplicateProfileFailed);
       }
     }
   }
@@ -352,7 +352,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         stackTrace: st,
       );
       if (mounted) {
-        showErrorSnackBar(context, "Failed to change write state.");
+        showErrorSnackBar(context, t.errors.toggleReadOnlyFailed);
       }
     }
   }
@@ -375,7 +375,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         stackTrace: st,
       );
       if (mounted) {
-        showErrorSnackBar(context, "Failed to switch profiles: $e");
+        showErrorSnackBar(context, t.errors.switchProfileFailed);
       }
     }
   }
@@ -836,8 +836,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Tooltip(
-                message:
-                    "Controls creativity. Higher = more random, Lower = more focused.",
+                message: t.settings.temperatureDescription,
                 child: Text(
                   t.settings.temperature,
                   style: theme.textTheme.titleMedium,

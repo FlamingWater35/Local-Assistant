@@ -236,7 +236,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     } catch (e, st) {
       appLogger.e("Failed to start model download", error: e, stackTrace: st);
       if (mounted) {
-        showErrorSnackBar(context, "Download failed: ${e.toString()}");
+        showErrorSnackBar(context, t.errors.operationFailed);
       }
     }
   }
@@ -425,10 +425,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                   stackTrace: st,
                 );
                 if (mounted) {
-                  showErrorSnackBar(
-                    context,
-                    "Failed to delete model. Please try again.",
-                  );
+                  showErrorSnackBar(context, t.errors.failedToDeleteModel);
                 }
               }
             },

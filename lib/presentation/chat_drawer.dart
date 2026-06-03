@@ -52,10 +52,7 @@ class ChatDrawer extends ConsumerWidget {
                   stackTrace: st,
                 );
                 if (context.mounted) {
-                  showErrorSnackBar(
-                    context,
-                    "Failed to delete chat. Please try again.",
-                  );
+                  showErrorSnackBar(context, t.errors.failedToDeleteChat);
                 }
               }
             },

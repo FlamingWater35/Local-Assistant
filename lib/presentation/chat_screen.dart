@@ -79,10 +79,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 appLogger.e("Error deleting message", error: e, stackTrace: st);
                 if (mounted && ctx.mounted) {
                   Navigator.pop(ctx);
-                  showErrorSnackBar(
-                    context,
-                    "Failed to delete message. Please try again.",
-                  );
+                  showErrorSnackBar(context, t.errors.failedToDeleteMessage);
                 }
               }
             },
@@ -122,7 +119,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Add Attachment',
+                t.chat.addAttachment,
                 style: Theme.of(
                   ctx,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -274,10 +271,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         stackTrace: st,
       );
       if (mounted) {
-        showErrorSnackBar(
-          context,
-          "An error occurred while attaching the file.",
-        );
+        showErrorSnackBar(context, t.errors.attachmentError);
       }
     }
   }
@@ -299,7 +293,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
     } catch (e, st) {
       appLogger.e("Failed to submit chat message", error: e, stackTrace: st);
-      showErrorSnackBar(context, "Failed to send message.");
+      showErrorSnackBar(context, t.errors.failedToSendMessage);
     }
   }
 
