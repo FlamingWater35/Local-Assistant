@@ -449,6 +449,9 @@ class ChatLogic extends _$ChatLogic {
   // Ensures wakelock is released and UI is unlocked even if cancellation fails.
   Future<void> _cancelActiveGeneration() async {
     try {
+      // Tell the native engine to abort generation first, so it stops
+      // consuming compute even if the Dart stream subscription detaches.
+      await ref.read(llmServiceProvider).stopGeneration();
       if (_generationSubscription != null) {
         await _generationSubscription!.cancel();
         _generationSubscription = null;

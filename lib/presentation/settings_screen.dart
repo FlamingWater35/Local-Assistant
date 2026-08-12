@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
@@ -38,6 +39,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   late TextEditingController _systemPromptController;
   final FocusNode _systemPromptFocus = FocusNode();
   late TabController _tabController;
+
+  // NPU acceleration requires a LiteRT-LM (.litertlm) model and is only
+  // offered on Qualcomm Snapdragon Android devices or Intel LunarLake/
+  // PantherLake Windows machines. MediaPipe .task models fall back to
+  // CPU/GPU only.
+  bool _npuSupportedFor(AvailableModel model) {
+    if (!model.fileName.endsWith('.litertlm')) return false;
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.windows;
+  }
+
+  // If the persisted backend is NPU but the current model can't use it,
+  // report GPU instead so the selector never shows an invalid selection.
+  PreferredBackend _effectiveBackend(
+    AppSettings settings,
+    AvailableModel model,
+  ) {
+    if (settings.selectedBackend == PreferredBackend.npu &&
+        !_npuSupportedFor(model)) {
+      return PreferredBackend.gpu;
+    }
+    return settings.selectedBackend;
+  }
 
   @override
   void dispose() {
@@ -722,13 +747,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     label: Text(t.settings.backendGpu),
                     icon: const Icon(Icons.graphic_eq, size: 16),
                   ),
-                  ButtonSegment<PreferredBackend>(
-                    value: PreferredBackend.npu,
-                    label: Text(t.settings.backendNpu),
-                    icon: const Icon(Icons.graphic_eq, size: 16),
-                  ),
+                  if (_npuSupportedFor(selectedModelDef))
+                    ButtonSegment<PreferredBackend>(
+                      value: PreferredBackend.npu,
+                      label: Text(t.settings.backendNpu),
+                      icon: const Icon(Icons.memory, size: 16),
+                    ),
                 ],
-                selected: {currentSettings.selectedBackend},
+                selected: {_effectiveBackend(currentSettings, selectedModelDef)},
                 onSelectionChanged: (Set<PreferredBackend> selection) {
                   _updateSetting(
                     currentSettings.copyWith(selectedBackend: selection.first),

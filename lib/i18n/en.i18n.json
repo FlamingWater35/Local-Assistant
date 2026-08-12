@@ -72,6 +72,7 @@
     "modelNotDownloaded": "Selected model is not downloaded!",
     "errorWithDetails": "Error: $details",
     "storageManagement": "Storage Management",
+    "orphanedFiles": "Orphaned files",
     "cleanUpStorage": "Clean Up Storage",
     "cleanUpStorageSubtitle": "Remove incomplete or orphaned model files",
     "noOrphanedFiles": "No orphaned files found.",
@@ -158,6 +159,16 @@
       "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Cannot delete the active model. Switch to a different model first."
     },
+    "downloadErrors": {
+      "unauthorized": "Authentication required (HTTP 401). Please provide a valid HuggingFace token.",
+      "forbidden": "Access forbidden (HTTP 403). Your HuggingFace token is invalid or does not have access to this model. For gated models, request access on the model page.",
+      "notFound": "Model not found (HTTP 404). Check the URL and ensure the model exists.",
+      "rateLimited": "Rate limit exceeded (HTTP 429). Wait a few minutes before trying again.",
+      "serverError": "Server error (HTTP $statusCode). Please try again later.",
+      "network": "Network error: $message. Check your internet connection.",
+      "canceled": "Download was canceled.",
+      "unknown": "Download failed: $message"
+    },
     "configurations": {
       "title": "Setting Configurations",
       "add": "Add",
@@ -243,6 +254,7 @@
   "common": {
     "cancel": "Cancel",
     "delete": "Delete",
-    "recommended": "Recommended"
+    "recommended": "Recommended",
+    "refresh": "Refresh"
   }
 }

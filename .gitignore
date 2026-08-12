@@ -58,3 +58,6 @@ app.*.map.json
 
 # Reasonix
 .reasonix/
+
+# Android Kotlin session artifacts (created by flutter build)
+android/.kotlin/

@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gemma/core/api/flutter_gemma.dart';
+import 'package:flutter_gemma_embeddings/flutter_gemma_embeddings.dart';
+import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
+import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
+import 'package:flutter_gemma_rag_qdrant/flutter_gemma_rag_qdrant.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_assistant/core/constants.dart';
@@ -9,6 +13,7 @@ import 'package:local_assistant/i18n/generated/translations.g.dart';
 
 import 'application/settings_provider.dart';
 import 'core/logger.dart';
+import 'domain/models.dart';
 import 'infrastructure/hive_service.dart';
 import 'infrastructure/llm_service.dart';
 import 'router/app_router.dart';
@@ -17,13 +22,22 @@ import 'router/app_router.dart';
 // Initializes core services (Hive, Gemma) and sets up global error handling
 // to ensure uncaught exceptions don't crash the app silently.
 void main() async {
-  // Ensures Flutter binding is initialized before running async code
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Catches uncaught async errors globally to prevent silent crashes
+  // Catches uncaught async errors globally to prevent silent crashes.
+  // The Flutter binding must be initialized inside this same zone so that
+  // ensureInitialized() and runApp() share the zone — initializing it in the
+  // root zone and calling runApp here trips Flutter's "Zone mismatch"
+  // assertion and makes zone-scoped features (timers, HTTP, etc.)
+  // behave inconsistently.
   runZonedGuarded(
     () async {
-      FlutterGemma.initialize();
+      // Ensures Flutter binding is initialized before running async code
+      WidgetsFlutterBinding.ensureInitialized();
+
+      await FlutterGemma.initialize(
+        inferenceEngines: const [LiteRtLmEngine(), MediaPipeEngine()],
+        embeddingBackends: const [LiteRtEmbeddingBackend()],
+        vectorStore: QdrantVectorStore(),
+      );
       final hiveService = HiveService();
 
       try {
@@ -93,23 +107,47 @@ class _GemmaChatAppState extends ConsumerState<GemmaChatApp>
         final modelStatus = ref.read(modelStatusProvider);
 
         if (modelStatus != ModelState.ready) {
-          appLogger.i("Model not ready, reinitializing...");
-          ref
-              .read(llmServiceProvider)
-              .initModel(settings)
-              .then((_) {
-                ref.read(llmServiceProvider).markSessionReady();
-              })
-              .catchError((e, st) {
-                appLogger.e(
-                  "Failed to restore model after resume",
-                  error: e,
-                  stackTrace: st,
-                );
-              })
-              .whenComplete(() {
-                _isResuming = false;
-              });
+          // Don't try to re-init if the model file isn't on disk yet —
+          // e.g. the user backgrounded the app mid-download. initModel
+          // would throw "Model file not found", which is not an error to
+          // surface here.
+          final modelDef = kAvailableModels.firstWhere(
+            (m) => m.id == settings.selectedModel,
+            orElse: () => kAvailableModels.first,
+          );
+          FlutterGemma.isModelInstalled(modelDef.fileName).then((installed) {
+            if (!installed) {
+              appLogger.i(
+                "App resumed: model not installed yet, skipping re-init.",
+              );
+              _isResuming = false;
+              return;
+            }
+            appLogger.i("Model not ready, reinitializing...");
+            ref
+                .read(llmServiceProvider)
+                .initModel(settings)
+                .then((_) {
+                  ref.read(llmServiceProvider).markSessionReady();
+                })
+                .catchError((e, st) {
+                  appLogger.e(
+                    "Failed to restore model after resume",
+                    error: e,
+                    stackTrace: st,
+                  );
+                })
+                .whenComplete(() {
+                  _isResuming = false;
+                });
+          }).catchError((e, st) {
+            appLogger.e(
+              "Failed to check model install state on resume",
+              error: e,
+              stackTrace: st,
+            );
+            _isResuming = false;
+          });
         } else {
           _isResuming = false;
         }

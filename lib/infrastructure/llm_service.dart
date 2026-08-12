@@ -121,6 +121,8 @@ class LlmService {
         supportImage: modelDef.supportsImages,
         supportAudio: modelDef.supportsAudio,
         isThinking: settings.enableThinking && modelDef.supportsThinking,
+        temperature: settings.temperature,
+        maxOutputTokens: settings.maxTokens,
       );
 
       _currentContextTokens = AppConstants.estimateTokens(
@@ -174,15 +176,15 @@ class LlmService {
       );
 
       appLogger.i("RAG: Initializing VectorStore...");
-      await FlutterGemmaPlugin.instance.initializeVectorStore('rag_temp.db');
-      await FlutterGemmaPlugin.instance.clearVectorStore();
+      await FlutterGemma.rag.initialize('rag_temp.db');
+      await FlutterGemma.rag.clear();
 
       int docId = 0;
       for (var doc in docAttachments) {
         final chunks = _chunkText(doc.textContent!, 500);
         for (var chunk in chunks) {
           final embedding = await embedder.generateEmbedding(chunk);
-          await FlutterGemmaPlugin.instance.addDocumentWithEmbedding(
+          await FlutterGemma.rag.addDocumentWithEmbedding(
             id: 'chunk_${docId++}',
             content: chunk,
             embedding: embedding,
@@ -194,7 +196,7 @@ class LlmService {
           ? "Summarize the key points of the documents."
           : prompt;
 
-      final results = await FlutterGemmaPlugin.instance.searchSimilar(
+      final results = await FlutterGemma.rag.searchSimilar(
         query: query,
         topK: 4,
         threshold: 0.0,
@@ -266,6 +268,8 @@ class LlmService {
         supportImage: modelDef.supportsImages,
         supportAudio: modelDef.supportsAudio,
         isThinking: settings.enableThinking && modelDef.supportsThinking,
+        temperature: settings.temperature,
+        maxOutputTokens: settings.maxTokens,
       );
 
       int totalTokens = systemTokens;
@@ -509,6 +513,25 @@ class LlmService {
         throw Exception("CONTEXT_OVERFLOW");
       }
       rethrow;
+    }
+  }
+
+  // Stops native inference for the active chat, if one is mid-generation.
+  // This is the on-device cancel: it aborts the LiteRT-LM/MediaPipe
+  // generation loop so the model stops burning compute, instead of only
+  // detaching the Dart stream (which would leave native generation running
+  // to completion in the background).
+  Future<void> stopGeneration() async {
+    final chat = _activeChat;
+    if (chat == null) return;
+    try {
+      await chat.stopGeneration();
+    } catch (e, st) {
+      appLogger.d(
+        "stopGeneration: native cancel failed (best-effort)",
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 

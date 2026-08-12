@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Local Assistant (Debug)",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "Local Assistant (Release)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release"
+    }
+  ]
+}

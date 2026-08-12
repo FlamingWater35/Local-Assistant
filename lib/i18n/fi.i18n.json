@@ -72,6 +72,7 @@
     "modelNotDownloaded": "Valittua mallia ei ole ladattu!",
     "errorWithDetails": "Virhe: $details",
     "storageManagement": "Tallennustilan hallinta",
+    "orphanedFiles": "Orvot tiedostot",
     "cleanUpStorage": "Vapauta tallennustilaa",
     "cleanUpStorageSubtitle": "Poista keskeneräiset tai orvot mallitiedostot",
     "noOrphanedFiles": "Orpoja tiedostoja ei löytynyt.",
@@ -158,6 +159,16 @@
       "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Aktiivista mallia ei voi poistaa. Vaihda ensin toiseen malliin."
     },
+    "downloadErrors": {
+      "unauthorized": "Todennus vaaditaan (HTTP 401). Anna kelvollinen HuggingFace-merkki.",
+      "forbidden": "Pääsy evätty (HTTP 403). HuggingFace-merkkisi on virheellinen tai sillä ei ole pääsyä tähän malliin. Pyydä rajoitettujen mallien kohdalla pääsyä mallin sivulla.",
+      "notFound": "Mallia ei löytynyt (HTTP 404). Tarkista URL-osoite ja varmista, että malli on olemassa.",
+      "rateLimited": "Nopeusrajoitus ylittyi (HTTP 429). Odota muutama minuutti ennen uutta yritystä.",
+      "serverError": "Palvelinvirhe (HTTP $statusCode). Yritä myöhemmin uudelleen.",
+      "network": "Verkkovirhe: $message. Tarkista internetyhteytesi.",
+      "canceled": "Lataus peruutettiin.",
+      "unknown": "Lataus epäonnistui: $message"
+    },
     "configurations": {
       "title": "Asetuskonfiguraatiot",
       "add": "Lisää",
@@ -243,6 +254,7 @@
   "common": {
     "cancel": "Peruuta",
     "delete": "Poista",
-    "recommended": "Suositeltu"
+    "recommended": "Suositeltu",
+    "refresh": "Päivitä"
   }
 }

@@ -11,6 +11,179 @@ import '../core/snackbar_helper.dart';
 import '../domain/models.dart';
 import '../i18n/generated/translations.g.dart';
 
+// Displays real on-device storage usage from flutter_gemma's facade
+// (StorageStats) and offers a one-tap cleanup of orphaned download
+// fragments via the facade's storage helpers.
+class StorageInfoCard extends ConsumerStatefulWidget {
+  const StorageInfoCard({super.key});
+
+  @override
+  ConsumerState<StorageInfoCard> createState() => _StorageInfoCardState();
+}
+
+class _StorageInfoCardState extends ConsumerState<StorageInfoCard> {
+  StorageStats? _stats;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final stats = await FlutterGemma.getStorageInfo();
+      if (!mounted) return;
+      setState(() {
+        _stats = stats;
+        _loading = false;
+      });
+    } catch (e, st) {
+      appLogger.e("Failed to load storage info", error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _cleanupOrphans() async {
+    final t = Translations.of(context);
+    try {
+      final orphans = await FlutterGemma.getOrphanedFiles();
+      if (orphans.isEmpty) {
+        if (mounted) showInfoSnackBar(context, t.settings.noOrphanedFiles);
+        await _refresh();
+        return;
+      }
+      final removed = await FlutterGemma.cleanupStorage();
+      if (mounted) {
+        showSuccessSnackBar(
+          context,
+          t.settings.freedUpStorage(count: removed),
+        );
+      }
+      await _refresh();
+    } catch (e, st) {
+      appLogger.e("Storage cleanup failed", error: e, stackTrace: st);
+      if (mounted) {
+        showErrorSnackBar(context, t.settings.cleanupFailed(error: e.toString()));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    final theme = Theme.of(context);
+
+    return Card.filled(
+      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: _loading
+            ? Row(
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(t.settings.storageManagement),
+                ],
+              )
+            : _error != null
+            ? Row(
+                children: [
+                  Icon(Icons.error_outline, color: theme.colorScheme.error),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(_error!)),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.storage_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        t.settings.storageManagement,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: t.common.refresh,
+                        icon: const Icon(Icons.refresh),
+                        onPressed: _refresh,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _statRow(
+                    theme,
+                    Icons.sd_storage_outlined,
+                    t.settings.modelManagement.installedModels,
+                    _formatMb(_stats?.totalSizeMB ?? 0),
+                  ),
+                  const SizedBox(height: 4),
+                  _statRow(
+                    theme,
+                    Icons.cleaning_services_outlined,
+                    t.settings.orphanedFiles,
+                    '${_stats?.orphanedFiles.length ?? 0} (${_formatMb(_stats?.orphanedSizeMB ?? 0)})',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.tonalIcon(
+                    onPressed: _cleanupOrphans,
+                    icon: const Icon(Icons.cleaning_services),
+                    label: Text(t.settings.cleanUpStorage),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _statRow(
+    ThemeData theme,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatMb(double mb) {
+    if (mb >= 1024) return '${(mb / 1024).toStringAsFixed(2)} GB';
+    return '${mb.toStringAsFixed(0)} MB';
+  }
+}
+
 // Screen for managing local LLM assets: downloading, deleting, and configuring auth tokens.
 // Validates storage space before downloads and provides cleanup tools for orphaned files.
 @RoutePage()
@@ -29,6 +202,23 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       return '${(sizeMb / 1024).toStringAsFixed(1)} GB';
     }
     return '$sizeMb MB';
+  }
+
+  // Maps a typed flutter_gemma DownloadError to a localized, user-facing
+  // message. Falls back to the raw error string for anything unexpected.
+  String _localizeDownloadError(DownloadError error) {
+    final t = Translations.of(context);
+    final errors = t.settings.downloadErrors;
+    return switch (error) {
+      UnauthorizedError() => errors.unauthorized,
+      ForbiddenError() => errors.forbidden,
+      NotFoundError() => errors.notFound,
+      RateLimitedError() => errors.rateLimited,
+      ServerError(:final statusCode) => errors.serverError(statusCode: statusCode),
+      NetworkError(:final message) => errors.network(message: message),
+      CanceledError() => errors.canceled,
+      UnknownError(:final message) => errors.unknown(message: message),
+    };
   }
 
   // Renders a consistent section header with an icon and title for grouping UI elements.
@@ -205,8 +395,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
               onPressed: () async {
                 Navigator.pop(ctx);
                 try {
-                  final manager = FlutterGemmaPlugin.instance.modelManager;
-                  await manager.cleanupStorage();
+                  // Facade-level cleanup (orphaned download fragments).
+                  await FlutterGemma.cleanupStorage();
                   if (mounted) {
                     showSuccessSnackBar(
                       context,
@@ -303,7 +493,9 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                         ),
                       if (downloadState.isPaused)
                         Text(
-                          t.settings.modelManagement.paused,
+                          downloadState.error != null
+                              ? _localizeDownloadError(downloadState.error!)
+                              : t.settings.modelManagement.paused,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.error,
                           ),
@@ -500,46 +692,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
             t.settings.storageManagement,
             Icons.storage_outlined,
           ),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 4,
-            ),
-            leading: const Icon(Icons.cleaning_services),
-            title: Text(t.settings.cleanUpStorage),
-            subtitle: Text(t.settings.cleanUpStorageSubtitle),
-            onTap: () async {
-              try {
-                final manager = FlutterGemmaPlugin.instance.modelManager;
-                final orphanedFiles = await manager.getOrphanedFiles();
-                if (orphanedFiles.isEmpty) {
-                  if (context.mounted) {
-                    showInfoSnackBar(context, t.settings.noOrphanedFiles);
-                  }
-                  return;
-                }
-                final count = await manager.cleanupStorage();
-                if (context.mounted) {
-                  showSuccessSnackBar(
-                    context,
-                    t.settings.freedUpStorage(count: count),
-                  );
-                }
-              } catch (e, st) {
-                appLogger.e(
-                  "Storage cleanup failed.",
-                  error: e,
-                  stackTrace: st,
-                );
-                if (context.mounted) {
-                  showErrorSnackBar(
-                    context,
-                    t.settings.cleanupFailed(error: e.toString()),
-                  );
-                }
-              }
-            },
-          ),
+          const StorageInfoCard(),
           const SizedBox(height: 32),
         ],
       ),

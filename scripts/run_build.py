@@ -6,10 +6,23 @@ import sys
 import threading
 import re
 import glob
-from colorama import Fore, Style, init as colorama_init
 
-# --- Initial Setup ---
-colorama_init(autoreset=True)
+# colorama is only used for colored console output and is an optional
+# dependency (see scripts/requirements.txt). If it isn't installed, fall
+# back to plain (uncolored) output so the build script still runs.
+try:
+    from colorama import Fore, Style, init as colorama_init
+
+    colorama_init(autoreset=True)
+    _HAVE_COLORAMA = True
+except ImportError:
+    class _Plain:
+        def __getattr__(self, _name):
+            return ""
+
+    Fore = _Plain()
+    Style = _Plain()
+    _HAVE_COLORAMA = False
 
 APP_NAME = "Local-Assistant"
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -37,6 +50,26 @@ def get_sanitized_version():
 
 def stream_pipe(pipe, prefix, color, encoding="utf-8"):
     """Streams output from a subprocess pipe in real-time."""
+    # Windows consoles default to a legacy codepage (e.g. cp1252). Flutter/
+    # Gradle emit UTF-8 (including '√' and box-drawing chars), which the
+    # console cannot encode — that used to raise UnicodeEncodeError and kill
+    # the streaming thread. Re-encode to the console's encoding, replacing
+    # unmappable characters, so the build output still streams.
+    try:
+        console_encoding = sys.stdout.encoding or "utf-8"
+    except Exception:
+        console_encoding = "utf-8"
+
+    def _to_console(text):
+        if not text:
+            return ""
+        try:
+            return text.encode(console_encoding, errors="replace").decode(
+                console_encoding
+            )
+        except Exception:
+            return text.encode("utf-8", errors="replace").decode("utf-8")
+
     try:
         for line_bytes in iter(pipe.readline, b""):
             if not line_bytes:
@@ -47,11 +80,15 @@ def stream_pipe(pipe, prefix, color, encoding="utf-8"):
                     encoding, errors="ignore"
                 ) and not "\n" in line_bytes.decode(encoding, errors="ignore"):
                     print(
-                        color + prefix + line_bytes.decode(encoding, errors="ignore"),
+                        _to_console(
+                            color + prefix + line_bytes.decode(
+                                encoding, errors="ignore"
+                            )
+                        ),
                         end="\r",
                     )
                 elif line:
-                    print(color + prefix + line)
+                    print(_to_console(color + prefix + line))
                 sys.stdout.flush()
             except UnicodeDecodeError:
                 print(color + prefix + f"[RAW BYTES (decode error)]: {line_bytes!r}")

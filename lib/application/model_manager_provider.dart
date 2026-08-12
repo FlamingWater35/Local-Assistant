@@ -18,7 +18,10 @@ class DownloadStatus {
     this.estimatedTimeRemaining = 0,
   });
 
-  final String? error;
+  // Typed download error (flutter_gemma's sealed DownloadError). Kept as the
+  // structured type so the UI can render a localized message; the provider
+  // layer has no BuildContext to translate.
+  final DownloadError? error;
   final double estimatedTimeRemaining;
   final bool isDownloading;
   final bool isPaused;
@@ -161,7 +164,7 @@ class ModelDownloader extends _$ModelDownloader {
         ...state,
         model.id: DownloadStatus(
           isDownloading: false,
-          error: e.toString(),
+          error: _downloadErrorOf(e),
           isPaused: true,
           progress: lastProgress,
         ),
@@ -204,6 +207,14 @@ class ModelDownloader extends _$ModelDownloader {
       );
       rethrow;
     }
+  }
+
+  // Extracts flutter_gemma's typed DownloadError from a thrown exception.
+  // Preserves the structured type so the UI can render a localized message
+  // (401/403 gated models, 404 bad URL, 429 rate limit, 5xx, network, ...).
+  DownloadError? _downloadErrorOf(Object error) {
+    if (error is DownloadException) return error.error;
+    return null;
   }
 
   @override

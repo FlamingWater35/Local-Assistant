@@ -72,6 +72,7 @@
     "modelNotDownloaded": "所选模型尚未下载！",
     "errorWithDetails": "错误: $details",
     "storageManagement": "存储管理",
+    "orphanedFiles": "孤立文件",
     "cleanUpStorage": "清理存储空间",
     "cleanUpStorageSubtitle": "删除不完整或孤立的模型文件",
     "noOrphanedFiles": "未找到孤立文件。",
@@ -158,6 +159,16 @@
       "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "无法删除当前使用的模型。请先切换到其他模型。"
     },
+    "downloadErrors": {
+      "unauthorized": "需要身份验证（HTTP 401）。请提供有效的 HuggingFace 令牌。",
+      "forbidden": "访问被拒绝（HTTP 403）。您的 HuggingFace 令牌无效或无权访问此模型。对于受限模型，请在模型页面申请访问权限。",
+      "notFound": "未找到模型（HTTP 404）。请检查 URL 并确保模型存在。",
+      "rateLimited": "超出速率限制（HTTP 429）。请稍等几分钟后再试。",
+      "serverError": "服务器错误（HTTP $statusCode）。请稍后重试。",
+      "network": "网络错误：$message。请检查您的网络连接。",
+      "canceled": "下载已取消。",
+      "unknown": "下载失败：$message"
+    },
     "configurations": {
       "title": "设置配置",
       "add": "添加",
@@ -243,6 +254,7 @@
   "common": {
     "cancel": "取消",
     "delete": "删除",
-    "recommended": "推荐"
+    "recommended": "推荐",
+    "refresh": "刷新"
   }
 }

@@ -72,6 +72,7 @@
     "modelNotDownloaded": "Das ausgewählte Modell ist nicht heruntergeladen!",
     "errorWithDetails": "Fehler: $details",
     "storageManagement": "Speicherverwaltung",
+    "orphanedFiles": "Verwaiste Dateien",
     "cleanUpStorage": "Speicher bereinigen",
     "cleanUpStorageSubtitle": "Unvollständige oder verwaiste Modelldateien entfernen",
     "noOrphanedFiles": "Keine verwaisten Dateien gefunden.",
@@ -158,6 +159,16 @@
       "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Das aktive Modell kann nicht gelöscht werden. Wechseln Sie zuerst zu einem anderen Modell."
     },
+    "downloadErrors": {
+      "unauthorized": "Authentifizierung erforderlich (HTTP 401). Bitte geben Sie ein gültiges HuggingFace-Token an.",
+      "forbidden": "Zugriff verweigert (HTTP 403). Ihr HuggingFace-Token ist ungültig oder hat keinen Zugriff auf dieses Modell. Fordern Sie für eingeschränkte Modelle Zugriff auf der Modellseite an.",
+      "notFound": "Modell nicht gefunden (HTTP 404). Prüfen Sie die URL und stellen Sie sicher, dass das Modell existiert.",
+      "rateLimited": "Ratenlimit überschritten (HTTP 429). Warten Sie einige Minuten, bevor Sie es erneut versuchen.",
+      "serverError": "Serverfehler (HTTP $statusCode). Bitte versuchen Sie es später erneut.",
+      "network": "Netzwerkfehler: $message. Überprüfen Sie Ihre Internetverbindung.",
+      "canceled": "Der Download wurde abgebrochen.",
+      "unknown": "Download fehlgeschlagen: $message"
+    },
     "configurations": {
       "title": "Einstellungskonfigurationen",
       "add": "Hinzufügen",
@@ -243,6 +254,7 @@
   "common": {
     "cancel": "Abbrechen",
     "delete": "Löschen",
-    "recommended": "Empfohlen"
+    "recommended": "Empfohlen",
+    "refresh": "Aktualisieren"
   }
 }

@@ -1,12 +1,29 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Required for flutter_gemma large-model downloads (>500MB) that use an
+         Android foreground service (bypasses the 9-minute timeout). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:label="Local Assistant"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="false">
+        <!-- Android 14+ requires the foreground-service type to be declared
+             on the service element. androidx.work's SystemForegroundService
+             (used by background_downloader / flutter_gemma for large-model
+             downloads) is started with type dataSync, so we must declare it
+             here or the app crashes with
+             "foregroundServiceType ... is not a subset of ... attribute".
+             tools:replace overrides androidx.work's type-less declaration. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:replace="android:foregroundServiceType" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

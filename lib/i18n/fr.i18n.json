@@ -72,6 +72,7 @@
     "modelNotDownloaded": "Le modèle sélectionné n'est pas téléchargé !",
     "errorWithDetails": "Erreur: $details",
     "storageManagement": "Gestion du stockage",
+    "orphanedFiles": "Fichiers orphelins",
     "cleanUpStorage": "Nettoyer le stockage",
     "cleanUpStorageSubtitle": "Supprimer les fichiers de modèle incomplets ou orphelins",
     "noOrphanedFiles": "Aucun fichier orphelin trouvé.",
@@ -158,6 +159,16 @@
       "hfTokenPlaceholder": "hf_...",
       "cannotDeleteActiveModel": "Impossible de supprimer le modèle actif. Veuillez d'abord changer de modèle."
     },
+    "downloadErrors": {
+      "unauthorized": "Authentification requise (HTTP 401). Veuillez fournir un jeton HuggingFace valide.",
+      "forbidden": "Accès refusé (HTTP 403). Votre jeton HuggingFace est invalide ou n'a pas accès à ce modèle. Pour les modèles restreints, demandez l'accès sur la page du modèle.",
+      "notFound": "Modèle introuvable (HTTP 404). Vérifiez l'URL et assurez-vous que le modèle existe.",
+      "rateLimited": "Limite de débit dépassée (HTTP 429). Attendez quelques minutes avant de réessayer.",
+      "serverError": "Erreur serveur (HTTP $statusCode). Veuillez réessayer plus tard.",
+      "network": "Erreur réseau : $message. Vérifiez votre connexion Internet.",
+      "canceled": "Le téléchargement a été annulé.",
+      "unknown": "Échec du téléchargement : $message"
+    },
     "configurations": {
       "title": "Configurations de paramètres",
       "add": "Ajouter",
@@ -243,6 +254,7 @@
   "common": {
     "cancel": "Annuler",
     "delete": "Supprimer",
-    "recommended": "Recommandé"
+    "recommended": "Recommandé",
+    "refresh": "Actualiser"
   }
 }
